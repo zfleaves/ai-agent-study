@@ -230,24 +230,29 @@
 
 ---
 
-## 📅 第 9 周：Agent 记忆系统 — 让 Agent"记住"你
+## 📅 第 9 周：Agent 记忆系统 + 状态持久化
 
 ### 本周目标
-实现 Agent 的记忆系统：短期记忆、长期记忆、工作记忆三层架构。
+实现 Agent 的记忆系统：短期记忆、长期记忆、工作记忆三层架构。**关键：会话持久化到 SQLite/Redis，服务重启不丢数据。**
 
 | 天 | 主题 | 学习内容 | 知识点 | 动手 | 时长 |
 |---|---|---|---|---|---|
-| **Day 1** | 记忆系统架构 | 三层记忆：Working / Short-term / Long-term | 认知架构、记忆衰减、优先级策略 | 设计记忆系统架构图 | 40min |
-| **Day 2** | 短期记忆 | 对话窗口管理、滑动窗口、摘要压缩 | Token 预算分配、历史截断策略、关键信息保留 | 实现对话历史管理器（窗口+摘要） | 45min |
-| **Day 3** | 长期记忆 | 用户偏好存储、向量化记忆检索、记忆更新 | 记忆向量化、相关性检索、记忆合并策略 | 用 LanceDB 实现长期记忆存储 | 50min |
-| **Day 4** | 记忆整合 | 三层记忆联动、记忆注入 Prompt、遗忘机制 | 记忆优先级、Prompt 拼接策略、过期清理 | 给 Agent 加上完整记忆系统 | 50min |
-| **Day 5** | 复盘 + Demo | 有记忆的 Agent | 周复盘 | **Demo 8：记忆 Agent**（记得你是谁、聊过什么、偏好什么） | 50min |
+| **Day 1** | 记忆系统架构 | 三层记忆：Working / Short-term / Long-term；为什么内存不够，必须持久化 | 认知架构、记忆衰减、优先级策略、内存 vs 磁盘存储 | 设计记忆系统架构图（含持久化层） | 40min |
+| **Day 2** | 短期记忆 + 会话持久化 | 对话窗口管理、滑动窗口、摘要压缩；**用 SQLite 持久化会话历史** | Token 预算分配、历史截断策略、SQLite 表设计、会话恢复 | 实现对话历史管理器（窗口+摘要+SQLite 持久化，重启不丢） | 50min |
+| **Day 3** | 长期记忆 + 结构化存储 | 用户偏好存储、向量化记忆检索、记忆更新；**用 SQLite 存结构化数据，LanceDB 存向量** | 记忆向量化、相关性检索、记忆合并策略、SQLite vs Redis 选型 | 用 LanceDB + SQLite 实现长期记忆双层存储 | 50min |
+| **Day 4** | 记忆整合 + 生产方案 | 三层记忆联动、记忆注入 Prompt、遗忘机制；**Redis 替代 SQLite 的生产方案** | 记忆优先级、Prompt 拼接策略、过期清理、Redis 会话缓存模式 | 给 Agent 加上完整记忆系统 + 写一个 Redis 迁移方案文档 | 50min |
+| **Day 5** | 复盘 + Demo | 有记忆的 Agent，重启不丢 | 周复盘 | **Demo 8：记忆 Agent**（跨会话记忆 + 服务重启恢复） | 50min |
 
-### 🎯 Demo 8：记忆 Agent
+### 🎯 Demo 8：记忆 Agent（含持久化）
 ```
-功能：Agent 记住用户的名字、偏好、历史话题 → 跨会话保持记忆
-技术：Node.js + TypeScript + LanceDB + Hermes + 三层记忆架构
-关键点：跨会话记忆恢复、偏好学习、记忆衰减、遗忘策略
+功能：Agent 记住用户的名字、偏好、历史话题 → 关闭终端 → 重新打开 → 记忆还在
+技术：Node.js + TypeScript + SQLite（better-sqlite3） + LanceDB + Hermes + 三层记忆架构
+关键点：
+  - SQLite 存会话历史（session_id → messages JSON）
+  - LanceDB 存长期记忆向量（用户偏好、重要事实）
+  - 服务启动时自动恢复最近会话
+  - 过期会话自动清理（TTL）
+  - 生产方案文档：Redis 替代 SQLite 做会话缓存
 ```
 
 ---
@@ -472,7 +477,7 @@
 | Agent 核心 | 3-4 | Tool-calling + Agent 循环 | Demo 2-3：工具 Agent | Function Calling、ReAct 循环 |
 | 知识库 | 5-6 | RAG + 本地知识库 | Demo 4-5：知识库 | Embedding、向量数据库、检索、LlamaIndex TS |
 | 框架 | 7-8 | Vercel AI SDK + MCP | Demo 6-7：前端 Agent | AI SDK、MCP 协议 |
-| 进阶 | 9-10 | 记忆系统 + 多 Agent | Demo 8-9：记忆/团队 | 记忆架构、Agent 协作 |
+| 进阶 | 9-10 | 记忆系统 + 持久化 + 多 Agent | Demo 8-9：记忆/团队 | 记忆架构、SQLite/Redis、Agent 协作 |
 | Java | 11-12 | Spring AI + LangChain4j | Demo 10-11J：Java Agent | Java 企业级 Agent 开发 |
 | Python | 13-14 | LangChain + FastAPI | Demo 12-13Py：Python Agent | Python AI 生态、三语言对比 |
 | 调优+落地 | 15-16 | 微调 + 部署 + 综合项目 | Demo 14-15：微调+作品集 | Fine-tuning、vLLM、Docker、全栈 |
@@ -570,6 +575,8 @@
 
 ### 进阶
 - [ ] Agent 记忆系统（三层架构：Working / Short-term / Long-term）
+- [ ] **会话持久化**：SQLite 存会话历史 + LanceDB 存向量记忆，服务重启不丢
+- [ ] **Redis 会话缓存**：生产环境替代 SQLite，TTL 自动过期
 - [ ] Entity Memory（实体记忆，跨会话追踪用户提及的实体）
 - [ ] 多 Agent 协作模式
 - [ ] LangGraph（状态图、条件分支、Agent 编排）
