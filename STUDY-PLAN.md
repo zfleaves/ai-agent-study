@@ -1,7 +1,8 @@
 # AI Agent 开发工程师 — 16 周完整学习计划
 
 > 以 Hermes Agent 为核心载体，从前端到 AI Agent 全栈，每日 30-60 分钟
-> **主语言 TypeScript** · 第 11 周起引入 **Java** · 第 13 周起引入 **Python**
+> **主语言 TypeScript** · 第 11 周起 **Java** · 第 13 周起 **Python**
+> **📊 覆盖率：~95%**（对照 BOSS 直聘 2026 JD）
 
 **⚠️ 开始前必读：[环境准备清单](./reference/environment-setup.html)** — 硬件、软件、模型下载、前置知识检查
 **⚠️ JD 对照：[岗位需求分析](./reference/jd-analysis.html)** — boss 直聘 JD 逐条对照
@@ -163,7 +164,7 @@
 | **Day 1** | 多文档索引 | 批量文档导入、目录递归、Metadata 管理 | 文档来源标记、更新策略、增量索引 | 实现对项目代码库的索引 | 45min |
 | **Day 2** | 检索优化 | 混合检索（关键词+语义）、重排序（Rerank）、多路召回 | BM25 + 向量混合、Cross-encoder Reranker、检索质量评估 | 实现混合检索 + Rerank | 50min |
 | **Day 3** | 中文优化 | 中文分词、中文 Embedding 模型、多语言处理 | jieba 分词、BGE 中文 Embedding、中英混合检索 | 切换中文 Embedding 模型对比效果 | 45min |
-| **Day 4** | RAG 高级模式 | 摘要索引、分层索引、查询改写、HyDE | 查询扩展、假设文档嵌入、父子文档检索 | 实现查询改写 + 分层检索 | 45min |
+| **Day 4** | RAG 高级模式 | 摘要索引、分层索引、查询改写、HyDE、GraphRAG 概念 | 查询扩展、假设文档嵌入、父子文档检索、图 RAG 适用场景 | 实现查询改写 + 分层检索 | 45min |
 | **Day 5** | 复盘 + Demo | 本周知识点回顾，多文档知识库 | 周复盘 | **Demo 5：本地知识库系统**（多文档 + 优化检索） | 50min |
 
 ### 🎯 Demo 5：本地知识库系统
@@ -258,7 +259,7 @@
 | 天 | 主题 | 学习内容 | 知识点 | 动手 | 时长 |
 |---|---|---|---|---|---|
 | **Day 1** | 多 Agent 模式 | Supervisor、Peer-to-Peer、Hierarchical、Swarm | 各模式适用场景、通信协议、任务分配 | 设计一个多 Agent 系统架构 | 40min |
-| **Day 2** | Agent 通信 | Agent 间消息传递、任务委托、结果汇总 | 消息格式、委托协议、冲突解决 | 实现两个 Agent 的通信 | 45min |
+| **Day 2** | Agent 通信 + LangGraph 入门 | Agent 间消息传递、任务委托、结果汇总；LangGraph 状态图、节点、条件边 | 消息格式、委托协议、冲突解决；LangGraph vs 手写 Agent 循环 | 实现两个 Agent 的通信 + 用 LangGraph TS 写一个简单的 Agent 图 | 50min |
 | **Day 3** | 角色分工 | 专家 Agent 设计、任务路由、质量审查 | 角色定义、专长领域、审查 Agent | 实现 3 个角色 Agent（研究员/编码/审查） | 50min |
 | **Day 4** | 工作流编排 | 串行流水线、并行执行、条件分支、人工审批 | DAG 工作流、状态机、中断点 | 实现 Agent 工作流引擎 | 50min |
 | **Day 5** | 复盘 + Demo | 多 Agent 系统 | 周复盘 | **Demo 9：Agent 团队**（3 个 Agent 协作完成任务） | 60min |
@@ -369,24 +370,26 @@
 
 ---
 
-## 📅 第 15 周：模型调优 + 生产部署
+## 📅 第 15 周：模型调优 + Agent 评估 + 生产部署
 
 ### 本周目标
-学习 Fine-tuning（微调）概念和 LoRA 实践，理解 vLLM 生产级模型部署。
+学习 Fine-tuning + LoRA 实践，建立 Agent 评估体系，掌握 Guardrails 安全护栏，理解 vLLM 生产部署。
 
 | 天 | 主题 | 学习内容 | 知识点 | 动手 | 时长 |
 |---|---|---|---|---|---|
 | **Day 1** | Fine-tuning 概念 | 全量微调 vs 参数高效微调（PEFT）、LoRA 原理 | Transformer 微调、LoRA 低秩适配、Adapter | 理解 LoRA 论文核心思想（不需要读全文） | 45min |
-| **Day 2** | LoRA 微调实践 | 用公开数据集微调一个 LoRA 适配器 | 数据集准备、训练参数、合并权重 | 用 LlamaFactory 或 unsloth 微调 Hermes 子任务 | 60min |
-| **Day 3** | vLLM 生产部署 | vLLM 原理、PagedAttention、与 Ollama 对比 | 吞吐量、延迟、并发、KV Cache 优化 | 安装 vLLM，部署 Hermes 模型，压测对比 | 60min |
-| **Day 4** | 生产架构设计 | 负载均衡、模型热切换、灰度发布、监控告警 | Agent 服务的生产架构、SLA 设计 | 画生产架构图，写部署方案 | 50min |
-| **Day 5** | 复盘 + 总结 | 模型调优 + 部署完成 | 周复盘 | **Demo 14：微调模型 + 生产部署方案** | 50min |
+| **Day 2** | Agent 评估体系 | 评估指标（准确率、工具选择正确率、幻觉率）、LangSmith 可观测性、Eval 数据集 | 评估维度设计、Tracing、A/B 测试、数据飞轮 | 给 Demo 3 的 Agent 写一套评估脚本 | 50min |
+| **Day 3** | Guardrails 安全护栏 | 工具调用权限控制、输出校验、敏感词过滤、越权检测 | Guardrails AI、NeMo Guardrails、自定义校验规则 | 给 Agent 加工具调用权限 + 输出校验 | 45min |
+| **Day 4** | vLLM 生产部署 + LoRA 实践 | vLLM 原理、PagedAttention、与 Ollama 对比；LoRA 微调实践 | 吞吐量、延迟、并发、KV Cache 优化；数据集准备、训练参数 | 安装 vLLM 部署 Hermes + 微调一个 LoRA 适配器 | 60min |
+| **Day 5** | 复盘 + 总结 | 模型调优 + 评估 + 部署 | 周复盘 | **Demo 14：微调模型 + 评估体系 + 部署方案** | 50min |
 
-### 🎯 Demo 14：微调模型 + 生产部署方案
+### 🎯 Demo 14：微调模型 + 评估 + 部署
 ```
 功能：
   - LoRA 微调：用 100 条数据微调 Hermes 的特定任务能力
+  - Agent 评估：工具选择准确率、任务完成率、幻觉率
   - vLLM 部署：对比 Ollama vs vLLM 的吞吐量和延迟
+  - Guardrails：工具调用权限校验 + 输出安全过滤
   - 部署方案：Docker Compose 编排（Ollama + Agent + 前端）
 ```
 
@@ -553,6 +556,7 @@
 - [ ] 混合检索（BM25 + 向量）
 - [ ] Rerank 重排序
 - [ ] 查询改写与扩展
+- [ ] GraphRAG 概念与适用场景
 - [ ] LlamaIndex TS 使用
 
 ### 框架与协议
@@ -564,7 +568,10 @@
 ### 进阶
 - [ ] Agent 记忆系统（三层架构）
 - [ ] 多 Agent 协作模式
-- [ ] Agent 评估方法
+- [ ] LangGraph（状态图、条件分支、Agent 编排）
+- [ ] CrewAI / AutoGen 概念
+- [ ] Agent 评估方法（准确率、工具选择率、幻觉率、LangSmith）
+- [ ] Guardrails 安全护栏（权限控制、输出校验）
 - [ ] 部署方案（Docker / 本地）
 
 ### ☕ Java 企业级（第 11-12 周）

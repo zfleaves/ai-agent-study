@@ -3,131 +3,267 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>JD 对照分析 — AI Agent 开发工程师</title>
+<title>BOSS 直聘 AI Agent 岗位 vs 课程对照</title>
 <link rel="stylesheet" href="../assets/style.css">
 </head>
 <body>
 
-<h1>📋 JD 对照分析</h1>
+<h1>📊 BOSS 直聘 AI Agent 岗位 vs 课程覆盖</h1>
 
-<p><span class="tag tag--amber">2026-07-09</span> <span class="tag tag--blue">boss 直聘</span></p>
+<p><span class="tag tag--amber">2026-07-09</span> <span class="tag tag--blue">市场调研</span></p>
 
 <blockquote>
-  <strong>岗位：</strong>AI 应用开发工程师 / AI Agent 开发<br>
-  <strong>薪资：</strong>15-25K
+  <strong>数据来源：</strong>BOSS 直聘 2025-2026 年 AI Agent 开发工程师 JD、LinkedIn、各家招聘趋势
+  <br><strong>薪资范围（一线城市）：</strong>校招 15-35K · 社招 1-3年 25-50K · 资深 50-80K
 </blockquote>
 
-<h2>职位描述 vs 学习计划</h2>
+<h2>一、核心要求覆盖度</h2>
 
 <table style="width:100%; border-collapse: collapse; margin: 1rem 0;">
   <tr style="border-bottom: 2px solid var(--border);">
-    <th style="text-align:left; padding: 0.5rem; width: 35%;">JD 要求</th>
-    <th style="text-align:left; padding: 0.5rem; width: 15%;">覆盖</th>
-    <th style="text-align:left; padding: 0.5rem;">我们的计划</th>
+    <th style="text-align:left; padding: 0.5rem; width: 25%;">市场要求</th>
+    <th style="text-align:left; padding: 0.5rem; width: 10%;">重要度</th>
+    <th style="text-align:left; padding: 0.5rem; width: 10%;">覆盖</th>
+    <th style="text-align:left; padding: 0.5rem;">我们的课程</th>
+  </tr>
+
+  <tr style="background: #f0fdf4;">
+    <td colspan="4" style="padding: 0.5rem; font-weight: 700;">🟢 核心链路 — 全覆盖</td>
   </tr>
   <tr style="border-bottom: 1px solid var(--border);">
-    <td style="padding: 0.5rem;">智能对话、智能问答、AI Agent 开发</td>
-    <td style="padding: 0.5rem;"><span class="tag tag--green">✅ 覆盖</span></td>
-    <td style="padding: 0.5rem;">Demo 1-10 全部覆盖，从对话到 Agent 到知识库</td>
+    <td style="padding: 0.5rem;">Function Calling / Tool-use</td>
+    <td style="padding: 0.5rem;"><span class="tag tag--red">必须</span></td>
+    <td style="padding: 0.5rem;"><span class="tag tag--green">✅</span></td>
+    <td style="padding: 0.5rem;">第 3-4 周深度实战，TS/Java/Python 三语言实现</td>
   </tr>
   <tr style="border-bottom: 1px solid var(--border);">
-    <td style="padding: 0.5rem;">RAG、Agent、Function Calling 架构设计</td>
-    <td style="padding: 0.5rem;"><span class="tag tag--green">✅ 覆盖</span></td>
-    <td style="padding: 0.5rem;">第 3-6 周核心内容，三个专题深入</td>
+    <td style="padding: 0.5rem;">RAG（检索增强生成）</td>
+    <td style="padding: 0.5rem;"><span class="tag tag--red">必须</span></td>
+    <td style="padding: 0.5rem;"><span class="tag tag--green">✅</span></td>
+    <td style="padding: 0.5rem;">第 5-6 周全链路：分割→向量化→混合检索→Rerank→生成</td>
   </tr>
   <tr style="border-bottom: 1px solid var(--border);">
-    <td style="padding: 0.5rem;">熟悉 Python 或 Java</td>
+    <td style="padding: 0.5rem;">向量数据库（Milvus/Chroma）</td>
+    <td style="padding: 0.5rem;"><span class="tag tag--red">必须</span></td>
+    <td style="padding: 0.5rem;"><span class="tag tag--green">✅</span></td>
+    <td style="padding: 0.5rem;">LanceDB + Chroma，第 5-6 周实战</td>
+  </tr>
+  <tr style="border-bottom: 1px solid var(--border);">
+    <td style="padding: 0.5rem;">Prompt Engineering</td>
+    <td style="padding: 0.5rem;"><span class="tag tag--red">必须</span></td>
+    <td style="padding: 0.5rem;"><span class="tag tag--green">✅</span></td>
+    <td style="padding: 0.5rem;">第 2 周：Few-shot、CoT、System Prompt 设计</td>
+  </tr>
+  <tr style="border-bottom: 1px solid var(--border);">
+    <td style="padding: 0.5rem;">Agent 范式（ReAct/Plan-Execute）</td>
+    <td style="padding: 0.5rem;"><span class="tag tag--red">必须</span></td>
+    <td style="padding: 0.5rem;"><span class="tag tag--green">✅</span></td>
+    <td style="padding: 0.5rem;">第 4 周完整实现 ReAct + Plan-Execute</td>
+  </tr>
+
+  <tr style="background: #fffbeb;">
+    <td colspan="4" style="padding: 0.5rem; font-weight: 700;">🟡 重要但需补充</td>
+  </tr>
+  <tr style="border-bottom: 1px solid var(--border);">
+    <td style="padding: 0.5rem;"><strong>LangGraph（Agent 编排）</strong></td>
+    <td style="padding: 0.5rem;"><span class="tag tag--red">必须</span></td>
+    <td style="padding: 0.5rem;"><span class="tag tag--red">❌ 缺失</span></td>
+    <td style="padding: 0.5rem;"><strong>这是最大缺口！</strong>LangGraph 是 #1 Agent 编排框架，JD 高频出现。需要增加</td>
+  </tr>
+  <tr style="border-bottom: 1px solid var(--border);">
+    <td style="padding: 0.5rem;"><strong>Agent 评估体系</strong></td>
+    <td style="padding: 0.5rem;"><span class="tag tag--amber">重要</span></td>
+    <td style="padding: 0.5rem;"><span class="tag tag--amber">⚠️ 弱</span></td>
+    <td style="padding: 0.5rem;">仅在第 12 周/Day 2 提了一句。JD 要求"构建评估、监控、日志系统和数据飞轮"</td>
+  </tr>
+  <tr style="border-bottom: 1px solid var(--border);">
+    <td style="padding: 0.5rem;"><strong>CrewAI / AutoGen（多 Agent 框架）</strong></td>
+    <td style="padding: 0.5rem;"><span class="tag tag--amber">重要</span></td>
     <td style="padding: 0.5rem;"><span class="tag tag--amber">⚠️ 部分</span></td>
-    <td style="padding: 0.5rem;">Java 第 9 周起引入，但 <strong>Python 缺失</strong>。JD 写的是"或"，Java 够用，但 Python 在 AI 生态更主流</td>
+    <td style="padding: 0.5rem;">第 10 周手写了多 Agent，但没有教主流框架。面试会问"用过 CrewAI 吗"</td>
   </tr>
   <tr style="border-bottom: 1px solid var(--border);">
-    <td style="padding: 0.5rem;">熟悉 Spring Boot / Spring Cloud</td>
-    <td style="padding: 0.5rem;"><span class="tag tag--amber">⚠️ 部分</span></td>
-    <td style="padding: 0.5rem;">Spring Boot 在第 10 周，但 <strong>Spring Cloud 未覆盖</strong></td>
+    <td style="padding: 0.5rem;"><strong>GraphRAG（图 RAG）</strong></td>
+    <td style="padding: 0.5rem;"><span class="tag tag--amber">加分</span></td>
+    <td style="padding: 0.5rem;"><span class="tag tag--red">❌ 缺失</span></td>
+    <td style="padding: 0.5rem;">2026 年 RAG 新范式，JD 中开始出现</td>
   </tr>
   <tr style="border-bottom: 1px solid var(--border);">
-    <td style="padding: 0.5rem;">主流大模型（GPT、Claude、Llama）使用和调优</td>
-    <td style="padding: 0.5rem;"><span class="tag tag--amber">⚠️ 部分</span></td>
-    <td style="padding: 0.5rem;">Hermes/Llama/Qwen 使用覆盖，但 <strong>模型调优（Fine-tuning）未覆盖</strong></td>
+    <td style="padding: 0.5rem;"><strong>Guardrails / 安全护栏</strong></td>
+    <td style="padding: 0.5rem;"><span class="tag tag--amber">加分</span></td>
+    <td style="padding: 0.5rem;"><span class="tag tag--red">❌ 缺失</span></td>
+    <td style="padding: 0.5rem;">生产环境必备，防止 Agent 乱调用工具</td>
+  </tr>
+
+  <tr style="background: #eff6ff;">
+    <td colspan="4" style="padding: 0.5rem; font-weight: 700;">🔵 语言与框架 — 已覆盖</td>
   </tr>
   <tr style="border-bottom: 1px solid var(--border);">
-    <td style="padding: 0.5rem;">LangChain、LlamaIndex 等 AI 开发框架</td>
-    <td style="padding: 0.5rem;"><span class="tag tag--green">✅ 覆盖</span></td>
-    <td style="padding: 0.5rem;">LangChain.js + LlamaIndex TS 在资源中，需要提升到课程中</td>
+    <td style="padding: 0.5rem;">Python（必须）</td>
+    <td style="padding: 0.5rem;"><span class="tag tag--red">必须</span></td>
+    <td style="padding: 0.5rem;"><span class="tag tag--green">✅</span></td>
+    <td style="padding: 0.5rem;">第 13-14 周：LangChain Python + LlamaIndex + FastAPI</td>
   </tr>
   <tr style="border-bottom: 1px solid var(--border);">
-    <td style="padding: 0.5rem;">向量数据库（Milvus、Pinecone、Chroma）</td>
-    <td style="padding: 0.5rem;"><span class="tag tag--green">✅ 覆盖</span></td>
-    <td style="padding: 0.5rem;">LanceDB/Chroma，第 5-6 周。Milvus 可后续了解</td>
+    <td style="padding: 0.5rem;">TypeScript / Java（加分）</td>
+    <td style="padding: 0.5rem;"><span class="tag tag--amber">加分</span></td>
+    <td style="padding: 0.5rem;"><span class="tag tag--green">✅</span></td>
+    <td style="padding: 0.5rem;">TS 全程 + Java 第 11-12 周。你的 TS 背景是优势</td>
   </tr>
   <tr style="border-bottom: 1px solid var(--border);">
-    <td style="padding: 0.5rem;">MCP 协议开发经验（优先）</td>
-    <td style="padding: 0.5rem;"><span class="tag tag--green">✅ 覆盖</span></td>
-    <td style="padding: 0.5rem;">第 8 周专题 + Demo 7，这是我们的 <strong>差异化优势</strong></td>
+    <td style="padding: 0.5rem;">MCP 协议</td>
+    <td style="padding: 0.5rem;"><span class="tag tag--amber">重要→必须</span></td>
+    <td style="padding: 0.5rem;"><span class="tag tag--green">✅</span></td>
+    <td style="padding: 0.5rem;">第 8 周专题 + 三语言 MCP Server。这是你的 <strong>差异化优势</strong></td>
   </tr>
   <tr style="border-bottom: 1px solid var(--border);">
-    <td style="padding: 0.5rem;">本地模型部署经验（Ollama、vLLM）</td>
-    <td style="padding: 0.5rem;"><span class="tag tag--amber">⚠️ 部分</span></td>
-    <td style="padding: 0.5rem;">Ollama 全覆盖，但 <strong>vLLM 未覆盖</strong>（生产级模型服务）</td>
+    <td style="padding: 0.5rem;">LangChain / LlamaIndex</td>
+    <td style="padding: 0.5rem;"><span class="tag tag--red">必须</span></td>
+    <td style="padding: 0.5rem;"><span class="tag tag--green">✅</span></td>
+    <td style="padding: 0.5rem;">TS 版 + Python 版 + Java 版，三语言覆盖</td>
+  </tr>
+
+  <tr style="background: #fee2e2;">
+    <td colspan="4" style="padding: 0.5rem; font-weight: 700;">🔴 工程化与部署 — 需加强</td>
+  </tr>
+  <tr style="border-bottom: 1px solid var(--border);">
+    <td style="padding: 0.5rem;">Docker / K8s</td>
+    <td style="padding: 0.5rem;"><span class="tag tag--amber">重要</span></td>
+    <td style="padding: 0.5rem;"><span class="tag tag--amber">⚠️ 弱</span></td>
+    <td style="padding: 0.5rem;">仅 Docker，K8s 未覆盖。需要补充多云部署概念</td>
+  </tr>
+  <tr style="border-bottom: 1px solid var(--border);">
+    <td style="padding: 0.5rem;">vLLM / TensorRT-LLM</td>
+    <td style="padding: 0.5rem;"><span class="tag tag--amber">重要</span></td>
+    <td style="padding: 0.5rem;"><span class="tag tag--green">✅</span></td>
+    <td style="padding: 0.5rem;">第 15 周：vLLM 原理 + 与 Ollama 对比</td>
+  </tr>
+  <tr style="border-bottom: 1px solid var(--border);">
+    <td style="padding: 0.5rem;">LoRA / QLoRA 微调</td>
+    <td style="padding: 0.5rem;"><span class="tag tag--amber">重要</span></td>
+    <td style="padding: 0.5rem;"><span class="tag tag--green">✅</span></td>
+    <td style="padding: 0.5rem;">第 15 周：LoRA 原理 + 实践</td>
   </tr>
   <tr>
-    <td style="padding: 0.5rem;">前端开发经验优先（React、Vue）</td>
-    <td style="padding: 0.5rem;"><span class="tag tag--green">✅ 天然优势</span></td>
-    <td style="padding: 0.5rem;">你的前端背景是加分项，第 7/11 周强化</td>
+    <td style="padding: 0.5rem;">CI/CD + 监控（LangSmith）</td>
+    <td style="padding: 0.5rem;"><span class="tag tag--amber">加分</span></td>
+    <td style="padding: 0.5rem;"><span class="tag tag--red">❌ 缺失</span></td>
+    <td style="padding: 0.5rem;">Agent 可观测性是生产必备，面试常问</td>
   </tr>
 </table>
 
-<h2>🚨 需要补的缺口</h2>
-
-<div class="card card--warn">
-  <div class="card__title">优先级排序</div>
-
-  <table style="width:100%; border-collapse: collapse; margin: 1rem 0;">
-    <tr style="border-bottom: 2px solid var(--border);">
-      <th style="text-align:left; padding: 0.5rem;">优先级</th>
-      <th style="text-align:left; padding: 0.5rem;">缺口</th>
-      <th style="text-align:left; padding: 0.5rem;">严重程度</th>
-      <th style="text-align:left; padding: 0.5rem;">解决方案</th>
-    </tr>
-    <tr style="border-bottom: 1px solid var(--border);">
-      <td style="padding: 0.5rem;">🔴 1</td>
-      <td style="padding: 0.5rem;"><strong>Python 基础</strong></td>
-      <td style="padding: 0.5rem;">AI 生态第一语言，很多工具和教程是 Python 的</td>
-      <td style="padding: 0.5rem;">增加 Python 并行轨道（同 Java 策略：TS 学概念，Python 学写法），第 9 周起</td>
-    </tr>
-    <tr style="border-bottom: 1px solid var(--border);">
-      <td style="padding: 0.5rem;">🔴 2</td>
-      <td style="padding: 0.5rem;"><strong>模型调优 / Fine-tuning</strong></td>
-      <td style="padding: 0.5rem;">JD 明确要求"使用和调优"，面试大概率问</td>
-      <td style="padding: 0.5rem;">增加第 11 周专题：LoRA 微调概念 + 实践</td>
-    </tr>
-    <tr style="border-bottom: 1px solid var(--border);">
-      <td style="padding: 0.5rem;">🟡 3</td>
-      <td style="padding: 0.5rem;"><strong>vLLM 生产部署</strong></td>
-      <td style="padding: 0.5rem;">Ollama 是开发工具，vLLM 是生产标配</td>
-      <td style="padding: 0.5rem;">第 12 周增加 vLLM 概念 + 对比（Ollama vs vLLM）</td>
-    </tr>
-    <tr style="border-bottom: 1px solid var(--border);">
-      <td style="padding: 0.5rem;">🟡 4</td>
-      <td style="padding: 0.5rem;"><strong>Spring Cloud</strong></td>
-      <td style="padding: 0.5rem;">JD 提到但非核心，理解为"微服务部署"即可</td>
-      <td style="padding: 0.5rem;">第 12 周 Java 轨道简单介绍 Spring Cloud 与 AI 集成</td>
-    </tr>
-    <tr>
-      <td style="padding: 0.5rem;">🟢 5</td>
-      <td style="padding: 0.5rem;"><strong>LlamaIndex 实战</strong></td>
-      <td style="padding: 0.5rem;">资源里有但课程中未展开</td>
-      <td style="padding: 0.5rem;">第 5-6 周 RAG 课程中增加 LlamaIndex TS 对比</td>
-    </tr>
-  </table>
-</div>
-
-<h2>📊 覆盖率总评</h2>
+<h2>二、覆盖率总评</h2>
 
 <div class="card card--success">
-  <div class="card__title">当前覆盖率：~75%</div>
-  <p>核心技能（Agent、RAG、MCP、向量数据库、本地部署）全部覆盖。前端经验是天然加分项。</p>
-  <p><strong>补齐 Python + 模型调优后，覆盖率可达 ~90%。</strong></p>
+  <div class="card__title">当前覆盖率：~85%</div>
+  <p>核心链路（Function Calling + RAG + Agent 循环 + MCP）全部覆盖。三语言能力是显著优势。</p>
+</div>
+
+<h2>三、需要补的 4 个缺口</h2>
+
+<table style="width:100%; border-collapse: collapse; margin: 1rem 0;">
+  <tr style="border-bottom: 2px solid var(--border);">
+    <th style="text-align:left; padding: 0.5rem;">#</th>
+    <th style="text-align:left; padding: 0.5rem;">缺口</th>
+    <th style="text-align:left; padding: 0.5rem;">为什么重要</th>
+    <th style="text-align:left; padding: 0.5rem;">建议</th>
+  </tr>
+  <tr style="border-bottom: 1px solid var(--border);">
+    <td style="padding: 0.5rem;">🔴 1</td>
+    <td style="padding: 0.5rem;"><strong>LangGraph</strong></td>
+    <td style="padding: 0.5rem;">#1 Agent 编排框架，JD 高频出现。有状态图、条件分支、人机协作</td>
+    <td style="padding: 0.5rem;">第 10 周增加 LangGraph 专题（TS 版 + Python 版）</td>
+  </tr>
+  <tr style="border-bottom: 1px solid var(--border);">
+    <td style="padding: 0.5rem;">🔴 2</td>
+    <td style="padding: 0.5rem;"><strong>Agent 评估体系</strong></td>
+    <td style="padding: 0.5rem;">"如何评估 Agent 好不好"是面试高频题。LangSmith、Eval 指标</td>
+    <td style="padding: 0.5rem;">第 15 周增加 Agent Eval 专题</td>
+  </tr>
+  <tr style="border-bottom: 1px solid var(--border);">
+    <td style="padding: 0.5rem;">🟡 3</td>
+    <td style="padding: 0.5rem;"><strong>CrewAI + GraphRAG</strong></td>
+    <td style="padding: 0.5rem;">多 Agent 框架 + 图 RAG 是 2026 年新趋势</td>
+    <td style="padding: 0.5rem;">第 10 周提 CrewAI，第 6 周提 GraphRAG 概念</td>
+  </tr>
+  <tr>
+    <td style="padding: 0.5rem;">🟡 4</td>
+    <td style="padding: 0.5rem;"><strong>Guardrails 安全护栏</strong></td>
+    <td style="padding: 0.5rem;">生产 Agent 必须防止越权调用、幻觉输出</td>
+    <td style="padding: 0.5rem;">第 15 周工程化部分增加</td>
+  </tr>
+</table>
+
+<h2>四、面试常问 vs 课程覆盖</h2>
+
+<table style="width:100%; border-collapse: collapse; margin: 1rem 0;">
+  <tr style="border-bottom: 2px solid var(--border);">
+    <th style="text-align:left; padding: 0.5rem;">面试问题</th>
+    <th style="text-align:left; padding: 0.5rem;">覆盖</th>
+    <th style="text-align:left; padding: 0.5rem;">课程出处</th>
+  </tr>
+  <tr style="border-bottom: 1px solid var(--border);">
+    <td style="padding: 0.5rem;">"Agent 的 ReAct 循环是怎么实现的？"</td>
+    <td style="padding: 0.5rem;">✅</td>
+    <td style="padding: 0.5rem;">第 4 周</td>
+  </tr>
+  <tr style="border-bottom: 1px solid var(--border);">
+    <td style="padding: 0.5rem;">"RAG 的检索精度怎么优化？"</td>
+    <td style="padding: 0.5rem;">✅</td>
+    <td style="padding: 0.5rem;">第 6 周（混合检索 + Rerank + 查询改写）</td>
+  </tr>
+  <tr style="border-bottom: 1px solid var(--border);">
+    <td style="padding: 0.5rem;">"MCP 协议是什么？怎么实现？"</td>
+    <td style="padding: 0.5rem;">✅</td>
+    <td style="padding: 0.5rem;">第 8 周（三语言 MCP Server）</td>
+  </tr>
+  <tr style="border-bottom: 1px solid var(--border);">
+    <td style="padding: 0.5rem;">"LangGraph 和 LangChain 什么关系？"</td>
+    <td style="padding: 0.5rem;">❌</td>
+    <td style="padding: 0.5rem;"><strong>需要补</strong></td>
+  </tr>
+  <tr style="border-bottom: 1px solid var(--border);">
+    <td style="padding: 0.5rem;">"怎么评估一个 Agent 的好坏？"</td>
+    <td style="padding: 0.5rem;">⚠️</td>
+    <td style="padding: 0.5rem;"><strong>需要加强</strong></td>
+  </tr>
+  <tr style="border-bottom: 1px solid var(--border);">
+    <td style="padding: 0.5rem;">"多 Agent 之间怎么通信和协作？"</td>
+    <td style="padding: 0.5rem;">✅</td>
+    <td style="padding: 0.5rem;">第 10 周</td>
+  </tr>
+  <tr style="border-bottom: 1px solid var(--border);">
+    <td style="padding: 0.5rem;">"Agent 记忆系统怎么设计？"</td>
+    <td style="padding: 0.5rem;">✅</td>
+    <td style="padding: 0.5rem;">第 9 周（三层记忆架构）</td>
+  </tr>
+  <tr style="border-bottom: 1px solid var(--border);">
+    <td style="padding: 0.5rem;">"LoRA 微调的原理是什么？"</td>
+    <td style="padding: 0.5rem;">✅</td>
+    <td style="padding: 0.5rem;">第 15 周</td>
+  </tr>
+  <tr style="border-bottom: 1px solid var(--border);">
+    <td style="padding: 0.5rem;">"怎么防止 Agent 产生幻觉？"</td>
+    <td style="padding: 0.5rem;">⚠️</td>
+    <td style="padding: 0.5rem;"><strong>需要加强</strong>（Guardrails + RAG 引用）</td>
+  </tr>
+  <tr>
+    <td style="padding: 0.5rem;">"从原型到生产，你做了哪些优化？"</td>
+    <td style="padding: 0.5rem;">⚠️</td>
+    <td style="padding: 0.5rem;"><strong>需要加强</strong>（可观测性 + 安全 + 性能）</td>
+  </tr>
+</table>
+
+<h2>五、调整建议</h2>
+
+<div class="card card--accent">
+  <div class="card__title">补上 4 个缺口后，覆盖率可达 ~95%</div>
+  <ol>
+    <li><strong>第 10 周增加 LangGraph 专题</strong>（1 天）：状态图、条件分支、人机协作</li>
+    <li><strong>第 15 周增加 Agent Eval 专题</strong>（1 天）：评估指标、LangSmith、A/B 测试</li>
+    <li><strong>第 6 周提 GraphRAG</strong>（30 分钟）：概念 + 适用场景</li>
+    <li><strong>第 15 周增加 Guardrails</strong>（30 分钟）：工具调用权限、输出校验</li>
+  </ol>
 </div>
 
 </body>
