@@ -25,6 +25,7 @@
 
 ```
 当前阶段：第 1 周 — 认知地基
+计划版本：v2.0（16 周，3 语言）
 已完成：  Day 1 ✅（第 1 课：Hermes Agent 全景概览）
 下一步：  Day 2（LLM 核心概念：Token / Context Window / 推理过程）
 待准备：  安装 Ollama + 下载 hermes3:8b 模型（参考 reference/environment-setup.html）

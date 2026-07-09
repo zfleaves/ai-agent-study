@@ -12,10 +12,10 @@
 - 能跟进 2026 年最新技术：MCP 协议、Vercel AI SDK、Agent Memory 等
 
 ## Constraints
-- 角色：前端工程师（TS 熟练，Java 零基础）
-- 主语言：**TypeScript**（学习 Agent 概念 + 快速原型）
-- 第二语言：**Java**（企业级交付，Spring AI / LangChain4j，第 9 周起引入）
-- 工具链：TS 优先（Vercel AI SDK + LangChain.js + LanceDB）
+- 角色：前端工程师（TS 熟练，Java 零基础，Python 会简单语法）
+- 主语言：**TypeScript**（学习 Agent 概念 + 快速原型，第 1-10 周）
+- 第二语言：**Java**（企业级交付，Spring AI / LangChain4j，第 11-12 周）
+- 第三语言：**Python**（AI 主流生态，LangChain / LlamaIndex / FastAPI，第 13-14 周）
 - 核心模型：Hermes 3.1（通过 Ollama 本地运行）
 - 学习节奏：每天 30-60 分钟，5 天/周，总周期 12 周
 - 硬件：Windows 环境，优先轻量方案（量化模型）

@@ -1,22 +1,23 @@
-# AI Agent 开发工程师 — 12 周完整学习计划
+# AI Agent 开发工程师 — 16 周完整学习计划
 
 > 以 Hermes Agent 为核心载体，从前端到 AI Agent 全栈，每日 30-60 分钟
-> **主语言 TypeScript**，第 9 周起引入 **Java**（Spring AI / LangChain4j）
+> **主语言 TypeScript** · 第 11 周起引入 **Java** · 第 13 周起引入 **Python**
 
 **⚠️ 开始前必读：[环境准备清单](./reference/environment-setup.html)** — 硬件、软件、模型下载、前置知识检查
+**⚠️ JD 对照：[岗位需求分析](./reference/jd-analysis.html)** — boss 直聘 JD 逐条对照
 
 ---
 
 ## 📐 学习路线总览
 
 ```
-第 1-2 周    第 3-4 周      第 5-6 周      第 7-8 周      第 9-10 周     第 11-12 周
-  地基         本地运行        Agent核心      知识库RAG       进阶模式       项目落地
-                                                                              
-  ██░░░░░░░    ████░░░░░     ██████░░░     ████████░░    █████████░░   ████████████
-  LLM概念      Ollama环境     Tool-calling   向量数据库      多Agent       综合项目
-  Agent全景    模型对话        Agent循环      RAG系统        MCP协议        作品集
-  Token/Context  Prompt工程    函数调用        文档管道       记忆系统        部署上线
+第 1-2 周    第 3-4 周     第 5-6 周     第 7-8 周     第 9-10 周    第 11-12 周   第 13-14 周   第 15-16 周
+  地基         Agent核心      知识库RAG      框架+协议       进阶模式       Java企业级     Python生态    调优+落地
+
+  ██░░░░░░    ████░░░░░    ██████░░░    ████████░░    █████████░    ██████████   ███████████  ████████████
+  LLM概念     Tool-calling   向量数据库    Vercel AI SDK   记忆系统      Spring AI     LangChain     微调/Fine-tune
+  Ollama环境  Agent循环      文档管道      MCP协议         多Agent       LangChain4j   FastAPI        vLLM生产部署
+  Prompt工程  函数调用        RAG系统      前端集成         协作模式      对比TS/Java   对比TS/Python  综合项目
 ```
 
 ---
@@ -47,15 +48,15 @@
 ## 📅 第 2 周：Ollama 环境 + 第一个本地模型
 
 ### 本周目标
-在 Windows 上安装 Ollama，拉取 Hermes 3.1 模型，用 JS 代码与模型对话。
+在 Windows 上安装 Ollama，拉取 Hermes 3.1 模型，用 TypeScript 代码与模型对话。
 
 | 天 | 主题 | 学习内容 | 知识点 | 动手 | 时长 |
 |---|---|---|---|---|---|
 | **Day 1** | Ollama 安装与配置 | 安装 Ollama for Windows，了解模型文件格式（GGUF）、量化概念 | GGUF 格式、Q4/Q8 量化、模型大小 vs 质量 | 安装 Ollama，拉取 Hermes 3.1 8B | 40min |
 | **Day 2** | 命令行对话 | `ollama run` 命令、模型参数调整、System Prompt 设定 | System Prompt 作用、Temperature 调节、多轮对话 | 在终端用不同 Prompt 和 Hermes 对话 | 35min |
-| **Day 3** | JS SDK 接入 | 使用 `ollama-js` 在 Node.js + TypeScript 中调用模型，处理流式响应 | Streaming 原理、SSE、异步迭代、类型定义 | 写一个 TS 脚本：流式对话 Hermes | 45min |
+| **Day 3** | TS SDK 接入 | 使用 `ollama-js` 在 Node.js + TypeScript 中调用模型，处理流式响应 | Streaming 原理、SSE、异步迭代、类型定义 | 写一个 TS 脚本：流式对话 Hermes | 45min |
 | **Day 4** | Prompt 工程基础 | 角色设定、Few-shot、Chain-of-Thought 提示技巧 | Zero-shot vs Few-shot、CoT 思维链、System Prompt 设计 | 设计 3 种 Prompt 模板，对比效果 | 40min |
-| **Day 5** | 复盘 + Demo | 本周知识点回顾，完成第一个 Demo | 本周复盘 | **Demo 1：命令行聊天机器人**（Node.js + Hermes） | 45min |
+| **Day 5** | 复盘 + Demo | 本周知识点回顾，完成第一个 Demo | 本周复盘 | **Demo 1：命令行聊天机器人**（Node.js + TypeScript + Hermes） | 45min |
 
 ### 🎯 Demo 1：命令行聊天机器人
 ```
@@ -77,13 +78,13 @@
 ## 📅 第 3 周：Tool-calling — 让模型"做事"
 
 ### 本周目标
-理解 Function Calling 机制，让 Hermes 能调用你定义的 JS 函数，这是 Agent 的核心能力。
+理解 Function Calling 机制，让 Hermes 能调用你定义的 TypeScript 函数，这是 Agent 的核心能力。
 
 | 天 | 主题 | 学习内容 | 知识点 | 动手 | 时长 |
 |---|---|---|---|---|---|
 | **Day 1** | Tool-calling 原理 | 什么是 Function Calling？请求格式、响应格式、工具注册 | JSON Schema 定义工具、tool_choice 参数、Hermes 的 tool-calling 格式 | 阅读 Hermes 3 的 tool-calling 文档 | 40min |
-| **Day 2** | 定义第一个工具 | 用 JS 定义一个工具函数，注册给 Hermes，让它调用 | 工具描述（description）、参数 Schema（parameters）、必填/可选 | 写一个 `getWeather(city)` 工具，让 Hermes 调用 | 45min |
-| **Day 3** | 工具调用循环 | 模型输出 tool_call → 执行函数 → 返回结果 → 模型继续推理 | 多轮 tool-calling、工具链式调用、错误处理 | 实现完整的 tool-call 循环（JS） | 50min |
+| **Day 2** | 定义第一个工具 | 用 TS 定义一个工具函数，注册给 Hermes，让它调用 | 工具描述（description）、参数 Schema（parameters）、必填/可选 | 写一个 `getWeather(city)` 工具，让 Hermes 调用 | 45min |
+| **Day 3** | 工具调用循环 | 模型输出 tool_call → 执行函数 → 返回结果 → 模型继续推理 | 多轮 tool-calling、工具链式调用、错误处理 | 实现完整的 tool-call 循环（TS） | 50min |
 | **Day 4** | 多工具编排 | 同时注册多个工具，让模型自主选择调用哪个 | 工具选择逻辑、并行调用 vs 串行调用、工具冲突 | 注册 3 个工具（天气/搜索/计算器） | 45min |
 | **Day 5** | 复盘 + Demo | 本周知识点回顾，完成 Tool-calling Demo | 本周复盘 | **Demo 2：工具调用 Agent**（多工具 + 循环） | 50min |
 
@@ -105,7 +106,7 @@
 | 天 | 主题 | 学习内容 | 知识点 | 动手 | 时长 |
 |---|---|---|---|---|---|
 | **Day 1** | ReAct 模式深入 | Reasoning + Acting 的完整循环：Thought → Action → Observation → ... | Agent 循环终止条件、最大步数限制、Thought 质量 | 手写 ReAct 循环的伪代码 | 40min |
-| **Day 2** | Agent 状态管理 | 对话历史、工具调用历史、当前状态追踪 | State 设计、消息角色（user/assistant/tool/system）、历史截断策略 | 实现 Agent 状态管理器（JS Class） | 45min |
+| **Day 2** | Agent 状态管理 | 对话历史、工具调用历史、当前状态追踪 | State 设计、消息角色（user/assistant/tool/system）、历史截断策略 | 实现 Agent 状态管理器（TS Class） | 45min |
 | **Day 3** | 错误处理与重试 | 工具调用失败、超时、格式错误、幻觉调用 | 重试策略、降级方案、安全护栏 | 给 Agent 加错误处理和重试机制 | 45min |
 | **Day 4** | Agent 规划能力 | 复杂任务分解、子目标设定、Plan-Execute 模式 | Task Decomposition、Plan-then-Act vs ReAct、子任务依赖 | 让 Agent 先做计划再执行 | 40min |
 | **Day 5** | 复盘 + Demo | 本周知识点回顾，完成 Agent 循环 Demo | 周复盘 | **Demo 3：自主任务 Agent**（规划+执行+错误恢复） | 50min |
@@ -132,20 +133,21 @@
 ## 📅 第 5 周：RAG 原理 — 让模型"读你的文档"
 
 ### 本周目标
-理解 RAG（检索增强生成）的完整原理，搭建文档处理管道。
+理解 RAG（检索增强生成）的完整原理，搭建文档处理管道，同时了解 LlamaIndex TS。
 
 | 天 | 主题 | 学习内容 | 知识点 | 动手 | 时长 |
 |---|---|---|---|---|---|
 | **Day 1** | RAG 全景原理 | 为什么需要 RAG？检索→增强→生成三步走 | RAG vs 微调、上下文注入、知识截止问题 | 画 RAG 架构图 | 35min |
-| **Day 2** | 文档处理管道 | 文档加载、文本分割（Chunking）、清洗 | Markdown/PDF 解析、Chunk Size/Overlap 策略、中文分块技巧 | 用 JS 实现文档分割器 | 45min |
+| **Day 2** | 文档处理管道 | 文档加载、文本分割（Chunking）、清洗 | Markdown/PDF 解析、Chunk Size/Overlap 策略、中文分块技巧 | 用 TS 实现文档分割器 | 45min |
 | **Day 3** | Embedding 向量化 | 什么是 Embedding？文本→向量的过程、语义相似度 | Embedding 模型选型、余弦相似度、向量维度含义 | 用 Ollama 生成文本 Embedding | 45min |
 | **Day 4** | 向量数据库 | 向量存储与检索原理、ANN 近似最近邻、索引类型 | Chroma/LanceDB 对比、HNSW 索引、Metadata 过滤 | 安装 LanceDB，存入 + 检索向量 | 45min |
-| **Day 5** | 复盘 + Demo | 打通 RAG 全链路 | 周复盘 | **Demo 4：文档问答系统**（单文档 RAG） | 50min |
+| **Day 5** | 复盘 + Demo | 打通 RAG 全链路，对比 LlamaIndex TS 写法 | 周复盘 | **Demo 4：文档问答系统**（单文档 RAG，手写版 + LlamaIndex TS 版） | 50min |
 
 ### 🎯 Demo 4：文档问答系统
 ```
 功能：上传一篇 Markdown 文档 → 分割 → 向量化 → 存储 → 提问 → 检索+回答
 技术：Node.js + TypeScript + LanceDB + Ollama Embedding + Hermes 3.1
+额外：用 LlamaIndex TS 实现同一功能，对比两种写法
 关键点：文档分割策略、检索精度、答案引用原文
 ```
 
@@ -177,7 +179,7 @@
 【检索质量】检索结果准确吗？什么情况下找不到相关内容？
 【Chunking 策略】多大的 Chunk 最好？Overlap 怎么设？
 【中文效果】中文文档检索效果如何？需要哪些优化？
-【下一步】知识库和 Agent 如何结合？
+【LlamaIndex TS】和手写版对比，框架帮我们做了什么？
 ```
 
 ---
@@ -192,7 +194,7 @@
 | **Day 1** | AI SDK 入门 | `useChat` hook、Provider 模式、Streaming 响应 | Vercel AI SDK 架构、多 Provider 适配、React Server Components | 用 AI SDK 连接 Hermes 实现对话 | 45min |
 | **Day 2** | Tool-calling with AI SDK | `tool()` 函数定义、自动工具执行、UI 状态 | AI SDK 的 tool 定义方式、maxSteps、onToolCall 回调 | 用 AI SDK 实现 Tool-calling UI | 50min |
 | **Day 3** | Agent 模式 | `generateText` + `streamText`、Agent 循环、错误处理 | AI SDK 的 Agent 实现方式、与手写循环的对比 | 用 AI SDK 重构 Demo 3 的 Agent | 50min |
-| **Day 4** | RAG with AI SDK | `useRag` 模式、向量检索集成、Source 展示 | AI SDK 的 RAG 支持、自定义数据源、引用 UI | 用 AI SDK 重构 Demo 5 的知识库 | 50min |
+| **Day 4** | RAG with AI SDK | 向量检索集成、Source 展示、自定义数据源 | AI SDK 的 RAG 支持、自定义数据源、引用 UI | 用 AI SDK 重构 Demo 5 的知识库 | 50min |
 | **Day 5** | 复盘 + Demo | 前端 Agent 应用 | 周复盘 | **Demo 6：Agent 对话 UI**（React + AI SDK + Hermes） | 50min |
 
 ### 🎯 Demo 6：Agent 对话 UI
@@ -212,7 +214,7 @@
 | 天 | 主题 | 学习内容 | 知识点 | 动手 | 时长 |
 |---|---|---|---|---|---|
 | **Day 1** | MCP 协议概述 | 什么是 MCP？为什么需要标准协议？ | MCP vs 自定义 Tool、Client-Server 架构、传输层（stdio/SSE） | 阅读 MCP 官方规范文档 | 40min |
-| **Day 2** | MCP Server 开发 | 用 JS 写一个 MCP Server，暴露工具 | MCP Server SDK、工具注册、资源暴露、Prompt 模板 | 写一个 MCP Server（天气+搜索） | 50min |
+| **Day 2** | MCP Server 开发 | 用 TS 写一个 MCP Server，暴露工具 | MCP Server SDK、工具注册、资源暴露、Prompt 模板 | 写一个 MCP Server（天气+搜索） | 50min |
 | **Day 3** | MCP Client 集成 | 在 Agent 中集成 MCP Client，动态发现工具 | MCP Client SDK、工具发现、动态工具列表 | 让 Hermes Agent 连接 MCP Server | 50min |
 | **Day 4** | MCP 生态 | 社区 MCP Server、资源市场、最佳实践 | 文件系统 Server、数据库 Server、Web 搜索 Server | 集成 3 个社区 MCP Server | 45min |
 | **Day 5** | 复盘 + Demo | 标准工具协议 | 周复盘 | **Demo 7：MCP Agent**（通过 MCP 协议动态加载工具） | 50min |
@@ -229,7 +231,7 @@
 ## 📅 第 9 周：Agent 记忆系统 — 让 Agent"记住"你
 
 ### 本周目标
-实现 Agent 的记忆系统：短期记忆（对话历史）、长期记忆（用户偏好）、工作记忆（当前任务状态）。
+实现 Agent 的记忆系统：短期记忆、长期记忆、工作记忆三层架构。
 
 | 天 | 主题 | 学习内容 | 知识点 | 动手 | 时长 |
 |---|---|---|---|---|---|
@@ -268,22 +270,143 @@
 关键点：任务分解、角色调度、结果汇总、质量保证
 ```
 
+### 📝 第 7-10 周复盘（中期复盘）
+```
+【Agent 框架对比】手写 vs Vercel AI SDK vs LangChain，各有什么优劣？
+【MCP 理解】MCP 协议解决了什么问题？不用 MCP 会怎样？
+【记忆系统效果】Agent 在跨会话时真的能"记住"吗？什么会丢失？
+【多 Agent 协作】什么时候需要多 Agent？什么时候单 Agent 就够了？
+```
+
 ---
 
-## 📅 第 11 周：综合项目 — 本地知识库 Agent 应用
+## 📅 第 11 周：☕ Java 企业级（上）— Spring Boot + Spring AI
 
 ### 本周目标
-融合前三周所学，构建一个完整的本地知识库 Agent 应用，可作为作品集项目。
+从零开始学 Java，用 Java 复现 TS 端的 Agent 核心功能。TS 主线暂停，专注 Java 入门。
+
+| 天 | 主题 | 学习内容 | 知识点 | 动手 | 时长 |
+|---|---|---|---|---|---|
+| **Day 1** | Java 基础速通 | 语法对比 TS vs Java：类型系统、类/接口、泛型、集合、Stream API | JVM 概念、编译 vs 解释、Maven 项目结构 | 写一个 Java 版"Hello World" + 对接 Ollama HTTP API | 50min |
+| **Day 2** | Spring Boot 入门 | Controller、Service、Bean、依赖注入 | Spring Boot 项目结构、application.yml、自动配置 | 搭建 Spring Boot 项目，写一个 REST API | 50min |
+| **Day 3** | Spring AI 基础 | ChatClient、Prompt Template、Streaming | Spring AI 架构、多 Provider 切换、配置管理 | 用 Spring AI 连接 Hermes 实现对话 | 50min |
+| **Day 4** | Spring AI Tool Calling | @Tool 注解、工具注册、调用循环 | Spring AI 的 Tool 定义方式、与 TS 版对比 | 复现 Demo 2（工具调用 Agent）的 Java 版 | 50min |
+| **Day 5** | 复盘 + Demo | Java Agent 入门 | 周复盘 | **Demo 10-J：Java 版工具调用 Agent** | 50min |
+
+### 🎯 Demo 10-J：Java 版工具调用 Agent
+```
+功能：与 Demo 2 相同功能，用 Java 实现
+技术：Java 17 + Spring Boot 3 + Spring AI + Ollama + Hermes 3.1
+对比：TS 版 vs Java 版 —— 类型定义、工具注册、调用循环的写法差异
+```
+
+---
+
+## 📅 第 12 周：☕ Java 企业级（下）— LangChain4j + 生产模式
+
+### 本周目标
+掌握 LangChain4j，理解 Java 生态的 Agent 生产部署模式。
+
+| 天 | 主题 | 学习内容 | 知识点 | 动手 | 时长 |
+|---|---|---|---|---|---|
+| **Day 1** | LangChain4j 入门 | ChatLanguageModel、ToolSpecification、Agent 循环 | LangChain4j vs Spring AI 对比、各自适用场景 | 用 LangChain4j 实现对话 + Tool Calling | 50min |
+| **Day 2** | LangChain4j Agent | AiServices、@Tool 注解、记忆管理 | LangChain4j 的 Agent 模式、与手写循环对比 | 复现 Demo 3（自主任务 Agent）Java 版 | 50min |
+| **Day 3** | Java RAG | Spring AI 的 RAG 支持、Embedding、向量存储 | Java 版 RAG 管道、与 TS 版对比 | 复现 Demo 5（知识库）的 Java 版 | 50min |
+| **Day 4** | Java MCP Server | 用 Java 实现 MCP Server | Spring AI MCP 支持、企业级工具集成 | 写一个 Java MCP Server | 50min |
+| **Day 5** | 复盘 + 对比总结 | TS vs Java 全面对比 | 周复盘 | **Demo 11-J：Java 版知识库 Agent** + 对比文档 | 50min |
+
+### 🎯 Demo 11-J：Java 版知识库 Agent
+```
+功能：与 Demo 5 相同功能，用 Java 实现
+技术：Java 17 + Spring Boot 3 + Spring AI + LangChain4j + LanceDB
+输出：TS vs Java 对比文档（类型系统、工具定义、Agent 循环、RAG 管道的写法差异）
+```
+
+---
+
+## 📅 第 13 周：🐍 Python AI 生态（上）— LangChain + LlamaIndex
+
+### 本周目标
+用 Python 进入 AI 主流生态，掌握 LangChain + LlamaIndex 的 Python 原生写法。
+
+| 天 | 主题 | 学习内容 | 知识点 | 动手 | 时长 |
+|---|---|---|---|---|---|
+| **Day 1** | Python 环境 + 语法对照 | Python 虚拟环境、pip、语法对比 TS vs Python | venv、类型注解、async/await 差异、dataclass | 搭建 Python 项目，对接 Ollama API | 45min |
+| **Day 2** | LangChain Python 核心 | ChatModel、Prompt Template、Chain、LCEL | LangChain 架构、Runnable 接口、链式调用 | 用 LangChain 实现对话 + Tool Calling | 50min |
+| **Day 3** | LangChain Agent | AgentExecutor、Tool 定义、ReAct Agent | LangChain 的 Agent 模式、与 TS 版对比 | 复现 Demo 3（自主任务 Agent）Python 版 | 50min |
+| **Day 4** | LlamaIndex Python | 文档加载、索引、查询引擎、Router | LlamaIndex vs LangChain RAG、各自优势 | 复现 Demo 5（知识库）的 Python 版 | 50min |
+| **Day 5** | 复盘 + Demo | Python Agent 入门 | 周复盘 | **Demo 12-Py：Python 版知识库 Agent** | 50min |
+
+### 🎯 Demo 12-Py：Python 版知识库 Agent
+```
+功能：与 Demo 5 相同功能，用 Python 实现
+技术：Python 3.11 + LangChain + LlamaIndex + Chroma + Ollama + Hermes 3.1
+对比：TS 版 vs Python 版 —— 生态差异、语法差异、调试体验
+```
+
+---
+
+## 📅 第 14 周：🐍 Python AI 生态（下）— FastAPI + MCP + 三语言对比
+
+### 本周目标
+用 Python 构建 API 服务，理解 Python MCP 生态，完成三语言（TS/Java/Python）全面对比。
+
+| 天 | 主题 | 学习内容 | 知识点 | 动手 | 时长 |
+|---|---|---|---|---|---|
+| **Day 1** | FastAPI 入门 | 路由、依赖注入、Streaming 响应、Pydantic | FastAPI vs Spring Boot vs Express、Python 异步 | 用 FastAPI 写一个 Agent 对话 API | 50min |
+| **Day 2** | Python MCP | Python MCP SDK、Server/Client 实现 | Python 版 MCP 与 TS 版对比 | 写一个 Python MCP Server | 45min |
+| **Day 3** | 三语言对比（上） | Agent 核心：工具注册、调用循环、状态管理在 TS/Java/Python 的写法 | 类型系统、异步模型、错误处理、框架选择 | 三语言对比表格 + 代码对照 | 50min |
+| **Day 4** | 三语言对比（下） | RAG 管道、MCP 协议、记忆系统在 TS/Java/Python 的写法 | 生态差异、社区活跃度、职位需求 | 三语言对比表格 + 代码对照 | 50min |
+| **Day 5** | 复盘 + 总结 | 三语言全栈 Agent 开发者能力总结 | 周复盘 | **Demo 13：三语言对比文档**（作品集加分项） | 45min |
+
+### 🎯 Demo 13：三语言 Agent 对比文档
+```
+输出：一份完整的对比文档/表格
+- Agent 核心概念在 TS/Java/Python 的实现对照
+- 每种语言的优劣势、适用场景、生态成熟度
+- 面试常问："你用过哪些语言开发 Agent？各有什么体会？"
+```
+
+---
+
+## 📅 第 15 周：模型调优 + 生产部署
+
+### 本周目标
+学习 Fine-tuning（微调）概念和 LoRA 实践，理解 vLLM 生产级模型部署。
+
+| 天 | 主题 | 学习内容 | 知识点 | 动手 | 时长 |
+|---|---|---|---|---|---|
+| **Day 1** | Fine-tuning 概念 | 全量微调 vs 参数高效微调（PEFT）、LoRA 原理 | Transformer 微调、LoRA 低秩适配、Adapter | 理解 LoRA 论文核心思想（不需要读全文） | 45min |
+| **Day 2** | LoRA 微调实践 | 用公开数据集微调一个 LoRA 适配器 | 数据集准备、训练参数、合并权重 | 用 LlamaFactory 或 unsloth 微调 Hermes 子任务 | 60min |
+| **Day 3** | vLLM 生产部署 | vLLM 原理、PagedAttention、与 Ollama 对比 | 吞吐量、延迟、并发、KV Cache 优化 | 安装 vLLM，部署 Hermes 模型，压测对比 | 60min |
+| **Day 4** | 生产架构设计 | 负载均衡、模型热切换、灰度发布、监控告警 | Agent 服务的生产架构、SLA 设计 | 画生产架构图，写部署方案 | 50min |
+| **Day 5** | 复盘 + 总结 | 模型调优 + 部署完成 | 周复盘 | **Demo 14：微调模型 + 生产部署方案** | 50min |
+
+### 🎯 Demo 14：微调模型 + 生产部署方案
+```
+功能：
+  - LoRA 微调：用 100 条数据微调 Hermes 的特定任务能力
+  - vLLM 部署：对比 Ollama vs vLLM 的吞吐量和延迟
+  - 部署方案：Docker Compose 编排（Ollama + Agent + 前端）
+```
+
+---
+
+## 📅 第 16 周：综合项目 + 作品集 + 最终复盘
+
+### 本周目标
+融合 15 周所学，构建完整的本地知识库 Agent 应用（三语言版本），作为作品集项目。
 
 | 天 | 主题 | 学习内容 | 动手 | 时长 |
 |---|---|---|---|---|
-| **Day 1** | 项目设计 | 需求分析、技术选型、架构设计 | 写项目设计文档（架构图 + 技术栈 + 数据流） | 45min |
-| **Day 2** | 后端搭建 | Agent 核心 + RAG 管道 + 工具集成 | 实现后端 API（Agent 对话 + 知识库检索 + 工具调用） | 60min |
+| **Day 1** | 项目设计 | 需求分析、技术选型、三语言架构设计 | 写项目设计文档（架构图 + 技术栈 + 数据流 + 三语言分工） | 45min |
+| **Day 2** | 后端搭建 | Agent 核心 + RAG 管道 + 工具集成 + MCP | 实现后端 API（TS 主版本 + Java 版本 + Python 版本） | 90min |
 | **Day 3** | 前端搭建 | React 对话界面 + 知识库管理 UI + 工具可视化 | 实现前端（Streaming 对话 + 文档上传 + 检索结果展示） | 60min |
-| **Day 4** | 联调 + 优化 | 前后端联调、性能优化、错误处理 | 全链路联调、响应速度优化、边界情况处理 | 60min |
-| **Day 5** | 复盘 + 测试 | 端到端测试、Bug 修复、文档完善 | **Demo 10：完整项目**（本地知识库 Agent 应用） | 60min |
+| **Day 4** | 联调 + 优化 + 部署 | 前后端联调、性能优化、Docker 部署 | 全链路联调、响应速度优化、Docker Compose 一键部署 | 60min |
+| **Day 5** | 最终复盘 | 16 周学习总结、技能地图、作品集整理、未来方向 | 完成最终复盘报告 + 项目 README + 技术博客大纲 | 45min |
 
-### 🎯 Demo 10：本地知识库 Agent 应用（作品集项目）
+### 🎯 Demo 15：完整知识库 Agent 应用（作品集）
+
 ```
 功能：
   - 📁 文档管理：上传 Markdown/PDF/代码文件，自动索引
@@ -291,52 +414,47 @@
   - 🔧 工具调用：网络搜索、代码执行、计算器等
   - 🧠 记忆系统：记住用户偏好和历史对话
   - 🎨 美观 UI：Streaming 响应、工具调用可视化、暗色模式
+  - 🌐 三语言后端：TS / Java / Python 三个版本可选
 
 技术栈：
   - 前端：Next.js + TypeScript + Vercel AI SDK + Tailwind CSS
-  - 后端：Node.js + TypeScript + Ollama + Hermes 3.1
-  - 知识库：LanceDB + Ollama Embedding
-  - 工具：MCP Server 集成
+  - 后端（TS）：Node.js + TypeScript + Ollama + Hermes 3.1
+  - 后端（Java）：Spring Boot 3 + Spring AI + LangChain4j
+  - 后端（Python）：FastAPI + LangChain + LlamaIndex
+  - 知识库：LanceDB + Ollama Embedding + Chroma
+  - 工具：MCP Server（TS/Java/Python 各一个）
+  - 部署：Docker Compose
 
 关键指标：
   - 检索延迟 < 1s
   - 回答准确率 > 80%
   - 支持 100+ 文档
   - 流式首字响应 < 2s
+  - 三语言后端可切换
 ```
-
----
-
-## 📅 第 12 周：工程化 + 部署 + 总结
-
-### 本周目标
-将项目工程化，学习部署方案，做最终总结和未来方向规划。
-
-| 天 | 主题 | 学习内容 | 动手 | 时长 |
-|---|---|---|---|---|
-| **Day 1** | 性能优化 | 模型量化、缓存策略、并发处理 | 对 Demo 10 做性能优化（量化模型、缓存 Embedding、并发检索） | 50min |
-| **Day 2** | 测试与监控 | Agent 评估方法、日志系统、监控指标 | 加入日志系统、Agent 评估指标、错误追踪 | 45min |
-| **Day 3** | 部署方案 | Docker 化、本地部署 vs 云部署、CI/CD | 将项目 Docker 化，写部署文档 | 50min |
-| **Day 4** | 作品集整理 | 项目 README、Demo 视频、技术博客大纲 | 写项目 README + 技术分享大纲 | 40min |
-| **Day 5** | 最终复盘 | 12 周学习总结、技能地图、下一步方向 | 完成最终复盘报告 + 未来学习路线 | 45min |
 
 ### 📝 最终复盘模板
 ```
-【12 周技能地图】
-  - Agent 开发：___/10
+【16 周技能地图】
+  - Agent 开发（TS）：___/10
+  - Agent 开发（Java）：___/10
+  - Agent 开发（Python）：___/10
   - RAG 知识库：___/10
   - 工具集成：___/10
   - 前端集成：___/10
+  - 模型调优：___/10
   - 工程化部署：___/10
 
 【最满意的 Demo】哪个 Demo 做得最好？
-【最大的成长】和 12 周前相比，最大的变化是什么？
+【最大的成长】和 16 周前相比，最大的变化是什么？
+【三语言感受】TS/Java/Python 各有什么优劣？最喜欢哪个？
 【遗留问题】还有哪些没搞懂的地方？
 【下一步方向】想继续深入哪个方向？
-  - [ ] Agent 微调（训练自己的 Agent 模型）
-  - [ ] 生产级部署（云服务、K8s）
+  - [ ] Agent 微调进阶（RLHF、DPO 实战）
+  - [ ] 生产级部署（K8s、云服务、CI/CD）
   - [ ] 垂直领域 Agent（客服、编码、数据分析）
   - [ ] 多模态 Agent（图像、语音、视频）
+  - [ ] 开源贡献（参与 LangChain/MCP 社区）
   - [ ] 其他：______
 ```
 
@@ -346,12 +464,14 @@
 
 | 阶段 | 周数 | 主题 | Demo 产出 | 核心技能 |
 |---|---|---|---|---|
-| 地基 | 1-2 | LLM 概念 + 本地运行 | Demo 1：聊天机器人 | Ollama、Prompt、JS SDK |
+| 地基 | 1-2 | LLM 概念 + 本地运行 | Demo 1：聊天机器人 | Ollama、Prompt、TS SDK |
 | Agent 核心 | 3-4 | Tool-calling + Agent 循环 | Demo 2-3：工具 Agent | Function Calling、ReAct 循环 |
-| 知识库 | 5-6 | RAG + 本地知识库 | Demo 4-5：知识库 | Embedding、向量数据库、检索 |
+| 知识库 | 5-6 | RAG + 本地知识库 | Demo 4-5：知识库 | Embedding、向量数据库、检索、LlamaIndex TS |
 | 框架 | 7-8 | Vercel AI SDK + MCP | Demo 6-7：前端 Agent | AI SDK、MCP 协议 |
 | 进阶 | 9-10 | 记忆系统 + 多 Agent | Demo 8-9：记忆/团队 | 记忆架构、Agent 协作 |
-| 落地 | 11-12 | 综合项目 + 工程化 | Demo 10：完整应用 | 全栈、部署、作品集 |
+| Java | 11-12 | Spring AI + LangChain4j | Demo 10-11J：Java Agent | Java 企业级 Agent 开发 |
+| Python | 13-14 | LangChain + FastAPI | Demo 12-13Py：Python Agent | Python AI 生态、三语言对比 |
+| 调优+落地 | 15-16 | 微调 + 部署 + 综合项目 | Demo 14-15：微调+作品集 | Fine-tuning、vLLM、Docker、全栈 |
 
 ---
 
@@ -379,41 +499,25 @@
 
 ---
 
----
+## 🧪 15 个 Demo 总览
 
-## ☕ Java 并行轨道（第 9 周起，零基础友好）
-
-> 策略：TS 学概念 → Java 复现 → 对比两面写法。不中断 TS 主线的同时积累 Java 能力。
-
-| 周 | Java 主题 | 学习内容 | 动手 | 时长 |
+| # | Demo 名称 | 周 | 语言 | 核心技能 |
 |---|---|---|---|---|
-| **9** | Java 基础速通 | 语法对比 TS vs Java：类型系统、类/接口、泛型、集合、Stream API | 写一个 Java 版"命令行聊天机器人"（对接 Ollama HTTP API） | 2×45min |
-| **10** | Spring Boot + AI | Spring Boot 基础（Controller、Service、Bean）、Spring AI 的 ChatClient | 用 Spring AI 实现一个对话接口 | 2×45min |
-| **11** | Spring AI 进阶 | Tool Calling、RAG 支持、Advisor 链 | 用 Spring AI 复现 Demo 3（自主任务 Agent） | 2×45min |
-| **12** | LangChain4j + 对比 | LangChain4j 的 Agent 循环、与 Vercel AI SDK 的写法对比 | 同一功能，TS 版 vs Java 版，写对比文档 | 2×45min |
-
-### Java 学习原则
-- **不中断 TS 主线**：每周 TS 5 天 + Java 2 天（周末或空闲日）
-- **概念迁移**：Agent 概念已在 TS 端学会，Java 端只学"怎么写"
-- **对比学习**：每个 Java Demo 都有对应的 TS 版本，对比差异
-- **零基础友好**：Java 语法从 TS 对照出发，利用已有的编程概念
-
----
-
-## 🧪 10 个 Demo 总览
-
-| # | Demo 名称 | 周 | 核心技能 | 产出 |
-|---|---|---|---|---|
-| 1 | 命令行聊天机器人 | 2 | Ollama + JS SDK | 终端对话程序 |
-| 2 | 工具调用 Agent | 3 | Tool-calling | 多工具 Agent |
-| 3 | 自主任务 Agent | 4 | ReAct 循环 | 规划执行 Agent |
-| 4 | 文档问答系统 | 5 | 单文档 RAG | RAG 问答 |
-| 5 | 本地知识库系统 | 6 | 多文档 RAG | 知识库应用 |
-| 6 | Agent 对话 UI | 7 | Vercel AI SDK | React Agent 界面 |
-| 7 | MCP Agent | 8 | MCP 协议 | 标准工具协议 |
-| 8 | 记忆 Agent | 9 | 记忆系统 | 个性化 Agent |
-| 9 | Agent 团队 | 10 | 多 Agent | 协作 Agent |
-| 10 | 完整知识库 Agent | 11-12 | 全栈 | 作品集项目 |
+| 1 | 命令行聊天机器人 | 2 | TS | Ollama + TS SDK |
+| 2 | 工具调用 Agent | 3 | TS | Tool-calling |
+| 3 | 自主任务 Agent | 4 | TS | ReAct 循环 |
+| 4 | 文档问答系统 | 5 | TS | 单文档 RAG + LlamaIndex TS |
+| 5 | 本地知识库系统 | 6 | TS | 多文档 RAG + 混合检索 |
+| 6 | Agent 对话 UI | 7 | TS | Vercel AI SDK + React |
+| 7 | MCP Agent | 8 | TS | MCP 协议 |
+| 8 | 记忆 Agent | 9 | TS | 三层记忆系统 |
+| 9 | Agent 团队 | 10 | TS | 多 Agent 协作 |
+| 10-J | Java 工具调用 Agent | 11 | Java | Spring AI Tool Calling |
+| 11-J | Java 知识库 Agent | 12 | Java | Spring AI + LangChain4j RAG |
+| 12-Py | Python 知识库 Agent | 13 | Python | LangChain + LlamaIndex |
+| 13 | 三语言对比文档 | 14 | TS/Java/Python | 全栈对比、面试准备 |
+| 14 | 微调 + 生产部署 | 15 | TS/Python | LoRA、vLLM、Docker |
+| 15 | 完整知识库 Agent 应用 | 16 | TS/Java/Python | 作品集项目 |
 
 ---
 
@@ -449,6 +553,7 @@
 - [ ] 混合检索（BM25 + 向量）
 - [ ] Rerank 重排序
 - [ ] 查询改写与扩展
+- [ ] LlamaIndex TS 使用
 
 ### 框架与协议
 - [ ] Vercel AI SDK（useChat / generateText / streamText）
@@ -462,7 +567,7 @@
 - [ ] Agent 评估方法
 - [ ] 部署方案（Docker / 本地）
 
-### Java 企业级（第 9 周起）
+### ☕ Java 企业级（第 11-12 周）
 - [ ] Java 基础语法（类、接口、泛型、集合、Stream）
 - [ ] Maven 构建工具
 - [ ] Spring Boot 基础（REST API、依赖注入）
@@ -471,6 +576,22 @@
 - [ ] TS Agent Demo → Java 复现（对比两种写法）
 - [ ] Java MCP Server 实现
 
+### 🐍 Python AI 生态（第 13-14 周）
+- [ ] Python 环境管理（venv、pip、pyproject.toml）
+- [ ] LangChain Python（ChatModel、Chain、AgentExecutor）
+- [ ] LlamaIndex Python（索引、查询引擎、Router）
+- [ ] FastAPI（路由、Streaming、Pydantic）
+- [ ] Python MCP SDK
+- [ ] TS vs Java vs Python 三语言对比
+
+### 🔧 模型调优 + 生产部署（第 15 周）
+- [ ] Fine-tuning 概念（全量微调 vs PEFT）
+- [ ] LoRA 原理与实践
+- [ ] vLLM 原理（PagedAttention、Continuous Batching）
+- [ ] Ollama vs vLLM 对比（吞吐量、延迟、并发）
+- [ ] 生产架构设计（负载均衡、灰度发布、监控）
+
 ---
 
-*计划版本：v1.0 · 最后更新：2026-07-09*
+*计划版本：v2.0 · 最后更新：2026-07-09*
+*变更：12 周 → 16 周，新增 Java 2 周 + Python 2 周 + 微调/部署 1 周 + 综合项目 1 周*
