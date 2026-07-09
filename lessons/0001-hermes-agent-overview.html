@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第 1 课：Hermes Agent 是什么？—— 全景概览</title>
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+
+<h1>📖 第 1 课：Hermes Agent 是什么？</h1>
+
+<p><span class="tag tag--blue">概览</span> <span class="tag tag--green">入门</span> <span class="tag tag--amber">约 10 分钟</span></p>
+
+<blockquote>
+  <strong>本课目标：</strong>建立 Hermes Agent 的完整认知地图。知道"有哪些东西"、"它们之间的关系"、"我应该关注哪个"。
+</blockquote>
+
+<h2>先说核心问题：Hermes Agent 到底指什么？</h2>
+
+<p>当你搜索 "Hermes Agent" 时，会撞上<strong>两个不同的东西</strong>，它们名字相同但本质不同：</p>
+
+<div class="compare">
+  <div class="compare__col">
+    <h4>🧠 Nous Hermes 模型</h4>
+    <p><span class="tag tag--blue">开源 LLM</span></p>
+    <p>由 <strong>Nous Research</strong> 团队开发的一系列开源大语言模型。基于 Llama、Mistral 等基础模型，通过特殊训练让模型<strong>学会使用工具</strong>。</p>
+    <p><strong>类比：</strong>一个被训练成"会使用计算器、搜索引擎、API"的 AI 大脑。</p>
+    <p>📦 <strong>产物：</strong>模型权重文件（可下载、本地运行）</p>
+  </div>
+  <div class="compare__col">
+    <h4>🔬 HERMES 学术框架</h4>
+    <p><span class="tag tag--green">学术论文</span></p>
+    <p>一篇提出 <strong>Web Agent 自学习框架</strong>的学术论文。核心思想是让 Agent 在浏览网页时，记住成功经验，下次遇到类似任务能直接复用。</p>
+    <p><strong>类比：</strong>一个"做网页任务时会记笔记、下次翻笔记"的智能助手。</p>
+    <p>📦 <strong>产物：</strong>论文 + 算法设计（不一定有成熟开源实现）</p>
+  </div>
+</div>
+
+<div class="card card--accent">
+  <div class="card__title">💡 关键区分</div>
+  <p><strong>Nous Hermes</strong> = 你可以下载运行的<strong>模型</strong>（产品/工具）<br>
+  <strong>HERMES 论文</strong> = 一种 Agent <strong>学习方法</strong>的理论设计（思想/框架）</p>
+  <p>两者都涉及"Agent 学习"，但一个在<strong>训练阶段</strong>学习（模型训练时），一个在<strong>运行阶段</strong>学习（Agent 执行任务时）。</p>
+</div>
+
+<h2>分支一：Nous Hermes 模型系列</h2>
+
+<h3>它是什么？</h3>
+
+<p>Nous Research 是一个开源 AI 研究团队。他们的 <strong>Hermes 系列</strong>是目前最流行的<strong>开源 Agent 模型</strong>之一。核心理念：</p>
+
+<blockquote>
+  "让开源模型像 GPT-4 一样能调用工具、执行多步任务。"
+</blockquote>
+
+<h3>版本演进</h3>
+
+<table style="width:100%; border-collapse: collapse; margin: 1rem 0;">
+  <tr style="border-bottom: 2px solid var(--border);">
+    <th style="text-align:left; padding: 0.5rem;">版本</th>
+    <th style="text-align:left; padding: 0.5rem;">基础模型</th>
+    <th style="text-align:left; padding: 0.5rem;">核心改进</th>
+  </tr>
+  <tr style="border-bottom: 1px solid var(--border);">
+    <td style="padding: 0.5rem;">Hermes 2</td>
+    <td style="padding: 0.5rem;">Llama 2 / Mistral</td>
+    <td style="padding: 0.5rem;">首次引入 tool-calling 能力</td>
+  </tr>
+  <tr style="border-bottom: 1px solid var(--border);">
+    <td style="padding: 0.5rem;">Hermes 2 Pro</td>
+    <td style="padding: 0.5rem;">Mistral</td>
+    <td style="padding: 0.5rem;">增强 function calling 精确度</td>
+  </tr>
+  <tr style="border-bottom: 1px solid var(--border);">
+    <td style="padding: 0.5rem;">Hermes 3</td>
+    <td style="padding: 0.5rem;">Llama 3.1</td>
+    <td style="padding: 0.5rem;">128k 上下文 + 更强的多步推理</td>
+  </tr>
+  <tr>
+    <td style="padding: 0.5rem;">Hermes 3.1</td>
+    <td style="padding: 0.5rem;">Llama 3.1</td>
+    <td style="padding: 0.5rem;">GRPO 偏好对齐，Agent 轨迹优化</td>
+  </tr>
+</table>
+
+<h3>它是怎么"学习"的？</h3>
+
+<p>Hermes 模型的"学习"发生在<strong>训练阶段</strong>，核心流程：</p>
+
+<ol class="steps">
+  <li><strong>合成数据生成</strong> — 用 GPT-4/Claude 生成大量"任务 + 工具调用"的对话数据</li>
+  <li><strong>监督微调（SFT）</strong> — 在这些数据上训练模型，让它学会"看到问题 → 选择合适的工具 → 解析结果"</li>
+  <li><strong>偏好对齐（DPO/GRPO）</strong> — 让模型偏好"能成功完成任务的"行动序列，而不是"看起来合理但会失败的"</li>
+  <li><strong>迭代改进</strong> — 用模型自己的成功/失败轨迹继续训练，逐步提升</li>
+</ol>
+
+<div class="card card--warn">
+  <div class="card__title">⚠️ 新手常见误区</div>
+  <p>Hermes 模型<strong>不会在和你对话时继续学习</strong>。它的"学习"全部发生在训练阶段。部署后，模型的权重是冻结的——它不会因为你的一次对话就变聪明。</p>
+  <p>（对话历史的记忆 ≠ 学习，那只是把历史塞进上下文窗口。）</p>
+</div>
+
+<h2>分支二：HERMES 学术框架</h2>
+
+<h3>它是什么？</h3>
+
+<p>全称通常是 <strong>"HERMES: A Retrieval-Augmented and Self-Learning Framework for Web Agents"</strong>（或类似变体），是一个让 Web Agent 在<strong>执行任务时</strong>不断自我改进的框架设计。</p>
+
+<h3>核心思想</h3>
+
+<div class="card card--accent">
+  <p><strong>人类遇到新任务时：</strong>先回想以前有没有做过类似的事 → 有的话参考经验 → 没有的话尝试 → 记录结果下次用</p>
+  <p><strong>HERMES Agent 也是：</strong>检索历史经验（RAG）→ 模仿成功轨迹（行为克隆）→ 探索新方案（强化学习）→ 记录结果</p>
+</div>
+
+<h3>它是怎么"学习"的？</h3>
+
+<ol class="steps">
+  <li><strong>经验库（RAG）</strong> — 维护一个"历史成功轨迹"数据库，遇到新任务先检索最相关的经验</li>
+  <li><strong>行为克隆（冷启动）</strong> — 先用人类示范数据学会基本操作</li>
+  <li><strong>强化学习（在线提升）</strong> — 在真实环境中尝试，成功就强化，失败就调整</li>
+  <li><strong>Critic 模型</strong> — 一个独立的"评分员"模型，对每个子步骤打分，提供密集反馈</li>
+</ol>
+
+<div class="card card--warn">
+  <div class="card__title">⚠️ 注意</div>
+  <p>这个框架目前主要在学术阶段，<strong>不一定有成熟的开源实现可以直接用</strong>。它的价值更多在于提供了一种"Agent 应该如何自我改进"的设计思路。</p>
+</div>
+
+<h2>我应该学哪个？</h2>
+
+<p>基于你的目标（<strong>实际应用/部署</strong>），建议的学习优先级：</p>
+
+<table style="width:100%; border-collapse: collapse; margin: 1rem 0;">
+  <tr style="border-bottom: 2px solid var(--border);">
+    <th style="text-align:left; padding: 0.5rem;">优先级</th>
+    <th style="text-align:left; padding: 0.5rem;">内容</th>
+    <th style="text-align:left; padding: 0.5rem;">理由</th>
+  </tr>
+  <tr style="border-bottom: 1px solid var(--border);">
+    <td style="padding: 0.5rem;">⭐⭐⭐</td>
+    <td style="padding: 0.5rem;">Nous Hermes 模型</td>
+    <td style="padding: 0.5rem;">可以直接下载运行，有实际产品</td>
+  </tr>
+  <tr style="border-bottom: 1px solid var(--border);">
+    <td style="padding: 0.5rem;">⭐⭐</td>
+    <td style="padding: 0.5rem;">Tool-calling 机制</td>
+    <td style="padding: 0.5rem;">理解 Agent 如何"使用工具"的核心</td>
+  </tr>
+  <tr style="border-bottom: 1px solid var(--border);">
+    <td style="padding: 0.5rem;">⭐⭐</td>
+    <td style="padding: 0.5rem;">DPO/偏好对齐</td>
+    <td style="padding: 0.5rem;">理解 Agent 如何"学好"的关键</td>
+  </tr>
+  <tr>
+    <td style="padding: 0.5rem;">⭐</td>
+    <td style="padding: 0.5rem;">HERMES 学术框架</td>
+    <td style="padding: 0.5rem;">提供设计思路，但目前实用性有限</td>
+  </tr>
+</table>
+
+<h2>学习路线图（总览）</h2>
+
+<div class="card">
+  <div class="card__title">🗺️ 完整学习路径</div>
+  <ol style="padding-left: 1.2rem;">
+    <li><strong>第一幕：打好地基</strong>（我们在这里）
+      <ul>
+        <li>✅ 第 1 课：Hermes Agent 全景概览</li>
+        <li>⬜ 第 2 课：AI Agent 核心概念速通（LLM、Token、Tool-calling）</li>
+        <li>⬜ 第 3 课：Agent 学习的本质——从"背答案"到"学会用工具"</li>
+      </ul>
+    </li>
+    <li><strong>第二幕：深入 Hermes</strong>
+      <ul>
+        <li>⬜ 第 4 课：Nous Hermes 模型家族详解</li>
+        <li>⬜ 第 5 课：Tool-calling 实战——让模型调用你的函数</li>
+        <li>⬜ 第 6 课：DPO 与偏好对齐——Agent 如何学会"做好"</li>
+      </ul>
+    </li>
+    <li><strong>第三幕：动手部署</strong>
+      <ul>
+        <li>⬜ 第 7 课：Ollama 本地部署 Hermes 模型</li>
+        <li>⬜ 第 8 课：构建你的第一个 Hermes Agent</li>
+        <li>⬜ 第 9 课：评估与选型——Hermes 适合你的项目吗？</li>
+      </ul>
+    </li>
+  </ol>
+</div>
+
+<h2>本课小结</h2>
+
+<div class="card card--success">
+  <div class="card__title">✅ 学完本课你应该能回答：</div>
+  <ul>
+    <li>Hermes Agent 有哪两个不同的含义？</li>
+    <li>Nous Hermes 模型是什么？它的"学习"发生在哪个阶段？</li>
+    <li>HERMES 学术框架的核心思想是什么？</li>
+    <li>基于你的目标，应该优先学哪个方向？</li>
+  </ul>
+</div>
+
+<h2>📚 推荐阅读</h2>
+
+<ul>
+  <li><a href="https://huggingface.co/NousResearch/Hermes-3-Llama-3.1-8B" target="_blank">Nous Research Hermes 3 模型卡</a> — 看看真实的模型页面长什么样（先浏览，不用全部看懂）</li>
+  <li><a href="https://nousresearch.com/" target="_blank">Nous Research 官方博客</a> — 读一篇最近的发布公告，感受一下团队风格</li>
+</ul>
+
+<h2>🏠 后续课程</h2>
+
+<ul>
+  <li><a href="0002-ai-agent-core-concepts.html">第 2 课：AI Agent 核心概念速通</a>（即将推出）</li>
+  <li>参考文档：<a href="../reference/glossary.html">Hermes Agent 术语表</a></li>
+</ul>
+
+<hr style="margin: 2rem 0; border: none; border-top: 1px solid var(--border);">
+
+<div class="card card--accent no-print">
+  <div class="card__title">💬 有问题？</div>
+  <p>直接在这个对话中问我！我是你的 AI 老师，可以帮你解释任何不清楚的概念。比如：</p>
+  <ul>
+    <li>"SFT 和 DPO 有什么区别？"</li>
+    <li>"为什么合成数据比人工标注好？"</li>
+    <li>"128k 上下文在实际中意味着什么？"</li>
+  </ul>
+</div>
+
+</body>
+</html>

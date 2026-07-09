@@ -1,0 +1,48 @@
+# Notes
+
+## 用户偏好
+
+- 中文教学，英文术语保留原名
+- 每次 session 不宜过长，保持 10-20 分钟
+- 偏好实操 > 理论推导
+- 最终目标是能在自己的项目中落地
+- **前端工程师（JS/TS 熟练）**——工具链优先 JS 生态
+- **TypeScript 优先**——所有代码、Demo、项目统一使用 TypeScript
+- Python 能力待确认，先假设不熟
+
+## 当前状态
+
+- 2026-07-09: 首次接触 AI Agent，从 Hermes Agent 概览开始
+- 用户已明确真实目标：AI Agent 全栈落地（不止 Hermes）
+- 三大学习支柱：① Agent 开发 ② 本地知识库(RAG) ③ 项目落地
+- 第 1 课（Hermes 概览）已完成 ✅
+- 环境准备清单已生成，学习计划已确立
+- TypeScript 优先原则已确认
+- 工作区已初始化 Git 仓库
+
+## 📍 当前进度（换电脑/新会话时读这里）
+
+```
+当前阶段：第 1 周 — 认知地基
+已完成：  Day 1 ✅（第 1 课：Hermes Agent 全景概览）
+下一步：  Day 2（LLM 核心概念：Token / Context Window / 推理过程）
+待准备：  安装 Ollama + 下载 hermes3:8b 模型（参考 reference/environment-setup.html）
+```
+
+## 已确认的先验知识
+
+- 前端开发（JS/TS 熟练）
+- Web 基础（HTTP、API、异步编程）
+- AI/ML 领域是新手——概念需要从零讲起
+- 不了解 Transformer、Fine-tuning 等概念
+
+## 技术栈方向（全部 TypeScript）
+
+- 语言：**TypeScript（strict mode）**——所有代码统一 TS
+- 运行时：Node.js 18+ + tsx（TypeScript 直接执行）
+- 模型部署：Ollama（本地模型部署）
+- Agent 框架：Vercel AI SDK（TS 原生）、LangChain.js（TS 版）
+- 向量数据库：LanceDB（TS SDK 原生）、Chroma（TS 客户端）
+- 模型：Hermes 3.1 / Qwen 2.5（按需切换）
+- 前端：Next.js + React + Tailwind CSS（TS 全栈）
+- 类型定义：所有工具、Agent 状态、RAG 管道均定义 interface/type

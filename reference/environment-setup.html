@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>环境准备清单 — AI Agent 开发学习</title>
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+
+<h1>🛠️ 环境准备清单</h1>
+
+<p><span class="tag tag--amber">开始学习前必读</span> <span class="tag tag--red">建议提前准备</span></p>
+
+<blockquote>
+  本清单覆盖 12 周学习所需的所有软件、硬件、账号和前置知识。建议在开始 Day 2 之前全部就绪。
+</blockquote>
+
+<h2>1. 硬件要求</h2>
+
+<table style="width:100%; border-collapse: collapse; margin: 1rem 0;">
+  <tr style="border-bottom: 2px solid var(--border);">
+    <th style="text-align:left; padding: 0.5rem;">项目</th>
+    <th style="text-align:left; padding: 0.5rem;">最低配置</th>
+    <th style="text-align:left; padding: 0.5rem;">推荐配置</th>
+    <th style="text-align:left; padding: 0.5rem;">说明</th>
+  </tr>
+  <tr style="border-bottom: 1px solid var(--border);">
+    <td style="padding: 0.5rem;">内存</td>
+    <td style="padding: 0.5rem;"><span class="tag tag--amber">16 GB</span></td>
+    <td style="padding: 0.5rem;">32 GB</td>
+    <td style="padding: 0.5rem;">运行 8B 模型（Q4 量化）需要 ~6GB，加上系统开销，16GB 是最低门槛</td>
+  </tr>
+  <tr style="border-bottom: 1px solid var(--border);">
+    <td style="padding: 0.5rem;">硬盘</td>
+    <td style="padding: 0.5rem;"><span class="tag tag--amber">30 GB 空闲</span></td>
+    <td style="padding: 0.5rem;">50 GB+</td>
+    <td style="padding: 0.5rem;">Hermes 3.1 8B ~4.7GB，Embedding 模型 ~1GB，其他模型和项目代码</td>
+  </tr>
+  <tr style="border-bottom: 1px solid var(--border);">
+    <td style="padding: 0.5rem;">GPU</td>
+    <td style="padding: 0.5rem;"><span class="tag tag--green">不需要</span></td>
+    <td style="padding: 0.5rem;">NVIDIA 8GB VRAM+</td>
+    <td style="padding: 0.5rem;">Ollama 支持纯 CPU 运行，有 GPU 会更快，但不是必须</td>
+  </tr>
+  <tr>
+    <td style="padding: 0.5rem;">操作系统</td>
+    <td style="padding: 0.5rem;">Windows 10+</td>
+    <td style="padding: 0.5rem;">Windows 11</td>
+    <td style="padding: 0.5rem;">Ollama 原生支持 Windows，无需 WSL</td>
+  </tr>
+</table>
+
+<div class="card card--warn">
+  <div class="card__title">⚠️ 内存不足怎么办？</div>
+  <p>如果你的电脑只有 8GB 内存，可以改用更小的模型：</p>
+  <ul>
+    <li><strong>Hermes 3.1 3B</strong>（Q4 ~1.8GB，功能完整但能力稍弱）</li>
+    <li><strong>Qwen2.5 1.5B</strong>（Q4 ~1GB，中文好，极轻量）</li>
+    <li>学习内容不变，只是模型小一些，回答质量有差距</li>
+  </ul>
+</div>
+
+<h2>2. 软件安装清单</h2>
+
+<h3>2.1 必须安装</h3>
+
+<table style="width:100%; border-collapse: collapse; margin: 1rem 0;">
+  <tr style="border-bottom: 2px solid var(--border);">
+    <th style="text-align:left; padding: 0.5rem;">软件</th>
+    <th style="text-align:left; padding: 0.5rem;">版本</th>
+    <th style="text-align:left; padding: 0.5rem;">用途</th>
+    <th style="text-align:left; padding: 0.5rem;">安装方式</th>
+  </tr>
+  <tr style="border-bottom: 1px solid var(--border);">
+    <td style="padding: 0.5rem;">Node.js</td>
+    <td style="padding: 0.5rem;">18.x 或 20.x</td>
+    <td style="padding: 0.5rem;">运行 TypeScript 项目</td>
+    <td style="padding: 0.5rem;"><a href="https://nodejs.org/">nodejs.org</a> 下载 LTS 版</td>
+  </tr>
+  <tr style="border-bottom: 1px solid var(--border);">
+    <td style="padding: 0.5rem;">Ollama</td>
+    <td style="padding: 0.5rem;">最新版</td>
+    <td style="padding: 0.5rem;">本地运行 LLM 模型</td>
+    <td style="padding: 0.5rem;"><a href="https://ollama.com/download/windows">ollama.com</a> 下载 Windows 版</td>
+  </tr>
+  <tr style="border-bottom: 1px solid var(--border);">
+    <td style="padding: 0.5rem;">Git</td>
+    <td style="padding: 0.5rem;">2.x</td>
+    <td style="padding: 0.5rem;">版本控制</td>
+    <td style="padding: 0.5rem;"><a href="https://git-scm.com/download/win">git-scm.com</a></td>
+  </tr>
+  <tr>
+    <td style="padding: 0.5rem;">VS Code</td>
+    <td style="padding: 0.5rem;">最新版</td>
+    <td style="padding: 0.5rem;">代码编辑器</td>
+    <td style="padding: 0.5rem;"><a href="https://code.visualstudio.com/">code.visualstudio.com</a></td>
+  </tr>
+</table>
+
+<h3>2.2 推荐安装</h3>
+
+<table style="width:100%; border-collapse: collapse; margin: 1rem 0;">
+  <tr style="border-bottom: 2px solid var(--border);">
+    <th style="text-align:left; padding: 0.5rem;">工具</th>
+    <th style="text-align:left; padding: 0.5rem;">用途</th>
+  </tr>
+  <tr style="border-bottom: 1px solid var(--border);">
+    <td style="padding: 0.5rem;">Windows Terminal</td>
+    <td style="padding: 0.5rem;">更好的终端体验（多标签、UTF-8、主题）</td>
+  </tr>
+  <tr style="border-bottom: 1px solid var(--border);">
+    <td style="padding: 0.5rem;">Postman 或 Bruno</td>
+    <td style="padding: 0.5rem;">测试 Ollama API（之后会用到）</td>
+  </tr>
+  <tr>
+    <td style="padding: 0.5rem;">Docker Desktop</td>
+    <td style="padding: 0.5rem;">第 12 周部署时使用（可以到时候再装）</td>
+  </tr>
+</table>
+
+<h3>2.3 VS Code 推荐扩展</h3>
+
+<ul>
+  <li><strong>ESLint</strong> — 代码规范</li>
+  <li><strong>Prettier</strong> — 代码格式化</li>
+  <li><strong>GitHub Copilot</strong>（可选）— AI 辅助编码</li>
+</ul>
+
+<h2>3. 安装验证步骤</h2>
+
+<div class="card card--accent">
+  <div class="card__title">✅ 安装完成后，逐条验证</div>
+</div>
+
+<h3>3.1 验证 Node.js</h3>
+<pre><code>node --version
+# 应输出: v18.x.x 或 v20.x.x
+
+npm --version
+# 应输出: 9.x.x 或 10.x.x</code></pre>
+
+<h3>3.2 验证 Git</h3>
+<pre><code>git --version
+# 应输出: git version 2.x.x</code></pre>
+
+<h3>3.3 验证 Ollama</h3>
+<pre><code>ollama --version
+# 应输出: ollama version x.x.x
+
+ollama list
+# 应输出: NAME  ID  MODIFIED  SIZE
+# （此时应该为空，还没有下载模型）</code></pre>
+
+<h3>3.4 验证 TypeScript</h3>
+<pre><code>npx tsc --version
+# 应输出: Version 5.x.x</code></pre>
+
+<h2>4. 模型下载清单</h2>
+
+<p>这些模型会在对应周下载，但可以提前了解：</p>
+
+<table style="width:100%; border-collapse: collapse; margin: 1rem 0;">
+  <tr style="border-bottom: 2px solid var(--border);">
+    <th style="text-align:left; padding: 0.5rem;">模型</th>
+    <th style="text-align:left; padding: 0.5rem;">大小</th>
+    <th style="text-align:left; padding: 0.5rem;">用途</th>
+    <th style="text-align:left; padding: 0.5rem;">下载命令</th>
+    <th style="text-align:left; padding: 0.5rem;">使用周</th>
+  </tr>
+  <tr style="border-bottom: 1px solid var(--border);">
+    <td style="padding: 0.5rem;">Hermes 3.1 8B</td>
+    <td style="padding: 0.5rem;">~4.7 GB</td>
+    <td style="padding: 0.5rem;">主力 Agent 模型</td>
+    <td style="padding: 0.5rem;"><code>ollama pull hermes3:8b</code></td>
+    <td style="padding: 0.5rem;">第 2 周起</td>
+  </tr>
+  <tr style="border-bottom: 1px solid var(--border);">
+    <td style="padding: 0.5rem;">nomic-embed-text</td>
+    <td style="padding: 0.5rem;">~274 MB</td>
+    <td style="padding: 0.5rem;">文本向量化（Embedding）</td>
+    <td style="padding: 0.5rem;"><code>ollama pull nomic-embed-text</code></td>
+    <td style="padding: 0.5rem;">第 5 周起</td>
+  </tr>
+  <tr>
+    <td style="padding: 0.5rem;">Qwen2.5 7B</td>
+    <td style="padding: 0.5rem;">~4.4 GB</td>
+    <td style="padding: 0.5rem;">中文场景备选模型</td>
+    <td style="padding: 0.5rem;"><code>ollama pull qwen2.5:7b</code></td>
+    <td style="padding: 0.5rem;">第 6 周（可选）</td>
+  </tr>
+</table>
+
+<div class="card card--warn">
+  <div class="card__title">⚠️ 下载注意</div>
+  <ul>
+    <li>模型文件较大，建议在网络好的时候提前下载</li>
+    <li>下载后模型存储在 <code>%USERPROFILE%\.ollama\models\</code></li>
+    <li>如果 C 盘空间不够，可以<a href="https://github.com/ollama/ollama/blob/main/docs/faq.md#how-do-i-change-the-models-directory">修改 Ollama 模型存储路径</a></li>
+  </ul>
+</div>
+
+<h2>5. 项目初始化模板</h2>
+
+<p>第 2 周开始会用到，这里先给出项目结构预览：</p>
+
+<pre><code>ai-agent-learning/          # 学习项目根目录
+├── tsconfig.json            # TypeScript 配置
+├── package.json             # 依赖管理
+├── .env                     # 环境变量（Ollama 地址等）
+├── .gitignore
+├── demos/                   # 10 个 Demo
+│   ├── demo01-chatbot/
+│   ├── demo02-tool-agent/
+│   └── ...
+├── packages/                # 共享代码
+│   ├── agent-core/          # Agent 核心逻辑
+│   ├── rag-engine/          # RAG 引擎
+│   └── memory/              # 记忆系统
+└── notes/                   # 学习笔记（你的每日记录）
+</code></pre>
+
+<h3>5.1 基础 package.json 依赖预览</h3>
+
+<pre><code>{
+  "name": "ai-agent-learning",
+  "type": "module",
+  "scripts": {
+    "dev": "tsx --watch src/index.ts",
+    "build": "tsc",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "typescript": "^5.5",
+    "tsx": "^4.x",
+    "@types/node": "^20.x"
+  },
+  "dependencies": {
+    "ollama": "^0.5.x",
+    "zod": "^3.x",
+    "ai": "^4.x",
+    "@lancedb/lancedb": "^0.x"
+  }
+}
+</code></pre>
+
+<h3>5.2 基础 tsconfig.json 预览</h3>
+
+<pre><code>{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true
+  },
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist"]
+}
+</code></pre>
+
+<h2>6. 账号注册</h2>
+
+<table style="width:100%; border-collapse: collapse; margin: 1rem 0;">
+  <tr style="border-bottom: 2px solid var(--border);">
+    <th style="text-align:left; padding: 0.5rem;">平台</th>
+    <th style="text-align:left; padding: 0.5rem;">必要性</th>
+    <th style="text-align:left; padding: 0.5rem;">用途</th>
+  </tr>
+  <tr style="border-bottom: 1px solid var(--border);">
+    <td style="padding: 0.5rem;"><a href="https://huggingface.co/join">HuggingFace</a></td>
+    <td style="padding: 0.5rem;"><span class="tag tag--green">推荐</span></td>
+    <td style="padding: 0.5rem;">浏览模型、阅读文档、下载模型（不注册也能下载，注册后可以收藏和讨论）</td>
+  </tr>
+  <tr>
+    <td style="padding: 0.5rem;"><a href="https://github.com/join">GitHub</a></td>
+    <td style="padding: 0.5rem;"><span class="tag tag--green">推荐</span></td>
+    <td style="padding: 0.5rem;">存放代码、作品集（你应该已经有了）</td>
+  </tr>
+</table>
+
+<h2>7. 前置知识检查</h2>
+
+<div class="card card--success">
+  <div class="card__title">✅ 你应该已经会的（前端基础）</div>
+  <ul>
+    <li>TypeScript 基础语法（类型注解、interface、泛型、async/await）</li>
+    <li>Node.js 基础（npm、模块系统、文件读写）</li>
+    <li>HTTP 协议基础（GET/POST、JSON、Streaming）</li>
+    <li>异步编程（Promise、AsyncGenerator、EventEmitter）</li>
+    <li>Git 基本操作</li>
+  </ul>
+</div>
+
+<div class="card card--warn">
+  <div class="card__title">🆕 不需要提前会的（课程会教）</div>
+  <ul>
+    <li>LLM 原理（Token、Context Window、采样）</li>
+    <li>Prompt Engineering</li>
+    <li>Function Calling / Tool-use</li>
+    <li>Embedding 与向量检索</li>
+    <li>Agent 架构设计</li>
+    <li>MCP 协议</li>
+  </ul>
+</div>
+
+<h2>8. 准备时间估算</h2>
+
+<table style="width:100%; border-collapse: collapse; margin: 1rem 0;">
+  <tr style="border-bottom: 2px solid var(--border);">
+    <th style="text-align:left; padding: 0.5rem;">步骤</th>
+    <th style="text-align:left; padding: 0.5rem;">预计耗时</th>
+    <th style="text-align:left; padding: 0.5rem;">备注</th>
+  </tr>
+  <tr style="border-bottom: 1px solid var(--border);">
+    <td style="padding: 0.5rem;">安装 Node.js</td>
+    <td style="padding: 0.5rem;">5 分钟</td>
+    <td style="padding: 0.5rem;">如果已安装，验证版本即可</td>
+  </tr>
+  <tr style="border-bottom: 1px solid var(--border);">
+    <td style="padding: 0.5rem;">安装 Ollama</td>
+    <td style="padding: 0.5rem;">5 分钟</td>
+    <td style="padding: 0.5rem;">下载安装包 + 安装</td>
+  </tr>
+  <tr style="border-bottom: 1px solid var(--border);">
+    <td style="padding: 0.5rem;">下载 Hermes 3.1 8B</td>
+    <td style="padding: 0.5rem;">10-30 分钟</td>
+    <td style="padding: 0.5rem;">取决于网速，约 4.7GB</td>
+  </tr>
+  <tr style="border-bottom: 1px solid var(--border);">
+    <td style="padding: 0.5rem;">下载 Embedding 模型</td>
+    <td style="padding: 0.5rem;">2-5 分钟</td>
+    <td style="padding: 0.5rem;">约 274MB，很快</td>
+  </tr>
+  <tr style="border-bottom: 1px solid var(--border);">
+    <td style="padding: 0.5rem;">初始化项目</td>
+    <td style="padding: 0.5rem;">5 分钟</td>
+    <td style="padding: 0.5rem;">npm init + tsconfig</td>
+  </tr>
+  <tr>
+    <td style="padding: 0.5rem;"><strong>总计</strong></td>
+    <td style="padding: 0.5rem;"><strong>约 30-60 分钟</strong></td>
+    <td style="padding: 0.5rem;">大部分时间在等模型下载</td>
+  </tr>
+</table>
+
+<div class="card card--accent">
+  <div class="card__title">💡 建议</div>
+  <p><strong>模型下载可以后台挂着</strong>——下载的同时就开始 Day 2 的理论学习，互不耽误。下载命令：</p>
+  <pre><code>ollama pull hermes3:8b</code></pre>
+  <p>这条命令执行后，模型就开始下载，你可以在另一个终端继续学习。</p>
+</div>
+
+<hr style="margin: 2rem 0; border: none; border-top: 1px solid var(--border);">
+
+<p><em>最后更新：2026-07-09 · <a href="../lessons/0001-hermes-agent-overview.html">返回第 1 课</a> · <a href="../STUDY-PLAN.md">返回学习计划</a></em></p>
+
+</body>
+</html>
