@@ -8,6 +8,7 @@
 - 最终目标是能在自己的项目中落地
 - **前端工程师（JS/TS 熟练）**——工具链优先 JS 生态
 - **TypeScript 优先**——所有代码、Demo、项目统一使用 TypeScript
+- **Java 零基础**——需要从零学习，作为企业级交付的第二语言（Spring AI / LangChain4j）
 - Python 能力待确认，先假设不熟
 
 ## 当前状态
@@ -46,3 +47,11 @@
 - 模型：Hermes 3.1 / Qwen 2.5（按需切换）
 - 前端：Next.js + React + Tailwind CSS（TS 全栈）
 - 类型定义：所有工具、Agent 状态、RAG 管道均定义 interface/type
+
+## 技术栈方向（Java — 第二语言，第 9 周起）
+
+- 语言：**Java 17+**（LTS 版本）
+- 构建工具：Maven（市场主流）
+- Agent 框架：Spring AI / LangChain4j
+- 场景：企业级 Agent 部署、与现有 Java 后端集成
+- 学习策略：用 TS 学会 Agent 概念 → 用 Java 复现核心 Demo → 理解两面写法

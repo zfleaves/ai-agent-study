@@ -1,7 +1,7 @@
 # AI Agent 开发工程师 — 12 周完整学习计划
 
 > 以 Hermes Agent 为核心载体，从前端到 AI Agent 全栈，每日 30-60 分钟
-> **全链路 TypeScript**，类型安全贯穿始终
+> **主语言 TypeScript**，第 9 周起引入 **Java**（Spring AI / LangChain4j）
 
 **⚠️ 开始前必读：[环境准备清单](./reference/environment-setup.html)** — 硬件、软件、模型下载、前置知识检查
 
@@ -379,6 +379,27 @@
 
 ---
 
+---
+
+## ☕ Java 并行轨道（第 9 周起，零基础友好）
+
+> 策略：TS 学概念 → Java 复现 → 对比两面写法。不中断 TS 主线的同时积累 Java 能力。
+
+| 周 | Java 主题 | 学习内容 | 动手 | 时长 |
+|---|---|---|---|---|
+| **9** | Java 基础速通 | 语法对比 TS vs Java：类型系统、类/接口、泛型、集合、Stream API | 写一个 Java 版"命令行聊天机器人"（对接 Ollama HTTP API） | 2×45min |
+| **10** | Spring Boot + AI | Spring Boot 基础（Controller、Service、Bean）、Spring AI 的 ChatClient | 用 Spring AI 实现一个对话接口 | 2×45min |
+| **11** | Spring AI 进阶 | Tool Calling、RAG 支持、Advisor 链 | 用 Spring AI 复现 Demo 3（自主任务 Agent） | 2×45min |
+| **12** | LangChain4j + 对比 | LangChain4j 的 Agent 循环、与 Vercel AI SDK 的写法对比 | 同一功能，TS 版 vs Java 版，写对比文档 | 2×45min |
+
+### Java 学习原则
+- **不中断 TS 主线**：每周 TS 5 天 + Java 2 天（周末或空闲日）
+- **概念迁移**：Agent 概念已在 TS 端学会，Java 端只学"怎么写"
+- **对比学习**：每个 Java Demo 都有对应的 TS 版本，对比差异
+- **零基础友好**：Java 语法从 TS 对照出发，利用已有的编程概念
+
+---
+
 ## 🧪 10 个 Demo 总览
 
 | # | Demo 名称 | 周 | 核心技能 | 产出 |
@@ -440,6 +461,15 @@
 - [ ] 多 Agent 协作模式
 - [ ] Agent 评估方法
 - [ ] 部署方案（Docker / 本地）
+
+### Java 企业级（第 9 周起）
+- [ ] Java 基础语法（类、接口、泛型、集合、Stream）
+- [ ] Maven 构建工具
+- [ ] Spring Boot 基础（REST API、依赖注入）
+- [ ] Spring AI（ChatClient、Tool Calling、RAG 支持）
+- [ ] LangChain4j（Agent 循环、Tool 注册、记忆管理）
+- [ ] TS Agent Demo → Java 复现（对比两种写法）
+- [ ] Java MCP Server 实现
 
 ---
 

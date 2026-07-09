@@ -14,7 +14,19 @@
 - [HuggingFace Open LLM Leaderboard](https://huggingface.co/spaces/open-llm-leaderboard/open_llm_leaderboard)
   开源 LLM 排行榜，对比各模型性能。Use for: 技术选型时的性能参考。
 
-## Knowledge —— JS 生态工具链
+## Knowledge —— Java 生态（第 9 周起）
+
+- [Spring AI 官方文档](https://docs.spring.io/spring-ai/reference/)
+  Spring 官方的 AI 框架，ChatClient、Tool Calling、RAG、Advisor 一条龙。Use for: Java Agent 开发首选框架。
+
+- [LangChain4j 官方文档](https://docs.langchain4j.dev/)
+  LangChain 的 Java 移植版，Agent 循环、工具注册、记忆管理。Use for: 与 TS 版 LangChain.js 对比学习。
+
+- [Spring Boot 入门指南](https://spring.io/guides/gs/spring-boot)
+  Spring Boot 官方入门教程。Use for: Java 零基础上手。
+
+- [Maven 官方文档](https://maven.apache.org/guides/getting-started/)
+  Java 主流构建工具。Use for: 项目构建和依赖管理。
 
 - [Vercel AI SDK 官方文档](https://sdk.vercel.ai/docs)
   前端友好的 AI 开发框架，支持 React/Next.js，内置 streaming、tool-calling。Use for: Agent 前端集成首选。
