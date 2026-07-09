@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>扩展知识 — Agent 面试进阶话题</title>
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+
+<h1>📚 扩展知识：Agent 面试进阶话题</h1>
+
+<p><span class="tag tag--blue">面试能聊，课程不写</span> <span class="tag tag--amber">自学参考</span></p>
+
+<blockquote>
+  这些话题在面试中可能被问到，但不需要手写代码。掌握"是什么、为什么、怎么聊"即可。
+  每个话题都是独立模块，按需查阅，不需要按顺序读。
+</blockquote>
+
+<h2>1. K8s（Kubernetes）— Agent 服务编排</h2>
+
+<h3>是什么</h3>
+<p>Kubernetes 是容器编排平台。Docker 管一个容器，K8s 管一群容器（自动扩缩、负载均衡、滚动更新、服务发现）。</p>
+
+<h3>面试怎么聊</h3>
+<blockquote>
+  "我们用 Docker Compose 做开发环境，生产环境会考虑 K8s 来做自动扩缩容。Agent 服务的一个特点是请求耗时不均——简单对话 2 秒，复杂任务可能要 30 秒，K8s 的 HPA（水平自动扩缩）可以根据 GPU 利用率或请求队列长度自动调整副本数。"
+</blockquote>
+
+<h3>关键概念</h3>
+<ul>
+  <li><strong>Pod</strong>：最小部署单元，一个 Pod 里跑一个 Agent 服务容器</li>
+  <li><strong>HPA</strong>：水平自动扩缩，Agent 请求多了自动加 Pod</li>
+  <li><strong>Service</strong>：负载均衡，把请求分发到多个 Agent Pod</li>
+  <li><strong>ConfigMap/Secret</strong>：管理 API Key、模型配置</li>
+</ul>
+
+<h3>延伸阅读</h3>
+<ul>
+  <li><a href="https://kubernetes.io/docs/concepts/overview/" target="_blank">K8s 官方概念概述</a></li>
+  <li>搜索："Kubernetes 部署 LLM 服务"</li>
+</ul>
+
+---
+
+<h2>2. Redis / PostgreSQL — Agent 状态持久化</h2>
+
+<h3>是什么</h3>
+<p>Agent 的对话历史、用户偏好、任务状态需要存下来。Redis 做缓存和会话（快但丢数据），PostgreSQL 做持久存储（慢但不丢）。</p>
+
+<h3>面试怎么聊</h3>
+<blockquote>
+  "Agent 的状态管理分两层：热数据用 Redis 存当前会话和工具调用中间结果，冷数据用 PostgreSQL 存用户偏好和历史任务。比如用户的对话历史缓存到 Redis（TTL 24 小时），长期偏好（"用户喜欢简洁回答"）持久化到 PostgreSQL。"
+</blockquote>
+
+<h3>关键概念</h3>
+<ul>
+  <li><strong>Redis 会话缓存</strong>：存对话历史，TTL 过期自动清理</li>
+  <li><strong>PostgreSQL JSONB</strong>：存 Agent 状态，支持灵活查询</li>
+  <li><strong>pgvector 扩展</strong>：PostgreSQL 也能做向量检索，小规模场景可以不用单独的向量数据库</li>
+</ul>
+
+<h3>延伸阅读</h3>
+<ul>
+  <li><a href="https://redis.io/docs/latest/develop/use/client-side-caching/" target="_blank">Redis 客户端缓存</a></li>
+  <li>搜索："pgvector vs Chroma 对比"</li>
+</ul>
+
+---
+
+<h2>3. MT-Bench / AgentBench — 模型评估基准</h2>
+
+<h3>是什么</h3>
+<p>MT-Bench 评估模型的<strong>多轮对话</strong>能力，AgentBench 评估模型的<strong>Agent 任务执行</strong>能力。面试官问"你怎么评估 Agent"时，提这些基准说明你有关注学术界。</p>
+
+<h3>面试怎么聊</h3>
+<blockquote>
+  "评估 Agent 分两层：离线评估用 MT-Bench 和 AgentBench 这类标准基准看模型基础能力，在线评估用我们自己的 Eval 数据集测具体业务场景的工具选择准确率和任务完成率。两个互补，离线筛模型，在线验效果。"
+</blockquote>
+
+<h3>关键概念</h3>
+<ul>
+  <li><strong>MT-Bench</strong>：80 个多轮问题，GPT-4 当裁判打分，评估对话质量</li>
+  <li><strong>AgentBench</strong>：8 个环境（操作系统、数据库、网页等），评估 Agent 的任务执行能力</li>
+  <li><strong>AlpacaEval</strong>：更轻量的自动评估，适合快速对比两个模型</li>
+</ul>
+
+<h3>延伸阅读</h3>
+<ul>
+  <li><a href="https://arxiv.org/abs/2306.05685" target="_blank">MT-Bench 论文 (arXiv)</a></li>
+  <li><a href="https://arxiv.org/abs/2308.03688" target="_blank">AgentBench 论文 (arXiv)</a></li>
+</ul>
+
+---
+
+<h2>4. TensorRT-LLM — GPU 推理加速</h2>
+
+<h3>是什么</h3>
+<p>NVIDIA 官方的 LLM 推理加速引擎。vLLM 是社区方案，TensorRT-LLM 是 NVIDIA 亲儿子，用 GPU 更极致但配置更复杂。</p>
+
+<h3>面试怎么聊</h3>
+<blockquote>
+  "我们的开发环境用 Ollama，生产环境对比过 vLLM 和 TensorRT-LLM。vLLM 部署简单、社区活跃，适合快速上线；TensorRT-LLM 在 NVIDIA GPU 上推理速度更快 15-30%，但需要编译模型，更新迭代成本高。我们目前选 vLLM，后续如果吞吐量成为瓶颈再切 TensorRT-LLM。"
+</blockquote>
+
+<h3>关键概念</h3>
+<ul>
+  <li><strong>PagedAttention（vLLM）</strong>：社区方案，KV Cache 分页管理，部署简单</li>
+  <li><strong>TensorRT-LLM</strong>：NVIDIA 官方，图优化 + 算子融合，极致性能</li>
+  <li><strong>选型建议</strong>：先 vLLM 快速上线，性能不够再上 TensorRT-LLM</li>
+</ul>
+
+<h3>延伸阅读</h3>
+<ul>
+  <li><a href="https://github.com/NVIDIA/TensorRT-LLM" target="_blank">TensorRT-LLM GitHub</a></li>
+  <li>搜索："vLLM vs TensorRT-LLM benchmark 2025"</li>
+</ul>
+
+---
+
+<h2>5. Celery / BullMQ — Agent 异步任务队列</h2>
+
+<h3>是什么</h3>
+<p>Agent 处理复杂任务时可能需要几十秒，不能让用户干等。Celery（Python）和 BullMQ（Node.js）都是异步任务队列：用户提交任务 → 放入队列 → 后台执行 → 完成后通知。</p>
+
+<h3>面试怎么聊</h3>
+<blockquote>
+  "Agent 的任务分同步和异步两种。简单对话同步返回（Streaming），复杂任务（如代码生成、数据分析）走异步队列。我们用 BullMQ（TS 生态）做任务调度，用户提交任务后拿到一个 taskId，前端轮询或 WebSocket 推送结果。Celery 在 Python 生态是同样的角色。"
+</blockquote>
+
+<h3>关键概念</h3>
+<ul>
+  <li><strong>Producer/Consumer</strong>：Agent 服务是 Producer，Worker 是 Consumer</li>
+  <li><strong>任务状态</strong>：pending → running → completed/failed</li>
+  <li><strong>WebSocket 推送</strong>：比轮询更优雅，任务完成主动推给前端</li>
+  <li><strong>BullMQ（TS）</strong>：基于 Redis，适合 Node.js 生态</li>
+  <li><strong>Celery（Python）</strong>：基于 RabbitMQ/Redis，Python 生态标配</li>
+</ul>
+
+<h3>延伸阅读</h3>
+<ul>
+  <li><a href="https://docs.bullmq.io/" target="_blank">BullMQ 官方文档</a></li>
+  <li><a href="https://docs.celeryq.dev/" target="_blank">Celery 官方文档</a></li>
+</ul>
+
+---
+
+<h2>6. P-Tuning / QLoRA — LoRA 之外的微调方法</h2>
+
+<h3>是什么</h3>
+<p>LoRA 是 PEFT（参数高效微调）的一种，还有 P-Tuning v2（在输入层加可训练 token）和 QLoRA（LoRA + 4-bit 量化，显存更省）。</p>
+
+<h3>面试怎么聊</h3>
+<blockquote>
+  "我们团队主要用 LoRA 做 Agent 的指令微调，因为它在 Tool-calling 场景效果最好。QLoRA 是 LoRA 的量化版，适合显存不够的情况。P-Tuning v2 更适合 NLU 任务但对 Tool-calling 的支持不如 LoRA。选型上，Agent 场景优先 LoRA，资源受限时用 QLoRA。"
+</blockquote>
+
+<h3>关键概念</h3>
+<ul>
+  <li><strong>LoRA</strong>：在 Attention 层加低秩矩阵，训练参数量极小（~0.1%）</li>
+  <li><strong>QLoRA</strong>：LoRA + 4-bit 量化，显存需求再降 4x，效果几乎不降</li>
+  <li><strong>P-Tuning v2</strong>：在每层输入加可训练的 prompt token，适合分类/抽取类任务</li>
+  <li><strong>选型口诀</strong>：Agent 用 LoRA，显存不够用 QLoRA，NLU 用 P-Tuning</li>
+</ul>
+
+<h3>延伸阅读</h3>
+<ul>
+  <li><a href="https://arxiv.org/abs/2305.14314" target="_blank">QLoRA 论文 (arXiv)</a></li>
+  <li><a href="https://arxiv.org/abs/2110.07602" target="_blank">P-Tuning v2 论文 (arXiv)</a></li>
+</ul>
+
+---
+
+<h2>7. OpenAI / Anthropic API 深度使用</h2>
+
+<h3>是什么</h3>
+<p>JD 常要求"有 OpenAI/Anthropic API 深度调用经验"。核心不是"调过 API"，而是理解 Streaming、Tool Use、System Prompt、Token 管理这些机制在不同 Provider 下的差异。</p>
+
+<h3>面试怎么聊</h3>
+<blockquote>
+  "我们项目中同时接入了 DeepSeek、OpenAI 和 Anthropic。通过 Vercel AI SDK 做 Provider 抽象，一套 Agent 代码可以切换不同模型。我理解各家 API 的差异：OpenAI 的 Tool Use 是 function_call 字段，Anthropic 是 tool_use content block，DeepSeek 兼容 OpenAI 格式。Streaming 上各家都支持 SSE，但 Anthropic 的 SSE 事件类型更丰富。"
+</blockquote>
+
+<h3>关键差异</h3>
+<table style="width:100%; border-collapse: collapse; margin: 1rem 0;">
+  <tr style="border-bottom: 2px solid var(--border);">
+    <th style="text-align:left; padding: 0.5rem;">特性</th>
+    <th style="text-align:left; padding: 0.5rem;">OpenAI</th>
+    <th style="text-align:left; padding: 0.5rem;">Anthropic</th>
+    <th style="text-align:left; padding: 0.5rem;">DeepSeek</th>
+  </tr>
+  <tr style="border-bottom: 1px solid var(--border);">
+    <td style="padding: 0.5rem;">Tool Use 格式</td>
+    <td style="padding: 0.5rem;"><code>function_call</code> + <code>tool_calls</code></td>
+    <td style="padding: 0.5rem;"><code>tool_use</code> content block</td>
+    <td style="padding: 0.5rem;">兼容 OpenAI 格式</td>
+  </tr>
+  <tr style="border-bottom: 1px solid var(--border);">
+    <td style="padding: 0.5rem;">Streaming</td>
+    <td style="padding: 0.5rem;">SSE（delta 增量）</td>
+    <td style="padding: 0.5rem;">SSE（事件类型更丰富）</td>
+    <td style="padding: 0.5rem;">兼容 OpenAI 格式</td>
+  </tr>
+  <tr style="border-bottom: 1px solid var(--border);">
+    <td style="padding: 0.5rem;">System Prompt</td>
+    <td style="padding: 0.5rem;">顶层 system 字段</td>
+    <td style="padding: 0.5rem;">顶层 system 字段（更重视）</td>
+    <td style="padding: 0.5rem;">兼容 OpenAI 格式</td>
+  </tr>
+  <tr>
+    <td style="padding: 0.5rem;">上下文窗口</td>
+    <td style="padding: 0.5rem;">128K（GPT-4o）</td>
+    <td style="padding: 0.5rem;">200K（Claude 3.5）</td>
+    <td style="padding: 0.5rem;">128K（DeepSeek V4）</td>
+  </tr>
+</table>
+
+<h3>延伸阅读</h3>
+<ul>
+  <li><a href="https://platform.openai.com/docs/guides/function-calling" target="_blank">OpenAI Function Calling 文档</a></li>
+  <li><a href="https://docs.anthropic.com/en/docs/build-with-claude/tool-use" target="_blank">Anthropic Tool Use 文档</a></li>
+  <li><a href="https://sdk.vercel.ai/docs" target="_blank">Vercel AI SDK（多 Provider 抽象）</a></li>
+</ul>
+
+---
+
+<hr style="margin: 2rem 0; border: none; border-top: 1px solid var(--border);">
+
+<p><em>最后更新：2026-07-09 · <a href="../STUDY-PLAN.md">返回学习计划</a> · <a href="jd-analysis.html">JD 对照分析</a></em></p>
+
+</body>
+</html>

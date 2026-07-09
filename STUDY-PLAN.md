@@ -6,6 +6,7 @@
 
 **⚠️ 开始前必读：[环境准备清单](./reference/environment-setup.html)** — 硬件、软件、模型下载、前置知识检查
 **⚠️ JD 对照：[岗位需求分析](./reference/jd-analysis.html)** — boss 直聘 JD 逐条对照
+**⚠️ 扩展知识：[面试进阶话题](./reference/extended-knowledge.html)** — 面试能聊，课程不写，自学参考
 
 ---
 
