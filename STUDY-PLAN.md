@@ -47,23 +47,25 @@
 
 ---
 
-## 📅 第 2 周：Ollama 环境 + 第一个本地模型
+## 📅 第 2 周：Ollama 环境 + 第一个本地模型 + 推理优化
 
 ### 本周目标
-在 Windows 上安装 Ollama，拉取 Hermes 3.1 模型，用 TypeScript 代码与模型对话。
+在 Windows 上安装 Ollama，拉取 Hermes 3.1 模型，用 TypeScript 代码与模型对话。**理解模型大小、量化级别与推理速度的关系，学会选模型。**
 
 | 天 | 主题 | 学习内容 | 知识点 | 动手 | 时长 |
 |---|---|---|---|---|---|
-| **Day 1** | Ollama 安装与配置 | 安装 Ollama for Windows，了解模型文件格式（GGUF）、量化概念 | GGUF 格式、Q4/Q8 量化、模型大小 vs 质量 | 安装 Ollama，拉取 Hermes 3.1 8B | 40min |
-| **Day 2** | 命令行对话 | `ollama run` 命令、模型参数调整、System Prompt 设定 | System Prompt 作用、Temperature 调节、多轮对话 | 在终端用不同 Prompt 和 Hermes 对话 | 35min |
-| **Day 3** | TS SDK 接入 | 使用 `ollama-js` 在 Node.js + TypeScript 中调用模型，处理流式响应 | Streaming 原理、SSE、异步迭代、类型定义 | 写一个 TS 脚本：流式对话 Hermes | 45min |
-| **Day 4** | Prompt 工程基础 | 角色设定、Few-shot、Chain-of-Thought 提示技巧 | Zero-shot vs Few-shot、CoT 思维链、System Prompt 设计 | 设计 3 种 Prompt 模板，对比效果 | 40min |
-| **Day 5** | 复盘 + Demo | 本周知识点回顾，完成第一个 Demo | 本周复盘 | **Demo 1：命令行聊天机器人**（Node.js + TypeScript + Hermes） | 45min |
+| **Day 1** | Ollama 安装 + 模型选型 | 安装 Ollama，理解 GGUF/量化概念，**对比不同模型的速度和质量** | GGUF 格式、Q4/Q8/Q3 量化、模型大小 vs 速度 vs 质量、CPU vs GPU 推理 | 安装 Ollama，拉取 3 个模型（8B Q4 + 3B Q4 + 1.5B Q4），对比速度 | 45min |
+| **Day 2** | 命令行对话 + 速度实测 | `ollama run` 命令、System Prompt、**实测并记录每个模型的响应速度** | System Prompt 作用、Temperature 调节、推理速度测量（tok/s） | 用同一 Prompt 测试 3 个模型，记录速度差异表 | 35min |
+| **Day 3** | TS SDK 接入 + Streaming | 使用 `ollama-js` 在 Node.js + TypeScript 中调用模型，流式响应 | Streaming 原理、SSE、异步迭代、首 token 延迟 vs 总延迟 | 写一个 TS 脚本：流式对话 + 测量首 token 时间和总时间 | 45min |
+| **Day 4** | Prompt 工程 + 瘦身实验 | 角色设定、Few-shot、CoT；**实验 System Prompt 长度对速度的影响** | Zero-shot vs Few-shot、CoT 思维链、Prompt 长度与 Prefill 时间关系 | 设计 3 种 Prompt 模板，对比效果 + 速度 | 40min |
+| **Day 5** | 复盘 + Demo | 本周知识点回顾，完成第一个 Demo | 周复盘 | **Demo 1：命令行聊天机器人**（Node.js + TS + Hermes，含速度对比报告） | 45min |
 
-### 🎯 Demo 1：命令行聊天机器人
+### 🎯 Demo 1：命令行聊天机器人 + 速度报告
 ```
 功能：终端输入文字 → Hermes 流式回复 → 支持多轮对话
 技术：Node.js + TypeScript + ollama-js + readline
+额外输出：模型速度对比报告（8B Q4 vs 3B Q4 vs 1.5B Q4，首 token 延迟 + 总时间）
+关键点：流式输出、对话历史管理、类型安全、模型选型决策
 关键点：流式输出、对话历史管理、类型安全、Ctrl+C 退出
 ```
 
@@ -386,7 +388,7 @@
 | **Day 1** | Fine-tuning 概念 | 全量微调 vs 参数高效微调（PEFT）、LoRA 原理 | Transformer 微调、LoRA 低秩适配、Adapter | 理解 LoRA 论文核心思想（不需要读全文） | 45min |
 | **Day 2** | Agent 评估体系 | 评估指标（准确率、工具选择正确率、幻觉率）、LangSmith 可观测性、Eval 数据集 | 评估维度设计、Tracing、A/B 测试、数据飞轮 | 给 Demo 3 的 Agent 写一套评估脚本 | 50min |
 | **Day 3** | Guardrails 安全护栏 | 工具调用权限控制、输出校验、敏感词过滤、越权检测 | Guardrails AI、NeMo Guardrails、自定义校验规则 | 给 Agent 加工具调用权限 + 输出校验 | 45min |
-| **Day 4** | vLLM 生产部署 + LoRA 实践 | vLLM 原理、PagedAttention、与 Ollama 对比；LoRA 微调实践 | 吞吐量、延迟、并发、KV Cache 优化；数据集准备、训练参数 | 安装 vLLM 部署 Hermes + 微调一个 LoRA 适配器 | 60min |
+| **Day 4** | 推理优化全链路 | 回顾+深化：模型分层、量化降级、Prompt 瘦身、缓存、云端兜底；**vLLM 部署 + LoRA 实践** | 五步优化法完整实施、vLLM 原理、PagedAttention、数据集准备 | 对 Demo 10 做全链路优化，30s → 5s 实战 + 微调 LoRA 适配器 | 60min |
 | **Day 5** | 复盘 + 总结 | 模型调优 + 评估 + 部署 | 周复盘 | **Demo 14：微调模型 + 评估体系 + 部署方案** | 50min |
 
 ### 🎯 Demo 14：微调模型 + 评估 + 部署
@@ -473,7 +475,7 @@
 
 | 阶段 | 周数 | 主题 | Demo 产出 | 核心技能 |
 |---|---|---|---|---|
-| 地基 | 1-2 | LLM 概念 + 本地运行 | Demo 1：聊天机器人 | Ollama、Prompt、TS SDK |
+| 地基 | 1-2 | LLM 概念 + 本地运行 + 推理优化 | Demo 1：聊天机器人 | Ollama、Prompt、模型选型、速度测量 |
 | Agent 核心 | 3-4 | Tool-calling + Agent 循环 | Demo 2-3：工具 Agent | Function Calling、ReAct 循环 |
 | 知识库 | 5-6 | RAG + 本地知识库 | Demo 4-5：知识库 | Embedding、向量数据库、检索、LlamaIndex TS |
 | 框架 | 7-8 | Vercel AI SDK + MCP | Demo 6-7：前端 Agent | AI SDK、MCP 协议 |
@@ -538,6 +540,8 @@
 - [ ] Temperature / Top-p / Top-k 采样
 - [ ] System Prompt vs User Prompt
 - [ ] Few-shot / Zero-shot / Chain-of-Thought
+- [ ] **模型选型**：8B vs 3B vs 1.5B，Q4 vs Q3 vs Q2，速度 vs 质量权衡
+- [ ] **推理速度测量**：首 token 延迟（Prefill）vs 总延迟（Decode），tok/s 计算
 
 ### TypeScript 工程化
 - [ ] 项目 tsconfig 配置（strict mode + ESM）
