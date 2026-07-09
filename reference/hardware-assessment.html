@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>硬件评估 — DESKTOP-R24Q99K</title>
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+
+<h1>🖥️ 硬件评估报告</h1>
+
+<p><span class="tag tag--amber">DESKTOP-R24Q99K</span> <span class="tag tag--blue">2026-07-09</span></p>
+
+<h2>配置总览</h2>
+
+<table style="width:100%; border-collapse: collapse; margin: 1rem 0;">
+  <tr style="border-bottom: 2px solid var(--border);">
+    <th style="text-align:left; padding: 0.5rem;">组件</th>
+    <th style="text-align:left; padding: 0.5rem;">型号</th>
+    <th style="text-align:left; padding: 0.5rem;">评估</th>
+  </tr>
+  <tr style="border-bottom: 1px solid var(--border);">
+    <td style="padding: 0.5rem;">CPU</td>
+    <td style="padding: 0.5rem;">i7-7700HQ (4C8T, 2.8GHz)</td>
+    <td style="padding: 0.5rem;"><span class="tag tag--amber">够用</span> 纯 CPU 推理，8B 模型约 5-8 tokens/s</td>
+  </tr>
+  <tr style="border-bottom: 1px solid var(--border);">
+    <td style="padding: 0.5rem;">内存</td>
+    <td style="padding: 0.5rem;">16 GB DDR4</td>
+    <td style="padding: 0.5rem;"><span class="tag tag--amber">刚好</span> 8B Q4 模型 ~6GB，系统 ~4GB，剩余 ~6GB</td>
+  </tr>
+  <tr style="border-bottom: 1px solid var(--border);">
+    <td style="padding: 0.5rem;">GPU</td>
+    <td style="padding: 0.5rem;">GTX 1050 (2GB VRAM)</td>
+    <td style="padding: 0.5rem;"><span class="tag tag--red">不可用</span> 2GB VRAM 不够加载 8B 模型，只能 CPU 推理</td>
+  </tr>
+  <tr style="border-bottom: 1px solid var(--border);">
+    <td style="padding: 0.5rem;">SSD (C:)</td>
+    <td style="padding: 0.5rem;">119 GB / 29 GB 空闲</td>
+    <td style="padding: 0.5rem;"><span class="tag tag--amber">紧张</span> 模型约 5GB，建议存到 HDD</td>
+  </tr>
+  <tr>
+    <td style="padding: 0.5rem;">HDD (E:)</td>
+    <td style="padding: 0.5rem;">497 GB / 152 GB 空闲</td>
+    <td style="padding: 0.5rem;"><span class="tag tag--green">充裕</span> 模型存这里，加载稍慢但运行无影响</td>
+  </tr>
+</table>
+
+<h2>结论</h2>
+
+<div class="card card--success">
+  <div class="card__title">✅ 可以跑，但需要优化配置</div>
+  <p><strong>能用，不是残废。</strong>16GB 内存 + i7 足够学习 AI Agent 开发。只是速度不会很快，但学习完全够用。</p>
+</div>
+
+<h2>需要做的 3 个优化</h2>
+
+<h3>1. 把 Ollama 模型存到 E 盘</h3>
+<p>C 盘只有 29GB 空闲，存模型太紧张。Ollama 默认存 C 盘，需要改到 E 盘：</p>
+
+<pre><code># 1. 设置环境变量（PowerShell 管理员）
+[Environment]::SetEnvironmentVariable('OLLAMA_MODELS', 'E:\ollama\models', 'User')
+
+# 2. 重启 Ollama（任务栏右键 Ollama 图标 → Quit，再重新打开）
+
+# 3. 验证
+ollama pull hermes3:8b
+# 模型会下载到 E:\ollama\models 而不是 C 盘</code></pre>
+
+<h3>2. 用 Q4_K_M 量化版本（默认）</h3>
+<p><code>ollama pull hermes3:8b</code> 默认下载的就是 Q4_K_M，质量/速度的最佳平衡点。不需要额外操作。</p>
+
+<h3>3. 跑模型时关闭其他应用</h3>
+<ul>
+  <li>关掉不需要的浏览器标签页（Chrome 吃内存大户）</li>
+  <li>VS Code 可以开着，但关掉不需要的终端</li>
+  <li>模型推理时 CPU 会到 100%，这是正常的</li>
+</ul>
+
+<h2>预期体验</h2>
+
+<table style="width:100%; border-collapse: collapse; margin: 1rem 0;">
+  <tr style="border-bottom: 2px solid var(--border);">
+    <th style="text-align:left; padding: 0.5rem;">场景</th>
+    <th style="text-align:left; padding: 0.5rem;">预期速度</th>
+    <th style="text-align:left; padding: 0.5rem;">体感</th>
+  </tr>
+  <tr style="border-bottom: 1px solid var(--border);">
+    <td style="padding: 0.5rem;">简单对话</td>
+    <td style="padding: 0.5rem;">5-10 tokens/s</td>
+    <td style="padding: 0.5rem;">一句话 5-10 秒，可接受</td>
+  </tr>
+  <tr style="border-bottom: 1px solid var(--border);">
+    <td style="padding: 0.5rem;">Tool-calling</td>
+    <td style="padding: 0.5rem;">3-6 tokens/s</td>
+    <td style="padding: 0.5rem;">因为有 JSON 格式约束，稍慢</td>
+  </tr>
+  <tr style="border-bottom: 1px solid var(--border);">
+    <td style="padding: 0.5rem;">RAG 检索</td>
+    <td style="padding: 0.5rem;">即时</td>
+    <td style="padding: 0.5rem;">向量检索不依赖模型，很快</td>
+  </tr>
+  <tr>
+    <td style="padding: 0.5rem;">长文本生成</td>
+    <td style="padding: 0.5rem;">3-6 tokens/s</td>
+    <td style="padding: 0.5rem;">长回答需要等 30-60 秒，耐心点</td>
+  </tr>
+</table>
+
+<h2>备选方案</h2>
+
+<div class="card card--warn">
+  <div class="card__title">如果 8B 太慢</div>
+  <p>可以切换到更小的模型，不影响学习：</p>
+  <ul>
+    <li><strong>Hermes 3.1 3B</strong>（~1.8GB，速度 3-5x 快）</li>
+    <li><strong>Qwen2.5 3B</strong>（~1.8GB，中文更好，速度 3-5x 快）</li>
+    <li>学习内容完全相同，只是回答质量稍差一点</li>
+  </ul>
+</div>
+
+</body>
+</html>
