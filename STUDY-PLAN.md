@@ -542,6 +542,7 @@
 
 ### Agent 核心
 - [ ] ReAct 循环（Reasoning + Acting）
+- [ ] Reflection 模式（Agent 自我反思与修正）
 - [ ] Function Calling / Tool-use 机制
 - [ ] JSON Schema 工具定义
 - [ ] Agent 状态管理
@@ -557,6 +558,7 @@
 - [ ] Rerank 重排序
 - [ ] 查询改写与扩展
 - [ ] GraphRAG 概念与适用场景
+- [ ] Agentic RAG（Agent 主动决策检索时机与策略）
 - [ ] LlamaIndex TS 使用
 
 ### 框架与协议
@@ -566,7 +568,8 @@
 - [ ] Ollama API 与模型管理
 
 ### 进阶
-- [ ] Agent 记忆系统（三层架构）
+- [ ] Agent 记忆系统（三层架构：Working / Short-term / Long-term）
+- [ ] Entity Memory（实体记忆，跨会话追踪用户提及的实体）
 - [ ] 多 Agent 协作模式
 - [ ] LangGraph（状态图、条件分支、Agent 编排）
 - [ ] CrewAI / AutoGen 概念
