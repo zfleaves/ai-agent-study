@@ -2,7 +2,7 @@
 
 > 日期：2026-07-09 ~ 2026-07-14
 > 目标：理解 LLM、Agent、Token 等核心概念，建立完整的认知地图
-> 完成度：4/5 ✅
+> 完成度：5/5 ✅ 已完成
 
 ---
 
@@ -18,7 +18,7 @@
 | Day 2 | LLM 核心概念 | [0002-llm-core-concepts.html](./0002-llm-core-concepts.html) | ✅ |
 | Day 3 | Agent 工作原理 | [0003-agent-workflow.html](./0003-agent-workflow.html) | ✅ |
 | Day 4 | 技术生态地图 | [0004-tech-ecosystem.html](./0004-tech-ecosystem.html) | ✅ |
-| Day 5 | 复盘 + 小测 | — | ⬜ |
+| Day 5 | 复盘 + 小测 | [0005-week1-review.html](./0005-week1-review.html) | ✅ |
 
 ## 本周核心知识点
 

@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第 5 课：第 1 周复盘 — 认知地基自测</title>
+<link rel="stylesheet" href="../../assets/style.css">
+</head>
+<body>
+
+<h1>📝 第 5 课：第 1 周复盘 + 小测</h1>
+
+<p><span class="tag tag--blue">复盘</span> <span class="tag tag--green">第 1 周 Day 5</span> <span class="tag tag--amber">约 30 分钟</span></p>
+
+<blockquote>
+  <strong>本课目标：</strong>回顾第 1 周 5 个核心概念，完成自测，确认地基牢固，为第 2 周动手实操做好准备。
+</blockquote>
+
+<h2>一、本周学了什么？—— 5 个核心概念</h2>
+
+<div class="card card--accent">
+  <div class="card__title">🗺️ 第 1 周知识地图</div>
+  <pre style="margin-bottom:0;"><code>Day 1: Hermes Agent 全景概览
+  ├── LLM vs Agent 的区别
+  ├── Hermes 3.1 的定位和特点
+  └── 本地部署 vs 云端 API
+
+Day 2: LLM 核心概念
+  ├── Token（模型读写的最小单位）
+  ├── Context Window（一次能"看到"多少 token）
+  ├── Temperature / Top-p / Top-k（采样策略）
+  └── 推理过程（逐个 token 预测下一个）
+
+Day 3: Agent 工作原理
+  ├── Agent 三要素：Perceive → Think → Act
+  ├── ReAct 循环：Reasoning + Acting 交替
+  ├── Tool-use：JSON Schema 定义工具
+  └── 终止条件：正常终止 vs maxSteps 强制终止
+
+Day 4: 技术生态地图
+  ├── 🏗️ 模型层：Ollama / vLLM / HuggingFace
+  ├── 🔧 工具层：MCP / LanceDB / SQLite / Redis
+  ├── 🧠 框架层：Vercel AI SDK / LangChain.js / LangGraph
+  └── 🎨 应用层：Next.js / React / Tailwind</code></pre>
+</div>
+
+<h2>二、自测题（5 题）</h2>
+
+<p>不看笔记，用自己的话回答。答完再对答案。</p>
+
+<h3>第 1 题</h3>
+
+<div class="card">
+  <div class="card__title">❓ LLM 和 Agent 有什么区别？用一句话解释。</div>
+</div>
+
+<details style="margin:0.5rem 0 1.5rem 0;">
+  <summary style="cursor:pointer; font-weight:700; color:var(--accent);">点击展开答案</summary>
+  <p style="margin-top:0.5rem;"><strong>LLM 是"脑子"（推理能力），Agent 是 LLM + 工具 = 有"手"的 LLM。</strong>LLM 只能"说"，Agent 能"做"——查天气、搜网页、读文件、执行代码。本质区别：Agent 能调用外部工具，与真实世界交互。</p>
+</details>
+
+<h3>第 2 题</h3>
+
+<div class="card">
+  <div class="card__title">❓ 什么是 Token？Context Window 是什么？为什么 Context Window 很重要？</div>
+</div>
+
+<details style="margin:0.5rem 0 1.5rem 0;">
+  <summary style="cursor:pointer; font-weight:700; color:var(--accent);">点击展开答案</summary>
+  <p style="margin-top:0.5rem;">
+    <strong>Token</strong>：模型读写文本的最小单位。中文 1 字 ≈ 1-2 token，英文 1 词 ≈ 1-2 token。<br>
+    <strong>Context Window</strong>：模型一次能"看到"的最大 token 数（如 Hermes 3 8B 有 8192 token 窗口）。<br>
+    <strong>为什么重要：</strong>它决定了对话记忆的上限。超过窗口的对话会被"遗忘"，所以需要记忆管理和历史截断策略。
+  </p>
+</details>
+
+<h3>第 3 题</h3>
+
+<div class="card">
+  <div class="card__title">❓ ReAct 循环中的 Thought、Action、Observation 分别是什么？循环什么时候终止？</div>
+</div>
+
+<details style="margin:0.5rem 0 1.5rem 0;">
+  <summary style="cursor:pointer; font-weight:700; color:var(--accent);">点击展开答案</summary>
+  <p style="margin-top:0.5rem;">
+    <strong>Thought</strong>：Agent 的内部推理——"用户想要什么？我需要什么信息？"<br>
+    <strong>Action</strong>：调用工具（查天气、搜网页）或输出最终回答<br>
+    <strong>Observation</strong>：工具返回的结果，反馈给 Agent 继续推理<br><br>
+    <strong>终止条件：</strong>① 正常终止——Agent 判断信息够了，生成最终回答；② 强制终止——达到 maxSteps 上限，防止无限循环。
+  </p>
+</details>
+
+<h3>第 4 题</h3>
+
+<div class="card">
+  <div class="card__title">❓ AI Agent 技术栈分为哪四层？MCP 协议在哪一层？它解决什么问题？</div>
+</div>
+
+<details style="margin:0.5rem 0 1.5rem 0;">
+  <summary style="cursor:pointer; font-weight:700; color:var(--accent);">点击展开答案</summary>
+  <p style="margin-top:0.5rem;">
+    <strong>四层（从下到上）：</strong><br>
+    ① 🏗️ 模型层（Ollama、vLLM）—— 运行模型<br>
+    ② 🔧 工具&数据层（MCP、LanceDB、SQLite）—— 工具协议、向量存储、持久化<br>
+    ③ 🧠 框架层（Vercel AI SDK、LangChain.js）—— 编排 Agent 逻辑<br>
+    ④ 🎨 应用层（Next.js、React）—— 用户界面<br><br>
+    <strong>MCP 在工具&数据层。</strong>它解决的是<strong>工具与 Agent 的耦合问题</strong>——一套标准协议，让任何 Agent 都能连接任何工具，就像 USB-C 一样。
+  </p>
+</details>
+
+<h3>第 5 题</h3>
+
+<div class="card">
+  <div class="card__title">❓ 第 2 周我们要做什么？你需要安装哪些东西？</div>
+</div>
+
+<details style="margin:0.5rem 0 1.5rem 0;">
+  <summary style="cursor:pointer; font-weight:700; color:var(--accent);">点击展开答案</summary>
+  <p style="margin-top:0.5rem;">
+    <strong>第 2 周：Ollama 环境 + 第一个本地模型</strong><br>
+    需要安装：<strong>Ollama</strong>（本地模型运行工具）<br>
+    需要下载：<strong>Hermes 3.1 8B Q4</strong>（量化模型）<br>
+    动手目标：用 TypeScript 代码流式对话，完成 <strong>Demo 1：命令行聊天机器人</strong>
+  </p>
+</details>
+
+<h2>三、第 1 周复盘</h2>
+
+<div class="card card--accent">
+  <div class="card__title">📋 复盘模板</div>
+  <ol style="margin-bottom:0;">
+    <li><strong>【本周学了什么】</strong>5 个核心概念（用自己的话写）</li>
+    <li><strong>【最模糊的概念】</strong>哪个还不太懂？</li>
+    <li><strong>【最有趣的点】</strong>哪个让你最兴奋？</li>
+    <li><strong>【下周想深入】</strong>有什么特别想深入的方向？</li>
+  </ol>
+</div>
+
+<h3>参考答案（高阳的复盘）</h3>
+
+<div class="card card--success">
+  <div class="card__title">✅ 你的第 1 周掌握情况</div>
+  <table style="width:100%; border-collapse:collapse; margin-top:0.5rem; font-size:0.9rem;">
+    <tr style="background:var(--code-bg); text-align:left;">
+      <th style="padding:0.4rem 0.8rem; border:1px solid var(--border);">概念</th>
+      <th style="padding:0.4rem 0.8rem; border:1px solid var(--border);">理解程度</th>
+      <th style="padding:0.4rem 0.8rem; border:1px solid var(--border);">说明</th>
+    </tr>
+    <tr>
+      <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">LLM vs Agent</td>
+      <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">⭐⭐⭐⭐⭐</td>
+      <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">"LLM 有脑子没手，Agent 给它装上手"——理解到位</td>
+    </tr>
+    <tr>
+      <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">Token & Context</td>
+      <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">⭐⭐⭐⭐</td>
+      <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">概念清晰，动手后会更直观</td>
+    </tr>
+    <tr>
+      <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">ReAct 模式</td>
+      <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">⭐⭐⭐⭐</td>
+      <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">三要素理解正确，代码实现后会更深入</td>
+    </tr>
+    <tr>
+      <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">四层架构</td>
+      <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">⭐⭐⭐⭐⭐</td>
+      <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">能准确说出每层技术和定位，Day 4 自测全对</td>
+    </tr>
+    <tr>
+      <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">Tool-use</td>
+      <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">⭐⭐⭐</td>
+      <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">知道 JSON Schema 定义工具，还没写代码，第 3 周会深入</td>
+    </tr>
+  </table>
+</div>
+
+<h2>四、第 1 周 vs 完整学习路线</h2>
+
+<pre><code>16 周学习路线 — 你在哪里？
+
+第 1 周  ██░░░░░░░░░░░░░░  认知地基 ← 你在这里 ✅
+第 2 周  ███░░░░░░░░░░░░░  Ollama 环境 + 第一个模型
+第 3-4 周 █████░░░░░░░░░░░  Tool-calling + Agent 循环
+第 5-6 周 ███████░░░░░░░░░  RAG + 本地知识库
+第 7-8 周 █████████░░░░░░░  Vercel AI SDK + MCP 协议
+第 9-10 周 ███████████░░░░░  记忆系统 + 多 Agent
+第 11-12 周 █████████████░░░  ☕ Java 企业级
+第 13-14 周 ██████████████░░  🐍 Python 生态
+第 15-16 周 ████████████████  调优 + 项目落地
+
+进度：1/16 周 = 6.25%</code></pre>
+
+<h2>五、下周预告：动手了！</h2>
+
+<div class="card card--accent">
+  <div class="card__title">🔧 第 2 周：Ollama 环境 + 第一个本地模型</div>
+  <ul style="margin-bottom:0;">
+    <li><strong>Day 1</strong>：安装 Ollama，理解模型选型（8B vs 3B vs 1.5B，Q4 vs Q8 量化）</li>
+    <li><strong>Day 2</strong>：命令行对话 + 速度实测</li>
+    <li><strong>Day 3</strong>：TS SDK 接入 + Streaming 流式响应</li>
+    <li><strong>Day 4</strong>：Prompt 工程（System Prompt、Few-shot、CoT）</li>
+    <li><strong>Day 5</strong>：复盘 + <strong>Demo 1：命令行聊天机器人</strong></li>
+  </ul>
+  <p style="margin-top:0.5rem; margin-bottom:0;"><strong>需要提前准备：</strong>参考 <a href="../../reference/environment-setup.html">环境准备清单</a>，安装 Ollama</p>
+</div>
+
+<hr style="margin:2rem 0; border:none; border-top:1px solid var(--border);">
+
+<p style="color:var(--text-secondary); font-size:0.85rem;">
+  📅 第 1 周 Day 5 完成 · 第 1 周收官 🎉 · 下一课：第 2 周 Day 1 — Ollama 安装 + 模型选型
+</p>
+
+</body>
+</html>

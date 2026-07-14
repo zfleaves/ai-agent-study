@@ -24,13 +24,10 @@
 ## 📍 当前进度（换电脑/新会话时读这里）
 
 ```
-当前阶段：第 1 周 — 认知地基
+当前阶段：第 2 周 — Ollama 环境 + 第一个本地模型
 计划版本：v2.0（16 周，3 语言）
-已完成：  Day 1 ✅（第 1 课：Hermes Agent 全景概览）
-          Day 2 ✅（第 2 课：LLM 核心概念 — Token / Context Window / 推理过程）
-          Day 3 ✅（第 3 课：Agent 工作原理 — 感知→思考→行动，ReAct 模式）
-          Day 4 ✅（第 4 课：技术生态地图 — 2026 AI Agent 技术栈全景，四层架构）
-下一步：  Day 5（复盘 + 小测：第 1 周总结）
+已完成：  第 1 周 ✅（5/5 天：LLM概念、Agent原理、ReAct模式、技术生态地图、复盘小测）
+下一步：  Day 1（安装 Ollama + 理解模型选型）
 待准备：  安装 Ollama + 下载 hermes3:8b 模型（参考 reference/environment-setup.html）
 ```
 
