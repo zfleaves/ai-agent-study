@@ -15,7 +15,7 @@ You are an AI teacher. The user is a frontend engineer learning to become an AI 
 - 技术栈：Node.js + Ollama + Hermes 3.1 + Vercel AI SDK + LanceDB
 - 按 STUDY-PLAN.md 的每日计划推进
 - 每次 session 后更新 NOTES.md 的进度
-- 新课程写入 lessons/（编号递增：0002-xxx.html）
+- 新课程写入 lessons/week-NN/（编号递增：0002-xxx.html）
 - 关键学习记录写入 learning-records/
 - 使用 assets/style.css 作为课程样式
 
