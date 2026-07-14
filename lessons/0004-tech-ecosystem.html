@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第 4 课：技术生态地图 — 2026 AI Agent 技术栈全景</title>
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+
+<h1>🗺️ 第 4 课：技术生态地图</h1>
+
+<p><span class="tag tag--blue">概念</span> <span class="tag tag--green">第 1 周 Day 4</span> <span class="tag tag--amber">约 40 分钟</span></p>
+
+<blockquote>
+  <strong>本课目标：</strong>建立 2026 年 AI Agent 技术栈的完整认知地图，搞清楚每个工具"在哪一层、干什么用、和谁配合"。学完这课，你不会再被各种技术名词搞晕。
+</blockquote>
+
+<h2>一、为什么需要一张"地图"？</h2>
+
+<p>打开 AI Agent 相关的文章，你会看到一大堆名词：</p>
+
+<pre><code>Ollama  vLLM  LangChain  LlamaIndex  Vercel AI SDK  MCP
+Chroma  LanceDB  CrewAI  LangGraph  Spring AI  FastAPI
+HuggingFace  Transformers  GGUF  LoRA  PagedAttention ...</code></pre>
+
+<p>如果没地图，这些词就像一堆散落的拼图块。有了地图，你就知道：<strong>每个东西属于哪一层、解决什么问题、什么时候用、什么时候不用。</strong></p>
+
+<div class="card card--accent">
+  <div class="card__title">🗺️ 类比：前端技术栈</div>
+  <p style="margin-bottom:0">回想你学前端的时候，也有一个类似的"分层地图"：</p>
+  <table style="width:100%; border-collapse:collapse; margin-top:0.5rem; font-size:0.9rem;">
+    <tr style="background:var(--code-bg);">
+      <th style="padding:0.4rem 0.8rem; border:1px solid var(--border); text-align:left;">层</th>
+      <th style="padding:0.4rem 0.8rem; border:1px solid var(--border); text-align:left;">前端</th>
+      <th style="padding:0.4rem 0.8rem; border:1px solid var(--border); text-align:left;">AI Agent</th>
+    </tr>
+    <tr>
+      <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">运行时</td>
+      <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">浏览器 / Node.js</td>
+      <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">Ollama / vLLM（模型运行环境）</td>
+    </tr>
+    <tr>
+      <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">框架</td>
+      <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">React / Vue / Next.js</td>
+      <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">Vercel AI SDK / LangChain</td>
+    </tr>
+    <tr>
+      <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">工具/库</td>
+      <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">axios / lodash / dayjs</td>
+      <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">MCP / LanceDB / Zod</td>
+    </tr>
+    <tr>
+      <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">应用</td>
+      <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">网页 / App</td>
+      <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">Agent 对话应用 / 知识库</td>
+    </tr>
+  </table>
+  <p style="margin-top:0.5rem; margin-bottom:0;">AI Agent 技术栈也是分层的，每层有不同选择。</p>
+</div>
+
+<h2>二、AI Agent 技术栈 — 四层架构</h2>
+
+<p>2026 年 AI Agent 技术栈可以清晰地分为 4 层：</p>
+
+<pre><code>┌──────────────────────────────────────────────────────────┐
+│  🎨 应用层（Application Layer）                           │
+│  Next.js · React · Tailwind · Streaming UI · Chat UI     │
+│  用户看到的界面，Agent 对话交互                              │
+├──────────────────────────────────────────────────────────┤
+│  🧠 框架层（Framework Layer）                             │
+│  Vercel AI SDK · LangChain.js · LangGraph · CrewAI       │
+│  编排 Agent 逻辑：工具调用、循环、记忆、多 Agent 协作         │
+├──────────────────────────────────────────────────────────┤
+│  🔧 工具 & 数据层（Tooling & Data Layer）                 │
+│  MCP 协议 · LanceDB · Chroma · SQLite · Redis            │
+│  工具标准化协议、向量数据库、会话持久化、记忆存储              │
+├──────────────────────────────────────────────────────────┤
+│  🏗️ 模型层（Model Layer）                                │
+│  Ollama · vLLM · HuggingFace · OpenAI API · Hermes · Qwen │
+│  模型运行、推理加速、模型管理、API 网关                       │
+└──────────────────────────────────────────────────────────┘</code></pre>
+
+<p>记住这个四层结构，后面每学一个新技术，你都能把它"放进"对应那一层。</p>
+
+<h2>三、逐层详解</h2>
+
+<h3>🏗️ 第 1 层：模型层（Model Layer）</h3>
+
+<p>模型层是 Agent 的"大脑"。负责：加载模型、运行推理、返回 token。</p>
+
+<table style="width:100%; border-collapse:collapse; margin:1rem 0; font-size:0.9rem;">
+  <thead>
+    <tr style="background:var(--code-bg); text-align:left;">
+      <th style="padding:0.5rem 0.8rem; border:1px solid var(--border);">技术</th>
+      <th style="padding:0.5rem 0.8rem; border:1px solid var(--border);">定位</th>
+      <th style="padding:0.5rem 0.8rem; border:1px solid var(--border);">我们用它做什么</th>
+      <th style="padding:0.5rem 0.8rem; border:1px solid var(--border);">类似前端中的…</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td style="padding:0.5rem 0.8rem; border:1px solid var(--border);"><strong>Ollama</strong></td>
+      <td style="padding:0.5rem 0.8rem; border:1px solid var(--border);">本地模型运行工具</td>
+      <td style="padding:0.5rem 0.8rem; border:1px solid var(--border);">一键下载、运行、管理本地模型（Hermes、Qwen 等）</td>
+      <td style="padding:0.5rem 0.8rem; border:1px solid var(--border);">Node.js 运行时</td>
+    </tr>
+    <tr>
+      <td style="padding:0.5rem 0.8rem; border:1px solid var(--border);"><strong>vLLM</strong></td>
+      <td style="padding:0.5rem 0.8rem; border:1px solid var(--border);">高性能推理引擎</td>
+      <td style="padding:0.5rem 0.8rem; border:1px solid var(--border);">生产环境高并发推理（比 Ollama 快 10x+），第 15 周学</td>
+      <td style="padding:0.5rem 0.8rem; border:1px solid var(--border);">Nginx 反向代理</td>
+    </tr>
+    <tr>
+      <td style="padding:0.5rem 0.8rem; border:1px solid var(--border);"><strong>HuggingFace</strong></td>
+      <td style="padding:0.5rem 0.8rem; border:1px solid var(--border);">模型仓库 + 社区</td>
+      <td style="padding:0.5rem 0.8rem; border:1px solid var(--border);">浏览模型卡、下载 GGUF 量化模型、看社区评测</td>
+      <td style="padding:0.5rem 0.8rem; border:1px solid var(--border);">npm registry</td>
+    </tr>
+    <tr>
+      <td style="padding:0.5rem 0.8rem; border:1px solid var(--border);"><strong>OpenAI API</strong></td>
+      <td style="padding:0.5rem 0.8rem; border:1px solid var(--border);">云端模型 API</td>
+      <td style="padding:0.5rem 0.8rem; border:1px solid var(--border);">作为云端兜底方案（本地模型跑不动时用云端）</td>
+      <td style="padding:0.5rem 0.8rem; border:1px solid var(--border);">CDN / 云服务</td>
+    </tr>
+  </tbody>
+</table>
+
+<div class="card card--accent">
+  <div class="card__title">🔑 关键认知</div>
+  <p style="margin-bottom:0"><strong>Ollama 是我们第 2-10 周的主力模型层工具。</strong>它就像 Docker 之于容器——把复杂的模型下载、量化、运行全部简化成几条命令。vLLM 是生产级方案，第 15 周学。</p>
+</div>
+
+<h3>🧠 第 2 层：框架层（Framework Layer）</h3>
+
+<p>框架层是 Agent 的"指挥系统"。负责：编排工具调用、管理 Agent 循环、处理流式响应、连接前端。</p>
+
+<table style="width:100%; border-collapse:collapse; margin:1rem 0; font-size:0.9rem;">
+  <thead>
+    <tr style="background:var(--code-bg); text-align:left;">
+      <th style="padding:0.5rem 0.8rem; border:1px solid var(--border);">技术</th>
+      <th style="padding:0.5rem 0.8rem; border:1px solid var(--border);">定位</th>
+      <th style="padding:0.5rem 0.8rem; border:1px solid var(--border);">核心价值</th>
+      <th style="padding:0.5rem 0.8rem; border:1px solid var(--border);">学习周</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td style="padding:0.5rem 0.8rem; border:1px solid var(--border);"><strong>Vercel AI SDK</strong></td>
+      <td style="padding:0.5rem 0.8rem; border:1px solid var(--border);">前端原生的 AI 框架</td>
+      <td style="padding:0.5rem 0.8rem; border:1px solid var(--border);">React Hook 直接连模型，Streaming 开箱即用，TypeScript 一等公民</td>
+      <td style="padding:0.5rem 0.8rem; border:1px solid var(--border);">第 7 周</td>
+    </tr>
+    <tr>
+      <td style="padding:0.5rem 0.8rem; border:1px solid var(--border);"><strong>LangChain.js</strong></td>
+      <td style="padding:0.5rem 0.8rem; border:1px solid var(--border);">通用 AI 应用框架</td>
+      <td style="padding:0.5rem 0.8rem; border:1px solid var(--border);">工具链最全（RAG、Agent、Chain），生态最大，但抽象层较重</td>
+      <td style="padding:0.5rem 0.8rem; border:1px solid var(--border);">第 5 周起接触</td>
+    </tr>
+    <tr>
+      <td style="padding:0.5rem 0.8rem; border:1px solid var(--border);"><strong>LangGraph</strong></td>
+      <td style="padding:0.5rem 0.8rem; border:1px solid var(--border);">状态图编排引擎</td>
+      <td style="padding:0.5rem 0.8rem; border:1px solid var(--border);">把 Agent 流程建模为有向图（节点+边），支持条件分支、循环、人工审批</td>
+      <td style="padding:0.5rem 0.8rem; border:1px solid var(--border);">第 10 周</td>
+    </tr>
+    <tr>
+      <td style="padding:0.5rem 0.8rem; border:1px solid var(--border);"><strong>CrewAI</strong></td>
+      <td style="padding:0.5rem 0.8rem; border:1px solid var(--border);">多 Agent 协作框架</td>
+      <td style="padding:0.5rem 0.8rem; border:1px solid var(--border);">定义角色、分配任务、Agent 间通信，Python 原生（TS 版较弱）</td>
+      <td style="padding:0.5rem 0.8rem; border:1px solid var(--border);">第 10 周了解</td>
+    </tr>
+  </tbody>
+</table>
+
+<div class="card card--warn">
+  <div class="card__title">⚠️ 框架选择的坑</div>
+  <p style="margin-bottom:0">很多新手一上来就学 LangChain，结果被它复杂的抽象绕晕。<strong>我们的策略：先手写、再用框架。</strong>第 3-4 周手写 Agent 循环，第 5-6 周手写 RAG 管道，第 7 周才引入 Vercel AI SDK。等你能手写之后再学框架，你会觉得"原来框架就是帮我省了这些代码"——而不是"我不知道框架在干什么"。</p>
+</div>
+
+<h3>🔧 第 3 层：工具 & 数据层（Tooling & Data Layer）</h3>
+
+<p>这一层是 Agent 的"工具箱"和"记忆库"。负责：存储知识、检索信息、持久化状态、标准化工具协议。</p>
+
+<table style="width:100%; border-collapse:collapse; margin:1rem 0; font-size:0.9rem;">
+  <thead>
+    <tr style="background:var(--code-bg); text-align:left;">
+      <th style="padding:0.5rem 0.8rem; border:1px solid var(--border);">技术</th>
+      <th style="padding:0.5rem 0.8rem; border:1px solid var(--border);">定位</th>
+      <th style="padding:0.5rem 0.8rem; border:1px solid var(--border);">解决什么问题</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td style="padding:0.5rem 0.8rem; border:1px solid var(--border);"><strong>MCP</strong></td>
+      <td style="padding:0.5rem 0.8rem; border:1px solid var(--border);">Model Context Protocol</td>
+      <td style="padding:0.5rem 0.8rem; border:1px solid var(--border);">工具调用的"USB-C 接口"——标准化 Agent 和工具的连接方式，一套协议对接所有工具</td>
+    </tr>
+    <tr>
+      <td style="padding:0.5rem 0.8rem; border:1px solid var(--border);"><strong>LanceDB</strong></td>
+      <td style="padding:0.5rem 0.8rem; border:1px solid var(--border);">向量数据库（TS 原生）</td>
+      <td style="padding:0.5rem 0.8rem; border:1px solid var(--border);">存储文本的向量表示，支持语义搜索（"意思相近"而非"关键词匹配"）</td>
+    </tr>
+    <tr>
+      <td style="padding:0.5rem 0.8rem; border:1px solid var(--border);"><strong>Chroma</strong></td>
+      <td style="padding:0.5rem 0.8rem; border:1px solid var(--border);">向量数据库（Python 原生）</td>
+      <td style="padding:0.5rem 0.8rem; border:1px solid var(--border);">与 LanceDB 同类，Python 生态更成熟，第 13 周 Python 阶段使用</td>
+    </tr>
+    <tr>
+      <td style="padding:0.5rem 0.8rem; border:1px solid var(--border);"><strong>SQLite</strong></td>
+      <td style="padding:0.5rem 0.8rem; border:1px solid var(--border);">轻量关系型数据库</td>
+      <td style="padding:0.5rem 0.8rem; border:1px solid var(--border);">存会话历史、用户偏好等结构化数据，零配置，文件即数据库</td>
+    </tr>
+    <tr>
+      <td style="padding:0.5rem 0.8rem; border:1px solid var(--border);"><strong>Redis</strong></td>
+      <td style="padding:0.5rem 0.8rem; border:1px solid var(--border);">内存缓存数据库</td>
+      <td style="padding:0.5rem 0.8rem; border:1px solid var(--border);">生产环境替代 SQLite 做会话缓存，TTL 自动过期，高并发支持</td>
+    </tr>
+  </tbody>
+</table>
+
+<div class="card card--accent">
+  <div class="card__title">🔑 关键认知：MCP 是 2026 年最重要的 Agent 标准</div>
+  <p style="margin-bottom:0">Anthropic 在 2024 年底提出的 MCP 协议，正在成为 Agent 工具集成的行业标准。它的核心思想是：<strong>工具提供方只需实现一个 MCP Server，任何 Agent 框架都能通过 MCP Client 连接它。</strong>类比：MCP 之于 Agent 工具，就像 HTTP 之于 Web 服务——一套标准协议，解耦提供方和消费方。</p>
+</div>
+
+<h3>🎨 第 4 层：应用层（Application Layer）</h3>
+
+<p>应用层是用户看到的界面。对我们来说，就是前端技术栈。</p>
+
+<table style="width:100%; border-collapse:collapse; margin:1rem 0; font-size:0.9rem;">
+  <thead>
+    <tr style="background:var(--code-bg); text-align:left;">
+      <th style="padding:0.5rem 0.8rem; border:1px solid var(--border);">技术</th>
+      <th style="padding:0.5rem 0.8rem; border:1px solid var(--border);">在 Agent 应用中的角色</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td style="padding:0.5rem 0.8rem; border:1px solid var(--border);"><strong>Next.js / React</strong></td>
+      <td style="padding:0.5rem 0.8rem; border:1px solid var(--border);">构建 Agent 对话界面、知识库管理后台</td>
+    </tr>
+    <tr>
+      <td style="padding:0.5rem 0.8rem; border:1px solid var(--border);"><strong>Vercel AI SDK（前端部分）</strong></td>
+      <td style="padding:0.5rem 0.8rem; border:1px solid var(--border);"><code>useChat</code> hook 处理 Streaming、工具调用 UI 状态、消息管理</td>
+    </tr>
+    <tr>
+      <td style="padding:0.5rem 0.8rem; border:1px solid var(--border);"><strong>Tailwind CSS</strong></td>
+      <td style="padding:0.5rem 0.8rem; border:1px solid var(--border);">快速构建美观的 Chat UI（你熟悉，无需额外学）</td>
+    </tr>
+  </tbody>
+</table>
+
+<div class="card card--success">
+  <div class="card__title">✅ 前端工程师的优势</div>
+  <p style="margin-bottom:0">这一层你已经是专家了。AI Agent 开发中，能把 Agent 逻辑和 UI 都做好的人是稀缺的——大多数 AI 开发者只会 Python 后端，不会做 UI。你的前端背景是 <strong>差异化竞争力</strong>。</p>
+</div>
+
+<h2>四、完整技术栈全景图</h2>
+
+<p>把四层拼在一起，就是一张完整的 AI Agent 技术栈地图：</p>
+
+<pre><code>                         用户
+                          │
+                          ▼
+┌─────────────────────────────────────────────────────────────┐
+│  🎨 应用层                                                  │
+│  ┌──────────┐  ┌──────────┐  ┌──────────────┐              │
+│  │ Next.js  │  │  React   │  │ Tailwind CSS │              │
+│  └──────────┘  └──────────┘  └──────────────┘              │
+│        │              │              │                      │
+│        └──────────────┼──────────────┘                      │
+│                       │                                     │
+│            Vercel AI SDK (useChat / streamText)              │
+├─────────────────────────────────────────────────────────────┤
+│  🧠 框架层                                                  │
+│  ┌────────────┐  ┌───────────┐  ┌───────────┐              │
+│  │ AI SDK     │  │LangChain.js│  │ LangGraph │              │
+│  │ generateText│  │  Chain/Agent│  │ StateGraph│              │
+│  └────────────┘  └───────────┘  └───────────┘              │
+│        │              │              │                      │
+│        └──────────────┼──────────────┘                      │
+│                       │                                     │
+│               Agent 循环 / Tool Calling / Memory             │
+├─────────────────────────────────────────────────────────────┤
+│  🔧 工具 & 数据层                                           │
+│  ┌──────┐ ┌─────────┐ ┌────────┐ ┌───────┐ ┌───────┐      │
+│  │ MCP  │ │ LanceDB │ │ Chroma │ │SQLite │ │ Redis │      │
+│  │协议  │ │ (向量)  │ │ (向量) │ │(会话) │ │(缓存) │      │
+│  └──────┘ └─────────┘ └────────┘ └───────┘ └───────┘      │
+├─────────────────────────────────────────────────────────────┤
+│  🏗️ 模型层                                                 │
+│  ┌────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐     │
+│  │ Ollama │  │  vLLM    │  │HuggingFace│  │OpenAI API│     │
+│  │(本地)  │  │(生产推理) │  │(模型仓库) │  │(云端兜底) │     │
+│  └────────┘  └──────────┘  └──────────┘  └──────────┘     │
+│        │              │              │              │        │
+│        └──────────────┼──────────────┴──────────────┘        │
+│                       │                                     │
+│     Hermes 3.1 · Qwen 2.5 · Llama 3 · DeepSeek · GPT-4      │
+└─────────────────────────────────────────────────────────────┘</code></pre>
+
+<h2>五、每条学习路径的技术栈选择</h2>
+
+<p>我们的 16 周计划覆盖 3 种语言，每种语言的技术栈选型不同：</p>
+
+<table style="width:100%; border-collapse:collapse; margin:1rem 0; font-size:0.85rem;">
+  <thead>
+    <tr style="background:var(--code-bg); text-align:left;">
+      <th style="padding:0.5rem 0.8rem; border:1px solid var(--border);">层</th>
+      <th style="padding:0.5rem 0.8rem; border:1px solid var(--border);">TS 路径（第 1-10 周）</th>
+      <th style="padding:0.5rem 0.8rem; border:1px solid var(--border);">Java 路径（第 11-12 周）</th>
+      <th style="padding:0.5rem 0.8rem; border:1px solid var(--border);">Python 路径（第 13-14 周）</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td style="padding:0.5rem 0.8rem; border:1px solid var(--border);"><strong>应用层</strong></td>
+      <td style="padding:0.5rem 0.8rem; border:1px solid var(--border);">Next.js + React + AI SDK</td>
+      <td style="padding:0.5rem 0.8rem; border:1px solid var(--border);">Spring Boot REST API</td>
+      <td style="padding:0.5rem 0.8rem; border:1px solid var(--border);">FastAPI + Stream</td>
+    </tr>
+    <tr>
+      <td style="padding:0.5rem 0.8rem; border:1px solid var(--border);"><strong>框架层</strong></td>
+      <td style="padding:0.5rem 0.8rem; border:1px solid var(--border);">Vercel AI SDK + LangChain.js</td>
+      <td style="padding:0.5rem 0.8rem; border:1px solid var(--border);">Spring AI + LangChain4j</td>
+      <td style="padding:0.5rem 0.8rem; border:1px solid var(--border);">LangChain + LlamaIndex</td>
+    </tr>
+    <tr>
+      <td style="padding:0.5rem 0.8rem; border:1px solid var(--border);"><strong>工具/数据</strong></td>
+      <td style="padding:0.5rem 0.8rem; border:1px solid var(--border);">LanceDB + SQLite + MCP TS SDK</td>
+      <td style="padding:0.5rem 0.8rem; border:1px solid var(--border);">Chroma + Redis + MCP Java SDK</td>
+      <td style="padding:0.5rem 0.8rem; border:1px solid var(--border);">Chroma + Redis + MCP Python SDK</td>
+    </tr>
+    <tr>
+      <td style="padding:0.5rem 0.8rem; border:1px solid var(--border);"><strong>模型层</strong></td>
+      <td style="padding:0.5rem 0.8rem; border:1px solid var(--border);">Ollama (Hermes/Qwen)</td>
+      <td style="padding:0.5rem 0.8rem; border:1px solid var(--border);">Ollama (同上)</td>
+      <td style="padding:0.5rem 0.8rem; border:1px solid var(--border);">Ollama (同上)</td>
+    </tr>
+  </tbody>
+</table>
+
+<div class="card card--accent">
+  <div class="card__title">🔑 为什么模型层三语言都一样？</div>
+  <p style="margin-bottom:0">Ollama 是一个独立服务（HTTP API），不管你的代码用 TS、Java 还是 Python 写的，都是通过 HTTP 调用它。这就是<strong>服务解耦</strong>的好处——模型层和框架层互不绑定。</p>
+</div>
+
+<h2>六、我们第 1-2 周会接触的技术</h2>
+
+<p>不要被上面这么多技术吓到。前两周你只需要碰这些：</p>
+
+<pre><code>你的技术栈（第 1-2 周）
+
+🎨 应用层：  （暂时没有，命令行交互）
+🧠 框架层：  Node.js + TypeScript + ollama-js（裸写，不用框架）
+🔧 工具层：  （暂时没有，先学 Agent 核心）
+🏗️ 模型层：  Ollama + Hermes 3.1 (8B Q4)
+
+总共就 4 个东西要装/学：Node.js、TypeScript、Ollama、Hermes 模型</code></pre>
+
+<p>随着课程推进，每学一个新概念，我们会往技术栈里加入对应的工具。到第 16 周，你就会拥有完整的技术栈能力。</p>
+
+<h2>七、动手环节 ✏️</h2>
+
+<div class="card card--accent">
+  <div class="card__title">🖊️ 任务：画出你的技术栈地图</div>
+  <p>用纸笔或你喜欢的工具（Excalidraw、draw.io、甚至手绘拍照），画一张 AI Agent 四层技术栈图：</p>
+  <ol>
+    <li>画出四层（模型层 → 工具层 → 框架层 → 应用层），每层标注 2-3 个代表技术</li>
+    <li>用箭头标注层与层之间的调用关系（谁调用谁）</li>
+    <li>用不同颜色标注：
+      <ul>
+        <li>🔵 蓝色：第 1-2 周就会接触的</li>
+        <li>🟢 绿色：第 3-10 周会学的</li>
+        <li>🟡 黄色：第 11-16 周会学的</li>
+      </ul>
+    </li>
+    <li>在底部写一句话：<strong>"我当前在学哪一层？接下来要学什么？"</strong></li>
+  </ol>
+</div>
+
+<h3>参考模板</h3>
+
+<pre><code>┌─────────────────────────────────────┐
+│  🎨 应用层                          │
+│  Next.js · React · Tailwind  🟡     │
+├─────────────────────────────────────┤
+│  🧠 框架层                          │
+│  Vercel AI SDK · LangChain.js  🟢   │
+├─────────────────────────────────────┤
+│  🔧 工具 & 数据层                   │
+│  MCP · LanceDB · SQLite  🟢        │
+├─────────────────────────────────────┤
+│  🏗️ 模型层                          │
+│  Ollama · Hermes 3.1  🔵           │
+└─────────────────────────────────────┘
+
+我当前在学：🏗️ 模型层（Ollama + Hermes）
+接下来要学：🧠 框架层（手写 Agent 循环，第 3-4 周）</code></pre>
+
+<h2>八、常见困惑解答</h2>
+
+<div class="card">
+  <div class="card__title">❓ "LangChain.js 和 Vercel AI SDK 有什么区别？我该学哪个？"</div>
+  <p style="margin-bottom:0"><strong>Vercel AI SDK</strong>：<strong>轻量级</strong>，前端友好，Streaming 处理开箱即用。<code>useChat</code> hook 直接拿去做 UI，适合快速构建 Agent 对话应用。<strong>LangChain.js</strong>：<strong>全功能框架</strong>，生态最全（RAG、Agent、Chain、Tool 等模块都有），但抽象层重，学习曲线陡，适合复杂 AI 管道。<br>我们的策略：<strong>两个都学，先 AI SDK 后 LangChain。</strong>快速做产品用 AI SDK，需要完整工具链用 LangChain。先手写理解原理，再用框架提升效率。</p>
+</div>
+
+<div class="card" style="margin-top:1rem">
+  <div class="card__title">❓ "MCP 协议和直接写 Tool 函数有什么区别？"</div>
+  <p style="margin-bottom:0">直接写 Tool 函数：你写一个 TS 函数，Agent 直接调用它。适合简单场景。<br>MCP 协议：工具以独立 Server 形式运行，Agent 通过标准协议发现和调用。适合：① 工具需要复用（多个 Agent 共用）② 工具由不同团队维护 ③ 想用社区现成的 MCP Server。我们第 8 周会详细对比。</p>
+</div>
+
+<div class="card" style="margin-top:1rem">
+  <div class="card__title">❓ "Ollama 和 vLLM 有什么区别？为什么先学 Ollama？"</div>
+  <p style="margin-bottom:0"><strong>Ollama</strong>：本地开发友好，一条命令启动模型，适合学习和原型。核心作用就三个：① 模型管理（<code>ollama pull</code>，类比 <code>npm install</code>）② 本地推理（数据不出本机）③ 暴露 HTTP API（localhost:11434）。类比：<strong>Ollama = Node.js 运行时 + npm registry 合体</strong>。<br><strong>vLLM</strong>：生产级推理引擎，高并发、高吞吐，但配置复杂。<br>类比：Ollama 是 <code>npm run dev</code>，vLLM 是 <code>nginx + PM2 集群部署</code>。先学会开发，再学部署优化。</p>
+</div>
+
+<h2>九、本课总结</h2>
+
+<div class="card card--success">
+  <div class="card__title">✅ 今天你学到了什么</div>
+  <ol style="margin-bottom:0">
+    <li><strong>四层架构</strong>：模型层 → 工具&数据层 → 框架层 → 应用层（从下到上）</li>
+    <li><strong>模型层</strong>：Ollama（本地开发）、vLLM（生产推理）、HuggingFace（模型仓库）</li>
+    <li><strong>框架层</strong>：Vercel AI SDK（前端原生）、LangChain.js（全功能）、LangGraph（状态图编排）</li>
+    <li><strong>工具&数据层</strong>：MCP（工具协议标准）、LanceDB（向量数据库）、SQLite/Redis（会话持久化）</li>
+    <li><strong>应用层</strong>：Next.js + React（你的主场，差异化竞争力）</li>
+    <li><strong>学习策略</strong>：先手写、再用框架；先 Ollama、后 vLLM；先 TS、后 Java/Python</li>
+  </ol>
+</div>
+
+<h2>十、自测题</h2>
+
+<ol>
+  <li>AI Agent 技术栈分为哪四层？每层举一个代表技术。</li>
+  <li>Ollama 属于哪一层？它的主要作用是什么？</li>
+  <li>MCP 协议解决什么问题？为什么它被称为 Agent 工具的"USB-C 接口"？</li>
+  <li>Vercel AI SDK 和 LangChain.js 各适合什么场景？</li>
+  <li>第 1-2 周你只需要接触哪几个技术？</li>
+</ol>
+
+<details style="margin:1rem 0;">
+  <summary style="cursor:pointer; font-weight:700; color:var(--accent);">点击展开参考答案</summary>
+  <ol style="margin-top:0.5rem;">
+    <li>
+      <strong>四层架构（从下到上）</strong>：<br>
+      🏗️ <strong>模型层</strong>：Ollama（本地运行模型）<br>
+      🔧 <strong>工具&数据层</strong>：MCP（工具标准协议）、LanceDB（向量数据库）、SQLite/Redis（持久化）<br>
+      🧠 <strong>框架层</strong>：Vercel AI SDK（轻量，前端友好）、LangChain.js（全功能，生态大）<br>
+      🎨 <strong>应用层</strong>：Next.js + React + Tailwind CSS（用户界面）
+    </li>
+    <li>
+      Ollama 属于<strong>模型层</strong>，有三个核心作用：<br>
+      ① <strong>模型管理</strong>：一条命令下载模型（<code>ollama pull hermes3:8b</code>），类比 <code>npm install</code><br>
+      ② <strong>本地推理</strong>：在你电脑上运行模型，数据不出本机，不用联网<br>
+      ③ <strong>暴露 HTTP API</strong>：启动后在 <code>localhost:11434</code> 提供 REST API，TS/Java/Python 代码通过 HTTP 调用<br>
+      <strong>类比：Ollama = Node.js 运行时 + npm registry 合体</strong>，既能"安装"模型，又能"运行"模型，还能被外部调用。
+    </li>
+    <li>
+      MCP 解决的是<strong>工具与 Agent 的耦合问题</strong>（不是"工具问题"本身）。<br>
+      <strong>没有 MCP：</strong>每个 Agent 框架自定义工具格式，同一个天气工具要写两套适配代码 → 工具无法复用<br>
+      <strong>有了 MCP：</strong>工具只需实现一次 MCP Server，任何实现了 MCP Client 的 Agent 都能连接它<br>
+      就像 USB-C——充电器、耳机、显示器都能插同一个口，不用每个设备配一根专用线。一套协议对接所有工具。
+    </li>
+    <li>
+      <strong>Vercel AI SDK</strong>：适合<strong>前端驱动的 Agent 对话应用</strong>。React 聊天界面 + Streaming + 工具调用可视化，<code>useChat</code> hook 直接拿去做 UI，开箱即用。<br>
+      <strong>LangChain.js</strong>：适合<strong>复杂 AI 管道</strong>。RAG（文档→分割→向量化→检索→生成）一条龙，模块全但抽象层重，学习曲线陡。<br>
+      <strong>一句话：</strong>快速做产品用 AI SDK，需要完整工具链用 LangChain。我们课程两个都学，先 AI SDK（第 7 周），后 LangChain（贯穿使用）。
+    </li>
+    <li>Node.js + TypeScript + Ollama + Hermes 3.1 模型，就 4 个。前两周命令行交互，暂时不需要前端框架。</li>
+  </ol>
+</details>
+
+<hr style="margin:2rem 0; border:none; border-top:1px solid var(--border);">
+
+<p style="color:var(--text-secondary); font-size:0.85rem;">
+  📅 第 1 周 Day 4 完成 · 下一课：Day 5 复盘 + 小测（第 1 周总结）
+</p>
+
+</body>
+</html>

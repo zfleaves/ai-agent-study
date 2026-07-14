@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第 3 课：Agent 工作原理 — 感知→思考→行动，ReAct 模式</title>
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+
+<h1>🤖 第 3 课：Agent 工作原理</h1>
+
+<p><span class="tag tag--blue">概念</span> <span class="tag tag--green">第 1 周 Day 3</span> <span class="tag tag--amber">约 35 分钟</span></p>
+
+<blockquote>
+  <strong>本课目标：</strong>理解 Agent 如何从"感知"到"行动"的完整闭环，掌握 ReAct 模式，为下周写代码打下概念基础。
+</blockquote>
+
+<h2>一、回顾：LLM 能做什么？不能做什么？</h2>
+
+<p>Day 2 我们学了：LLM 是一个"猜下一个词"的概率机器。它能：</p>
+
+<ul>
+  <li>✅ 理解你输入的文字</li>
+  <li>✅ 生成看起来合理的回答</li>
+  <li>✅ 翻译、总结、润色</li>
+</ul>
+
+<p>但它<strong>不能</strong>：</p>
+
+<ul>
+  <li>❌ 查今天的天气（它不知道"今天"是哪天）</li>
+  <li>❌ 发一封邮件（它没有邮箱密码）</li>
+  <li>❌ 读你电脑上的文件（它没有文件系统权限）</li>
+  <li>❌ 执行代码并看结果</li>
+</ul>
+
+<div class="card card--accent">
+  <div class="card__title">🔑 核心矛盾</div>
+  <p style="margin-bottom:0">LLM 有"脑子"（推理能力），但没"手"（执行能力）。<strong>Agent = LLM + 手。</strong></p>
+</div>
+
+<h2>二、Agent 三要素：感知 → 思考 → 行动</h2>
+
+<p>Agent 的工作模式，和人类解决问题一模一样：</p>
+
+<div class="compare">
+  <div class="compare__col">
+    <h4>🧑 人类解决问题</h4>
+    <ol style="margin-bottom:0">
+      <li><strong>看</strong>：读问题，收集信息</li>
+      <li><strong>想</strong>：分析情况，决定怎么做</li>
+      <li><strong>做</strong>：动手执行，看结果</li>
+      <li>回到第 1 步，直到问题解决</li>
+    </ol>
+  </div>
+  <div class="compare__col">
+    <h4>🤖 Agent 解决问题</h4>
+    <ol style="margin-bottom:0">
+      <li><strong>Perceive</strong>（感知）：接收用户输入 + 环境信息</li>
+      <li><strong>Think</strong>（思考）：推理分析，决定下一步</li>
+      <li><strong>Act</strong>（行动）：调用工具，执行操作</li>
+      <li>回到第 1 步，直到任务完成</li>
+    </ol>
+  </div>
+</div>
+
+<h3>三要素详解</h3>
+
+<div class="card">
+  <div class="card__title">👁️ Perceive（感知）</div>
+  <p style="margin-bottom:0">Agent 接收的不仅是用户输入，还包括：</p>
+  <ul style="margin-bottom:0">
+    <li>用户消息（User Message）</li>
+    <li>工具执行结果（Tool Result / Observation）</li>
+    <li>系统提示（System Prompt）</li>
+    <li>对话历史（Conversation History）</li>
+    <li>环境状态（日期、时间、可用工具列表等）</li>
+  </ul>
+</div>
+
+<div class="card" style="margin-top:1rem">
+  <div class="card__title">🧠 Think（思考）</div>
+  <p style="margin-bottom:0">Agent 内部做的推理：</p>
+  <ul style="margin-bottom:0">
+    <li>"用户想要什么？"（意图理解）</li>
+    <li>"我需要什么信息才能回答？"（缺口分析）</li>
+    <li>"我应该用哪个工具？传什么参数？"（工具选择）</li>
+    <li>"工具返回的结果够不够？还需要再查吗？"（结果评估）</li>
+    <li>"任务完成了吗？可以给用户最终答案了吗？"（终止判断）</li>
+  </ul>
+</div>
+
+<div class="card" style="margin-top:1rem">
+  <div class="card__title">🦾 Act（行动）</div>
+  <p style="margin-bottom:0">Agent 可以执行的操作：</p>
+  <ul style="margin-bottom:0">
+    <li>调用工具函数（查天气、搜网页、读文件、运行代码）</li>
+    <li>生成最终回答（输出给用户）</li>
+    <li>提出追问（信息不够时反问用户）</li>
+    <li>存储信息（记录到记忆系统）</li>
+  </ul>
+</div>
+
+<h2>三、ReAct 模式：Agent 的核心循环</h2>
+
+<p><strong>ReAct = Reasoning + Acting</strong>，是 2023 年 Google 和 Princeton 提出的 Agent 范式，至今仍是 Agent 开发最主流的模式。</p>
+
+<div class="card card--accent">
+  <div class="card__title">📜 ReAct 论文核心思想</div>
+  <p style="margin-bottom:0">让 LLM 交替生成 <strong>推理文字（Thought）</strong> 和 <strong>行动指令（Action）</strong>。推理帮助模型做出更好的行动；行动的结果又反馈给模型，帮助它做出更准确的推理。两者交替，形成闭环。</p>
+</div>
+
+<h3>ReAct 循环的完整流程</h3>
+
+<pre><code>┌─────────────────────────────────────────────────────┐
+│                    ReAct 循环                        │
+│                                                     │
+│   用户输入："北京今天天气怎么样？适合出门吗？"         │
+│                                                     │
+│   ┌──────────┐    ┌──────────┐    ┌──────────┐      │
+│   │ PERCEIVE │───▶│  THINK   │───▶│   ACT    │      │
+│   └──────────┘    └──────────┘    └──────────┘      │
+│        ▲                │               │           │
+│        │                │               │           │
+│        │     ┌──────────┘               │           │
+│        │     │         不够，继续        │           │
+│        │     ▼                          ▼           │
+│        │  ┌──────────────────────────────┐          │
+│        └──│   Observation（观察结果）     │          │
+│           │   工具返回：北京 晴 25°C      │          │
+│           └──────────────────────────────┘          │
+│                                                     │
+│   够了吗？ → 够了 → 生成最终回答："北京今天晴天..."   │
+│           → 不够 → 回到 PERCEIVE（继续循环）         │
+└─────────────────────────────────────────────────────┘</code></pre>
+
+<h3>一步一步拆解</h3>
+
+<ol class="steps">
+  <li>
+    <strong>用户输入</strong>："北京今天天气怎么样？适合出门吗？"
+    <br><small>Agent 收到一个需要外部信息的任务。</small>
+  </li>
+  <li>
+    <strong>Thought（推理）</strong>："用户想知道北京天气。我需要调用天气查询工具，参数是 city='北京'。"
+    <br><small>Agent 分析：要回答这个问题，我需要查天气——这是工具调用的缺口。</small>
+  </li>
+  <li>
+    <strong>Action（行动）</strong>：调用 <code>getWeather({ city: "北京" })</code>
+    <br><small>Agent 把意图转化为具体的函数调用。</small>
+  </li>
+  <li>
+    <strong>Observation（观察）</strong>：工具返回 <code>{ temp: 25, weather: "晴", wind: "微风" }</code>
+    <br><small>工具执行完毕，结果返回给 Agent。</small>
+  </li>
+  <li>
+    <strong>Thought（推理）</strong>："北京今天晴天，25°C，微风。天气很好，适合出门。不需要再查其他信息了。"
+    <br><small>Agent 评估：信息够了，可以给最终答案。</small>
+  </li>
+  <li>
+    <strong>Action（行动）</strong>：生成最终回答 → "北京今天晴天，温度 25°C，微风徐徐，非常适合出门！"
+    <br><small>任务完成，循环结束。</small>
+  </li>
+</ol>
+
+<div class="insight" style="border-left:3px solid var(--accent); background:var(--accent-light); padding:0.75rem 1rem; margin:1rem 0; border-radius:0 6px 6px 0;">
+  <strong>💡 关键洞察：</strong>ReAct 循环不是"一轮就结束"。Agent 可能调用 <strong>多次工具</strong>，每次都用上一次的结果来推理下一步。一个复杂任务可能循环 5-10 轮。
+</div>
+
+<h2>四、Agent 循环的终止条件</h2>
+
+<p>Agent 什么时候停止循环？有 3 种情况：</p>
+
+<div class="compare">
+  <div class="compare__col">
+    <h4>✅ 正常终止</h4>
+    <p style="margin-bottom:0">Agent 判断信息足够，生成最终回答给用户。</p>
+    <pre style="margin-bottom:0"><code>Thought: 信息够了
+Action: Answer("北京今天
+晴天，适合出门")</code></pre>
+  </div>
+  <div class="compare__col">
+    <h4>⚠️ 异常终止</h4>
+    <p style="margin-bottom:0">超出最大步数（maxSteps），或工具连续失败，强制终止。</p>
+    <pre style="margin-bottom:0"><code>// 第 10 轮，工具还没返回
+// Agent: "我需要再查一次..."
+// 系统: maxSteps=10，强制停止
+最终输出: "抱歉，我暂时无法
+完成这个任务"</code></pre>
+  </div>
+</div>
+
+<div class="card card--warn" style="margin-top:1rem">
+  <div class="card__title">⚠️ 常见问题：无限循环</div>
+  <p style="margin-bottom:0">没有 maxSteps 限制的 Agent 可能陷入死循环——每次都认为"信息还不够"，反复调用工具。这就是为什么 <strong>maxSteps 是 Agent 的必需品，不是可选项</strong>。</p>
+</div>
+
+<h2>五、Tool-use：Agent 的"手"</h2>
+
+<p>Tool-use（工具调用）是 Agent 区别于普通 chatbot 的核心能力。它让模型不只是"说"，而是能"做"。</p>
+
+<h3>一个工具长什么样？</h3>
+
+<div class="compare">
+  <div class="compare__col">
+    <h4>📝 人类理解</h4>
+    <pre style="margin-bottom:0"><code>函数名：查天气
+输入：  城市名（字符串）
+输出：  { 温度, 天气, 风力 }
+描述：  查询指定城市的实时天气</code></pre>
+  </div>
+  <div class="compare__col">
+    <h4>🤖 模型理解（JSON Schema）</h4>
+    <pre style="margin-bottom:0"><code>{
+  "name": "getWeather",
+  "description": "查询指定
+城市实时天气",
+  "parameters": {
+    "city": {
+      "type": "string",
+      "description": "城市名",
+      "required": true
+    }
+  }
+}</code></pre>
+  </div>
+</div>
+
+<p>模型不需要知道函数内部怎么实现——它只需要知道：<strong>这个工具叫什么、干什么用、需要什么参数、参数是什么类型。</strong></p>
+
+<div class="insight" style="border-left:3px solid var(--accent); background:var(--accent-light); padding:0.75rem 1rem; margin:1rem 0; border-radius:0 6px 6px 0;">
+  <strong>💡 类比：</strong>Tool 的 JSON Schema 就像 <strong>API 文档</strong>。模型读文档 → 决定调用哪个 API → 传正确的参数 → 拿到结果 → 继续处理。你写前端调后端 API 也是这个流程！
+</div>
+
+<h3>Agent 如何选择工具？</h3>
+
+<pre><code>用户："帮我查一下北京和上海的天气，哪个更热？"
+
+Agent 推理过程：
+  Thought 1: "需要查两个城市的天气。先查北京。"
+  Action 1: getWeather({ city: "北京" })
+  Observation 1: { temp: 25, weather: "晴" }
+
+  Thought 2: "北京 25°C。现在查上海。"
+  Action 2: getWeather({ city: "上海" })
+  Observation 2: { temp: 30, weather: "多云" }
+
+  Thought 3: "北京 25°C vs 上海 30°C。上海更热。信息够了。"
+  Answer: "上海（30°C）比北京（25°C）更热，建议注意防暑。"
+
+// 这个任务调用了 2 次工具，3 轮循环完成</code></pre>
+
+<div class="card card--success">
+  <div class="card__title">✅ 前端工程师的直觉</div>
+  <p style="margin-bottom:0">如果你写过前端，这个模式你应该很熟悉：</p>
+  <ul style="margin-bottom:0">
+    <li><strong>Tool Schema</strong> = TypeScript 的 interface/type 定义</li>
+    <li><strong>Tool 调用</strong> = 调用一个 async function</li>
+    <li><strong>Observation</strong> = await 函数返回的 Promise 结果</li>
+    <li><strong>ReAct 循环</strong> = 一个 while 循环，直到条件满足才 break</li>
+  </ul>
+</div>
+
+<h2>六、ReAct vs 其他 Agent 模式</h2>
+
+<table style="width:100%; border-collapse:collapse; margin:1rem 0; font-size:0.9rem;">
+  <thead>
+    <tr style="background:var(--code-bg); text-align:left;">
+      <th style="padding:0.5rem 0.8rem; border:1px solid var(--border);">模式</th>
+      <th style="padding:0.5rem 0.8rem; border:1px solid var(--border);">工作方式</th>
+      <th style="padding:0.5rem 0.8rem; border:1px solid var(--border);">适用场景</th>
+      <th style="padding:0.5rem 0.8rem; border:1px solid var(--border);">复杂度</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td style="padding:0.5rem 0.8rem; border:1px solid var(--border);"><strong>ReAct</strong></td>
+      <td style="padding:0.5rem 0.8rem; border:1px solid var(--border);">边想边做，交替进行</td>
+      <td style="padding:0.5rem 0.8rem; border:1px solid var(--border);">大多数场景，灵活应变</td>
+      <td style="padding:0.5rem 0.8rem; border:1px solid var(--border);">⭐⭐</td>
+    </tr>
+    <tr>
+      <td style="padding:0.5rem 0.8rem; border:1px solid var(--border);"><strong>Plan-Execute</strong></td>
+      <td style="padding:0.5rem 0.8rem; border:1px solid var(--border);">先制定完整计划，再逐步执行</td>
+      <td style="padding:0.5rem 0.8rem; border:1px solid var(--border);">任务明确、步骤固定</td>
+      <td style="padding:0.5rem 0.8rem; border:1px solid var(--border);">⭐⭐⭐</td>
+    </tr>
+    <tr>
+      <td style="padding:0.5rem 0.8rem; border:1px solid var(--border);"><strong>Reflection</strong></td>
+      <td style="padding:0.5rem 0.8rem; border:1px solid var(--border);">执行后自我评估，发现问题修正</td>
+      <td style="padding:0.5rem 0.8rem; border:1px solid var(--border);">代码生成、写作、需要质量保证</td>
+      <td style="padding:0.5rem 0.8rem; border:1px solid var(--border);">⭐⭐⭐</td>
+    </tr>
+    <tr>
+      <td style="padding:0.5rem 0.8rem; border:1px solid var(--border);"><strong>Multi-Agent</strong></td>
+      <td style="padding:0.5rem 0.8rem; border:1px solid var(--border);">多个 Agent 分工协作</td>
+      <td style="padding:0.5rem 0.8rem; border:1px solid var(--border);">复杂项目、多角色场景</td>
+      <td style="padding:0.5rem 0.8rem; border:1px solid var(--border);">⭐⭐⭐⭐</td>
+    </tr>
+  </tbody>
+</table>
+
+<p>我们第 1-4 周聚焦 <strong>ReAct</strong>，这是所有高级模式的基础。后面的 Plan-Execute、Reflection、Multi-Agent 都是 ReAct 的变体或扩展。</p>
+
+<h2>七、动手环节 ✏️</h2>
+
+<div class="card card--accent">
+  <div class="card__title">🖊️ 任务：画一张 Agent 工作流程图</div>
+  <p>用纸笔或你喜欢的画图工具，画出下面这个场景的 Agent 工作流程：</p>
+  <blockquote>
+    <strong>场景：</strong>用户问"帮我查一下北京天气，如果下雨就提醒我带伞，然后查明天去上海的高铁"
+  </blockquote>
+  <p>要求：</p>
+  <ol>
+    <li>标出每一步的 <strong>Thought / Action / Observation</strong></li>
+    <li>标出工具调用的位置和参数</li>
+    <li>标出循环的终止点</li>
+    <li>想想：Agent 需要调用几个工具？至少循环几轮？</li>
+  </ol>
+</div>
+
+<h3>参考答案（先自己画，再看！）</h3>
+
+<details style="margin:1rem 0;">
+  <summary style="cursor:pointer; font-weight:700; color:var(--accent);">点击展开参考流程图</summary>
+  <pre style="margin-top:0.5rem;"><code>用户: "北京天气+高铁"
+  │
+  ▼
+┌─ Thought 1 ─────────────────────────────────┐
+│ "需要查天气和高铁。先查天气。"                 │
+└──────────────────────────────────────────────┘
+  │
+  ▼
+┌─ Action 1: getWeather({ city: "北京" }) ────┐
+└──────────────────────────────────────────────┘
+  │
+  ▼
+┌─ Observation 1: { weather: "雨", temp: 18 } ─┐
+└──────────────────────────────────────────────┘
+  │
+  ▼
+┌─ Thought 2 ─────────────────────────────────┐
+│ "北京下雨！需要提醒带伞。现在查高铁。"         │
+└──────────────────────────────────────────────┘
+  │
+  ▼
+┌─ Action 2: searchTrain({ from: "北京", ─────┐
+│              to: "上海", date: "明天" })     │
+└──────────────────────────────────────────────┘
+  │
+  ▼
+┌─ Observation 2: { trains: [...], ... } ─────┐
+└──────────────────────────────────────────────┘
+  │
+  ▼
+┌─ Thought 3 ─────────────────────────────────┐
+│ "天气查了，高铁也查了。信息够了，整理回答。"    │
+└──────────────────────────────────────────────┘
+  │
+  ▼
+┌─ Final Answer ──────────────────────────────┐
+│ "北京明天有雨，记得带伞！☔                     │
+│  明天北京→上海高铁有 3 趟：                    │
+│  G1 08:00-12:30, G3 10:00-14:30, ..."       │
+└──────────────────────────────────────────────┘
+
+总结：至少 2 个工具，3 轮循环</code></pre>
+</details>
+
+<h2>八、本课总结</h2>
+
+<div class="card card--success">
+  <div class="card__title">✅ 今天你学到了什么</div>
+  <ol style="margin-bottom:0">
+    <li><strong>Agent = LLM + 工具</strong>：LLM 有脑子没手，Agent 给它装上"手"</li>
+    <li><strong>Agent 三要素</strong>：Perceive（感知）→ Think（思考）→ Act（行动）</li>
+    <li><strong>ReAct 循环</strong>：Reasoning + Acting 交替，形成闭环，直到任务完成</li>
+    <li><strong>Tool-use</strong>：通过 JSON Schema 描述工具，模型自主选择调用</li>
+    <li><strong>终止条件</strong>：正常终止（回答用户）vs 强制终止（maxSteps）</li>
+  </ol>
+</div>
+
+<h3>🧠 概念关系图</h3>
+
+<pre><code>LLM（大语言模型）
+  │
+  │  + Tool-use（工具调用能力）
+  │  + ReAct 循环（推理-行动交替）
+  │  + System Prompt（角色/规则设定）
+  │
+  ▼
+Agent（智能体）
+  │
+  │  + Memory（记忆系统）
+  │  + Multi-tool（多工具编排）
+  │  + Planning（任务规划）
+  │
+  ▼
+Advanced Agent（高级智能体）
+  —— 这是我们后面要学的内容</code></pre>
+
+<h2>九、自测题</h2>
+
+<ol>
+  <li>Agent 和普通 LLM chatbot 最大的区别是什么？</li>
+  <li>ReAct 循环中的 Thought、Action、Observation 分别是什么？</li>
+  <li>为什么 Agent 需要设置 maxSteps？不设会怎样？</li>
+  <li>一个工具（Tool）需要告诉模型哪些信息？</li>
+  <li>如果 Agent 调用了工具但返回了错误，接下来会发生什么？</li>
+</ol>
+
+<details style="margin:1rem 0;">
+  <summary style="cursor:pointer; font-weight:700; color:var(--accent);">点击展开参考答案</summary>
+  <ol style="margin-top:0.5rem;">
+    <li><strong>Agent 能调用工具"做事"</strong>（查天气、搜网页、执行代码），chatbot 只能"说"</li>
+    <li><strong>Thought</strong>：Agent 的内部推理；<strong>Action</strong>：调用工具或输出回答；<strong>Observation</strong>：工具返回的结果</li>
+    <li>防止<strong>无限循环</strong>——Agent 可能反复调用工具，永远不结束。maxSteps 是安全网</li>
+    <li><strong>名称、功能描述、参数列表</strong>（每个参数的类型、是否必填、描述）——就像一个 API 文档</li>
+    <li>Agent 会<strong>重新推理</strong>：可能换参数重试、换一个工具、或者告诉用户"我做不到"（第 4 周会详细讲错误处理）</li>
+  </ol>
+</details>
+
+<hr style="margin:2rem 0; border:none; border-top:1px solid var(--border);">
+
+<p style="color:var(--text-secondary); font-size:0.85rem;">
+  📅 第 1 周 Day 3 完成 · 下一课：Day 4 技术生态地图（2026 AI Agent 技术栈全景）
+</p>
+
+</body>
+</html>

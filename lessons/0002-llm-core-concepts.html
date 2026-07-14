@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第 2 课：LLM 核心概念 — Token / Context Window / 推理过程</title>
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+
+<h1>📖 第 2 课：LLM 核心概念</h1>
+
+<p><span class="tag tag--blue">概念</span> <span class="tag tag--green">第 1 周 Day 2</span> <span class="tag tag--amber">约 40 分钟</span></p>
+
+<blockquote>
+  <strong>本课目标：</strong>搞懂 LLM 怎么"读"、怎么"想"、怎么"写"。建立 5 个核心概念：LLM 本质、Token、Context Window、Temperature、推理过程。
+</blockquote>
+
+<h2>一、LLM 到底是什么？</h2>
+
+<p>一句话：<strong>LLM 是一个"猜下一个词"的概率机器。</strong></p>
+
+<p>它不是知识库，不是搜索引擎，它只是在做一件事：<strong>给定上文，预测下一个最可能出现的 token。</strong></p>
+
+<div class="demo">
+  <h4>🔬 示例</h4>
+  <pre><code>你输入：  "中国的首都是"
+模型计算：
+  "北京" → 92%
+  "上海" →  3%
+  "南京" →  2%
+  "深圳" →  1%
+  ...
+输出："北京"
+
+然后拼回去："中国的首都是北京"
+再猜下一个词 → &lt;结束&gt; → 停止</code></pre>
+</div>
+
+<p>这个过程叫 <strong>自回归生成（Autoregressive Generation）</strong>——每一轮都把自己的输出拼回输入，继续预测下一个，直到输出结束符。</p>
+
+<div class="insight">
+  <strong>💡 关键洞察：</strong>LLM 没有"思考"，只有概率计算。但当参数足够大（billions of parameters），这种概率计算 <strong>涌现</strong> 出了看起来像推理的能力。
+</div>
+
+<h2>二、Token：模型"读"的最小单位</h2>
+
+<p><strong>Token ≠ 字 ≠ 词。</strong> Token 是模型内部表示文本的最小单位，由 tokenizer 切分产生。</p>
+
+<div class="compare">
+  <div class="compare__col">
+    <h4>🇨🇳 中文</h4>
+    <pre><code>"今天天气不错"
+→ ["今天", "天气", "不错"]
+→ 约 3 个 token</code></pre>
+  </div>
+  <div class="compare__col">
+    <h4>🇺🇸 英文</h4>
+    <pre><code>"The weather is nice today"
+→ ["The", " weather", " is", " nice", " today"]
+→ 5 个 token</code></pre>
+  </div>
+</div>
+
+<p><strong>经验法则：</strong></p>
+<ul>
+  <li>英文：1 token ≈ 0.75 个单词</li>
+  <li>中文：1 token ≈ 0.5~0.7 个汉字</li>
+  <li>代码：1 token ≈ 0.3~0.5 个字符（符号多，切得更碎）</li>
+</ul>
+
+<div class="insight">
+  <strong>💡 为什么重要：</strong>同样意思，中文消耗的 token 比英文多。API 按 token 计费，这就是为什么中文调用更贵。做 Agent 时，工具返回结果也要算 token 预算。
+</div>
+
+<h3>在线体验 Tokenizer</h3>
+<p>打开 <a href="https://platform.openai.com/tokenizer" target="_blank">OpenAI Tokenizer</a>，输入一段中文和英文，数数各切了多少 token。</p>
+
+<h2>三、Context Window：模型的"视野"</h2>
+
+<p>模型一次能"看到"的内容是有上限的，这个上限就是 <strong>Context Window（上下文窗口）</strong>。</p>
+
+<div class="demo">
+  <h4>📐 Hermes 3 (8B) 的窗口</h4>
+  <table>
+    <tr><th>指标</th><th>数值</th></tr>
+    <tr><td>Context Window</td><td>约 8192 tokens</td></tr>
+    <tr><td>能装下</td><td>约 20 页中文文档</td></tr>
+    <tr><td>能记住</td><td>约 30-40 轮对话</td></tr>
+    <tr><td>装不下</td><td>一本小说（《三体》≈ 40 万 tokens）</td></tr>
+  </table>
+</div>
+
+<h3>窗口溢出会怎样？</h3>
+
+<p>当输入超过 Context Window：</p>
+<ol>
+  <li><strong>API 直接报错</strong> — 请求被拒绝</li>
+  <li><strong>自动截断</strong> — 模型只看到最后 N 个 token，前面的"遗忘"</li>
+  <li><strong>性能下降</strong> — 窗口边缘的信息容易被忽略（Lost in the Middle 现象）</li>
+</ol>
+
+<div class="insight">
+  <strong>💡 Agent 开发核心挑战：</strong>对话历史 + 工具返回 + 系统提示词 + 知识库检索结果 —— 全部挤在同一窗口里。怎么管理这个窗口，是 Agent 工程的核心问题。
+</div>
+
+<h2>四、Temperature：控制"创造力"的旋钮</h2>
+
+<p>Temperature 取值 0~2，决定模型输出是"保守"还是"疯狂"。</p>
+
+<div class="demo">
+  <h4>🎚️ 三种模式对比</h4>
+  <pre><code>Temperature = 0.0（保守）
+"1+1=" → "2"（100%）
+永远选概率最高的，结果确定、可复现
+
+Temperature = 0.7（平衡）
+"1+1=" → "2"（85%）
+          "等于2"（10%）
+有一点变化，但整体靠谱
+
+Temperature = 1.5（疯狂）
+"1+1=" → "2，但在某些数学体系中..."
+          "这可能是一个哲学问题..."
+容易胡说八道（hallucination）</code></pre>
+</div>
+
+<h3>实战取值建议</h3>
+
+<table>
+  <tr><th>场景</th><th>Temperature</th><th>原因</th></tr>
+  <tr><td>代码生成</td><td>0.0 ~ 0.2</td><td>需要确定性，语法不能"创意"</td></tr>
+  <tr><td>数学计算</td><td>0.0 ~ 0.1</td><td>1+1 永远等于 2</td></tr>
+  <tr><td>事实问答</td><td>0.2 ~ 0.4</td><td>事实不能编造</td></tr>
+  <tr><td>日常对话</td><td>0.7</td><td>自然、有变化但不离谱</td></tr>
+  <tr><td>创意写作</td><td>0.9 ~ 1.2</td><td>需要多样性和想象力</td></tr>
+  <tr><td>头脑风暴</td><td>1.0 ~ 1.5</td><td>越离谱越好，激发灵感</td></tr>
+</table>
+
+<h3>Top-p 和 Top-k：采样的"过滤器"</h3>
+
+<p>Temperature 决定"要不要随机"，Top-p 和 Top-k 决定"从哪些候选里随机"。</p>
+
+<ul>
+  <li><strong>Top-k = 40：</strong>只从概率最高的 40 个 token 中选，砍掉后面的</li>
+  <li><strong>Top-p = 0.9：</strong>从概率最高的开始累加，累到 ≥ 90%，只从这些里选</li>
+</ul>
+
+<p>实际使用中两者通常配合设置，防止模型选到"明显很烂"的词。</p>
+
+<h2>五、推理过程：模型怎么"想"的</h2>
+
+<p>从输入到输出，模型内部经历了 5 步：</p>
+
+<div class="demo">
+  <h4>🔬 完整推理流程</h4>
+  <pre><code>用户输入："今天北京天气怎么样？"
+
+Step 1 — Tokenize（分词）
+  → ["今天", "北京", "天气", "怎么", "样", "？"]
+
+Step 2 — Embedding（向量化）
+  → 每个 token 转成一个高维向量（如 4096 维的数字数组）
+  → "今天" → [0.23, -0.45, 0.78, ...]
+
+Step 3 — Transformer 处理
+  → 多层神经网络（如 32 层）
+  → 每层包括 Self-Attention（理解词之间关系）+ FFN（特征变换）
+  → 核心是 Attention 机制：每个词"关注"其他词，理解上下文
+
+Step 4 — 逐 token 生成（Decode）
+  → 输出层给出下一个 token 的概率分布
+  → 采样 → "北京" → 拼回去 → 再预测 → "今天" → ...
+  → 每次只生成一个 token
+
+Step 5 — 终止
+  → 生成到 &lt;EOS&gt;（End of Sequence）特殊 token → 停止
+  → 或者达到最大长度限制 → 强制停止</code></pre>
+</div>
+
+<h3>两个关键阶段</h3>
+
+<table>
+  <tr><th>阶段</th><th>英文名</th><th>做什么</th><th>速度特点</th></tr>
+  <tr><td>预填充</td><td>Prefill</td><td>一次性处理全部输入，理解上下文</td><td>计算量大，但只做一次</td></tr>
+  <tr><td>解码</td><td>Decode</td><td>逐 token 生成输出</td><td>每个 token 都要过一遍全模型，串行</td></tr>
+</table>
+
+<div class="insight">
+  <strong>💡 为什么长回答慢？</strong>Prefill 只做一次，但 Decode 是串行的——生成 100 个 token 就要跑 100 次模型。这就是为什么输出越长越慢。后面第 2 周我们会实测。
+</div>
+
+<h2>🛠️ 动手实践</h2>
+
+<h3>任务 1：浏览 Hermes 3 模型卡</h3>
+<p>打开 <a href="https://huggingface.co/NousResearch/Hermes-3-Llama-3.1-8B" target="_blank">HuggingFace 上的 Hermes 3 页面</a>，找：</p>
+<ol>
+  <li><strong>Context Length</strong> — 上下文窗口多大？</li>
+  <li><strong>Model Size</strong> — 模型文件多大？</li>
+  <li><strong>Files</strong> — 能找到 .gguf 格式的文件吗？</li>
+  <li><strong>License</strong> — 开源协议是什么？</li>
+</ol>
+
+<h3>任务 2：体验 Tokenizer</h3>
+<p>打开 <a href="https://platform.openai.com/tokenizer" target="_blank">OpenAI Tokenizer</a>，输入：</p>
+<ul>
+  <li>一段中文（100 字）→ 有多少 token？</li>
+  <li>一段英文（100 词）→ 有多少 token？</li>
+  <li>一段代码 → 有多少 token？</li>
+</ul>
+
+<h2>✅ 自测题（含学员回答 + 标准答案）</h2>
+
+<h3>Q1：LLM 是"知识库"还是"概率预测器"？为什么？</h3>
+<div class="compare">
+  <div class="compare__col">
+    <h4>🙋 你的回答</h4>
+    <p>概率预测器</p>
+  </div>
+  <div class="compare__col">
+    <h4>✅ 标准答案</h4>
+    <p><strong>概率预测器。</strong>LLM 不做检索，不做存储查询。它只是在给定上文的基础上，预测下一个最可能出现的 token。训练时见过几百万次"中国的首都是北京"，所以"猜"到"北京"概率最高。证据：LLM 会"幻觉"（一本正经胡说八道）——如果是知识库，怎么会给出错误答案？</p>
+  </div>
+</div>
+
+<h3>Q2：1000 个中文字大概是多少 token？为什么比英文消耗更多？</h3>
+<div class="compare">
+  <div class="compare__col">
+    <h4>🙋 你的回答</h4>
+    <p>1200 个，因为每个文字中文消耗的更多</p>
+  </div>
+  <div class="compare__col">
+    <h4>✅ 标准答案</h4>
+    <p><strong>约 1400~2000 token。</strong>原因：① 中文信息密度高，常见英文字（如"cat"）整个词就是一个 token，而中文字符组合多，常被拆成更小的子词，一个字拆成 1.5~2 个 token；② 中文没有自然空格分隔，tokenizer 需要猜边界，切分更碎。</p>
+  </div>
+</div>
+
+<h3>Q3：Context Window 不够用了会发生什么？</h3>
+<div class="compare">
+  <div class="compare__col">
+    <h4>🙋 你的回答</h4>
+    <p>1. API 报错 &nbsp; 2. 出现幻觉 &nbsp; 3. 理解不了意思</p>
+  </div>
+  <div class="compare__col">
+    <h4>✅ 标准答案</h4>
+    <p>三个都对，补充第 4 点：<strong>"Lost in the Middle"（中间丢失）</strong>——即使没超出窗口，窗口中间的信息也容易被模型忽略。模型天然更关注开头和结尾。Agent 开发启示：重要信息放开头或结尾，别塞中间。</p>
+  </div>
+</div>
+
+<h3>Q4：写代码时 Temperature 应该设多少？为什么？</h3>
+<div class="compare">
+  <div class="compare__col">
+    <h4>🙋 你的回答</h4>
+    <p>设置 0~0.2，代码时需要更加准确，越高越奔放，容易乱说，也就是猜测不准</p>
+  </div>
+  <div class="compare__col">
+    <h4>✅ 标准答案</h4>
+    <p><strong>0.0 ~ 0.2。</strong>代码哪怕错一个字符就报错，所以 Temperature 必须低，让模型"只选最确定的"，不冒险。Temperature 低 → 概率分布更"尖" → 几乎只选概率最高的 token → 输出确定、可复现。</p>
+  </div>
+</div>
+
+<h3>Q5：用自己的话描述推理过程的 5 个步骤</h3>
+<div class="compare">
+  <div class="compare__col">
+    <h4>🙋 你的回答</h4>
+    <p>1. 拆分所需 token &nbsp; 2. 向量化 &nbsp; 3. 翻译 &nbsp; 4. 转码 &nbsp; 5. 拼接</p>
+  </div>
+  <div class="compare__col">
+    <h4>✅ 标准答案</h4>
+    <ol>
+      <li><strong>Tokenize（分词）</strong>✅ — 把文字切成 token</li>
+      <li><strong>Embedding（向量化）</strong>✅ — 每个 token 转成高维向量</li>
+      <li><strong>Transformer 处理</strong>（不是"翻译"）— 多层 Attention 机制理解语义关系，让每个词"关注"上下文里相关的词</li>
+      <li><strong>Decode（逐 token 生成）</strong>（不是"转码"）— 一个一个 token 预测输出，串行，每次生成一个然后拼回去再预测下一个</li>
+      <li><strong>终止</strong>（不是"拼接"）— 遇到 EOS 停止；拼接发生在 Decode 过程中，不是独立步骤</li>
+    </ol>
+  </div>
+</div>
+
+<h3>Q6：Prefill 和 Decode 有什么区别？哪个更慢？</h3>
+<div class="compare">
+  <div class="compare__col">
+    <h4>🙋 你的回答</h4>
+    <p>越长 decode 越慢，拆分的 token 越多，每次都要去循环跑模型</p>
+  </div>
+  <div class="compare__col">
+    <h4>✅ 标准答案</h4>
+    <p><strong>Decode 更慢。</strong>Prefill（预填充）一次性并行处理全部输入 token，只做一次。Decode（解码）逐个 token 串行生成输出，每生成一个 token 跑一遍完整模型——生成 100 个 token 就要跑 100 次，所以输出越长越慢。</p>
+  </div>
+</div>
+
+<h3>📊 自测总结</h3>
+<table>
+  <tr><th>题号</th><th>概念</th><th>结果</th></tr>
+  <tr><td>Q1</td><td>LLM 是概率预测器</td><td>✅ 正确</td></tr>
+  <tr><td>Q2</td><td>中文 token 消耗更多</td><td>✅ 方向对，数字修正为 1400~2000</td></tr>
+  <tr><td>Q3</td><td>Context Window 溢出后果</td><td>✅ 正确，补充 Lost in the Middle</td></tr>
+  <tr><td>Q4</td><td>Temperature 代码场景取值</td><td>✅ 正确</td></tr>
+  <tr><td>Q5</td><td>推理 5 步骤</td><td>⚠️ 前两步对，后三步需修正（翻译→Transformer，转码→Decode，拼接→终止）</td></tr>
+  <tr><td>Q6</td><td>Prefill vs Decode</td><td>✅ 核心对，补充 Prefill 并行一次完成</td></tr>
+</table>
+
+<h2>📝 关键概念关系图</h2>
+
+<pre><code>
+                    ┌─────────────────────────────────┐
+                    │        Context Window            │
+                    │  （所有内容必须装在这个窗口里）    │
+                    │                                  │
+                    │  ┌──────────┐  ┌──────────────┐  │
+                    │  │ System   │  │   User       │  │
+                    │  │ Prompt   │  │   Messages   │  │
+                    │  └──────────┘  └──────────────┘  │
+                    │  ┌──────────┐  ┌──────────────┐  │
+                    │  │ Tool     │  │   Assistant  │  │
+                    │  │ Results  │  │   History    │  │
+                    │  └──────────┘  └──────────────┘  │
+                    │                                  │
+                    │  所有内容都切成 Token 塞进窗口    │
+                    └─────────────────────────────────┘
+                                    │
+                                    ▼
+                    ┌─────────────────────────────────┐
+                    │         LLM 推理过程             │
+                    │                                  │
+                    │  Tokenize → Embed → Transformer  │
+                    │                    ↓             │
+                    │              Decode（逐 token）   │
+                    │                    ↓             │
+                    │         Temperature + Top-p      │
+                    │           控制随机性              │
+                    │                    ↓             │
+                    │              输出结果             │
+                    └─────────────────────────────────┘
+</code></pre>
+
+<h2>🔗 下一课预告</h2>
+<p><strong>Day 3：Agent 工作原理</strong> — Agent 三要素（感知→思考→行动）+ ReAct 模式。搞懂 Agent 的"大脑"是怎么运转的。</p>
+
+<hr>
+<p><em>第 1 周 Day 2 · 2026-07-13 · 约 40 分钟</em></p>
+
+</body>
+</html>
