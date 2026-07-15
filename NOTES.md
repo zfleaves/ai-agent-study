@@ -26,9 +26,12 @@
 ```
 当前阶段：第 2 周 — Ollama 环境 + 第一个本地模型
 计划版本：v2.0（16 周，3 语言）
-已完成：  第 1 周 ✅（5/5 天：LLM概念、Agent原理、ReAct模式、技术生态地图、复盘小测）
-下一步：  Day 1（安装 Ollama + 理解模型选型）
-待准备：  安装 Ollama + 下载 hermes3:8b 模型（参考 reference/environment-setup.html）
+已完成：  第 1 周 ✅（5/5 天）
+        第 2 周 Day 1 ✅（Ollama 安装 + 模型选型：GGUF量化、Q4/Q8、8B vs 3B vs 1.5B）
+        已安装模型：hermes3:8b (4.7GB)、qwen2.5:3b (1.9GB)
+        硬件确认：GTX 1050 2GB显存（无法GPU推理8B），CPU推理8B约2-5 tok/s
+下一步：  Day 2（命令行对话 + 速度实测 + System Prompt）
+待准备：  用 --verbose 实测两个模型的 tok/s 差异
 ```
 
 ## 已确认的先验知识
