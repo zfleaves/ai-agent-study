@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第 8 课：TS SDK 接入 + Streaming</title>
+<link rel="stylesheet" href="../../assets/style.css">
+</head>
+<body>
+
+<h1>📡 第 8 课：TS SDK 接入 + Streaming</h1>
+
+<p><span class="tag tag--blue">动手</span> <span class="tag tag--green">第 2 周 Day 3</span> <span class="tag tag--amber">约 45 分钟</span></p>
+
+<blockquote>
+  <strong>本课目标：</strong>用 TypeScript 代码调用 Ollama，实现流式对话，测量首 token 延迟和总时间。
+</blockquote>
+
+<p>
+  📖 <strong>课前阅读：</strong>
+  <a href="https://github.com/ollama/ollama-js" target="_blank">ollama-js GitHub</a> ·
+  <a href="https://www.npmjs.com/package/ollama" target="_blank">ollama npm 包</a>
+</p>
+<p>
+  📚 <strong>相关参考：</strong>
+  <a href="../../reference/glossary.html">术语表</a> ·
+  <a href="0007-cli-chat-speed.html">← 第 7 课</a>
+</p>
+
+<!-- ============================================================ -->
+<h2>一、知识：为什么用代码而不是命令行？</h2>
+
+<p>前两课我们用 <code>ollama run</code> 在终端里聊天。但真正的 Agent 开发需要在代码里调用模型——构建工具链、控制流程、测量性能。</p>
+
+<table style="width:100%; border-collapse:collapse; margin:1rem 0; font-size:0.9rem;">
+  <tr style="background:var(--code-bg);"><th style="padding:0.4rem 0.8rem; border:1px solid var(--border);">场景</th><th style="padding:0.4rem 0.8rem; border:1px solid var(--border);"><code>ollama run</code></th><th style="padding:0.4rem 0.8rem; border:1px solid var(--border);"><code>ollama-js</code></th></tr>
+  <tr><td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">手动测试</td><td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">✅</td><td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">也可</td></tr>
+  <tr><td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">工具调用 (Tool Calling)</td><td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">❌</td><td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">✅</td></tr>
+  <tr><td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">性能测量</td><td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">粗略</td><td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">精确</td></tr>
+  <tr><td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">集成到应用</td><td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">❌</td><td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">✅</td></tr>
+  <tr><td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">流式 UI</td><td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">自带</td><td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">自定义</td></tr>
+</table>
+
+<div class="card card--accent">
+  <div class="card__title">🔑 前端直觉</div>
+  <p style="margin-bottom:0"><code>ollama run</code> 就像在浏览器里手动敲 URL 测试 API。到了真正开发，你得用 <code>fetch()</code> / <code>axios</code>（而 ollama-js 就是 Ollama 的专用 SDK）。</p>
+</div>
+
+<!-- ============================================================ -->
+<h2>二、知识：Streaming 原理</h2>
+
+<h3>非流式（Non-streaming）</h3>
+<pre><code>客户端                      Ollama
+  │                           │
+  │──── 发送 Prompt ─────────→│
+  │                           │ 生成全部回复（等……）
+  │←─── 完整回复 ────────────│ 一次性返回
+  │                           │
+  总时间 = 全部 token 生成完才返回</code></pre>
+
+<h3>流式（Streaming）</h3>
+<pre><code>客户端                      Ollama
+  │                           │
+  │──── 发送 Prompt ─────────→│
+  │←─── token 1 ─────────────│ 立刻开始返回
+  │←─── token 2 ─────────────│
+  │←─── token 3 ─────────────│
+  │←─── ... ─────────────────│
+  │←─── token N ─────────────│ 最后一个 token
+  │                           │
+  首 token 延迟 &lt; 1s，之后逐个 token 到达</code></pre>
+
+<div class="card card--accent">
+  <div class="card__title">🔑 两个关键指标</div>
+  <table style="width:100%; border-collapse:collapse; margin:1rem 0 0 0; font-size:0.9rem;">
+    <tr style="background:var(--code-bg);"><th style="padding:0.4rem 0.8rem; border:1px solid var(--border);">指标</th><th style="padding:0.4rem 0.8rem; border:1px solid var(--border);">中文</th><th style="padding:0.4rem 0.8rem; border:1px solid var(--border);">含义</th></tr>
+    <tr><td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">TTFT</td><td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">首 token 延迟</td><td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">从发送 Prompt 到收到第一个 token 的时间</td></tr>
+    <tr><td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">Total Time</td><td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">总延迟</td><td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">从发送 Prompt 到收到最后一个 token 的时间</td></tr>
+  </table>
+  <p style="margin-top:0.5rem; font-size:0.9rem;">非流式：TTFT ≈ Total Time（等全部生成完才返回）<br>流式：TTFT &lt;&lt; Total Time（立刻开始返回，逐个 token 到达）</p>
+</div>
+
+<!-- ============================================================ -->
+<h2>三、知识：ollama-js API</h2>
+
+<h3>安装</h3>
+<pre><code>npm init -y
+npm install ollama          # 内置 TypeScript 类型，无需 @types/xxx
+npm install -D typescript tsx @types/node</code></pre>
+
+<h3>非流式调用</h3>
+<pre><code>import ollama from 'ollama';
+
+const response = await ollama.chat({
+  model: 'qwen2.5:3b',
+  messages: [{ role: 'user', content: '你好，用一句话介绍自己' }],
+});
+// response.message.content 是完整回复字符串
+console.log(response.message.content);</code></pre>
+
+<h3>流式调用</h3>
+<pre><code>import ollama from 'ollama';
+
+const stream = await ollama.chat({
+  model: 'qwen2.5:3b',
+  messages: [{ role: 'user', content: '写一首关于编程的五言绝句' }],
+  stream: true,  // ← 关键：开启流式
+});
+
+// stream 是 AsyncGenerator，用 for await 逐个接收 token
+for await (const chunk of stream) {
+  process.stdout.write(chunk.message.content);  // 逐字打印
+}
+console.log(); // 最后换行</code></pre>
+
+<div class="card card--warn">
+  <div class="card__title">⚠️ ollama-js 的 streaming 是 SSE 而非真正的 chunked</div>
+  <p style="margin-bottom:0">ollama-js 的 <code>stream: true</code> 底层使用 Server-Sent Events (SSE)。每个 chunk 可能包含多个 token，不是严格的"一个 token 一个 chunk"。但用户体验上仍然是"逐字蹦出"的效果。</p>
+</div>
+
+<!-- ============================================================ -->
+<h2>四、动手：流式对话 + 性能测量</h2>
+
+<div class="card card--accent">
+  <div class="card__title">📦 Step 1：初始化项目</div>
+  <pre><code>cd E:\gaoyang\gaoyang-study
+mkdir -p demos/week-02
+cd demos/week-02
+npm init -y
+npm install ollama
+npm install -D typescript tsx @types/node
+npx tsc --init --target ES2022 --module NodeNext --moduleResolution NodeNext --strict true</code></pre>
+</div>
+
+<div class="card card--accent" style="margin-top:1rem;">
+  <div class="card__title">✍️ Step 2：写流式对话脚本</div>
+  <p>创建 <code>demos/week-02/stream-chat.ts</code>：</p>
+  <pre><code>import ollama from 'ollama';
+
+const MODEL = 'qwen2.5:3b';
+const PROMPT = '用 TypeScript 写一个冒泡排序函数，带类型定义';
+
+async function streamChat() {
+  const startTime = Date.now();
+  let firstTokenTime = 0;
+  let totalTokens = 0;
+
+  const stream = await ollama.chat({
+    model: MODEL,
+    messages: [{ role: 'user', content: PROMPT }],
+    stream: true,
+  });
+
+  for await (const chunk of stream) {
+    if (firstTokenTime === 0) {
+      firstTokenTime = Date.now();
+    }
+    totalTokens++;
+    process.stdout.write(chunk.message.content);
+  }
+
+  const endTime = Date.now();
+  const ttft = firstTokenTime - startTime;
+  const total = endTime - startTime;
+
+  console.log(`\n\n--- 性能报告 ---`);
+  console.log(`模型: ${MODEL}`);
+  console.log(`首 token 延迟 (TTFT): ${ttft}ms`);
+  console.log(`总耗时: ${total}ms`);
+  console.log(`生成 token 数: ${totalTokens} chunks`);
+  console.log(`Decode 耗时: ${total - ttft}ms`);
+}
+
+streamChat().catch(console.error);</code></pre>
+</div>
+
+<div class="card card--accent" style="margin-top:1rem;">
+  <div class="card__title">▶️ Step 3：运行</div>
+  <pre><code>npx tsx stream-chat.ts</code></pre>
+  <p>观察输出：<strong>首 token 延迟</strong>（第一个字出现前等了多久）vs <strong>总耗时</strong>（全部输出完用了多久）。</p>
+</div>
+
+<div class="card card--accent" style="margin-top:1rem;">
+  <div class="card__title">🧪 Step 4：对比两个模型</div>
+  <p>把 MODEL 改成 <code>hermes3:8b</code>，再跑一次，记录两个模型的 TTFT 和总耗时差距。</p>
+</div>
+
+<!-- ============================================================ -->
+<h2>五、命令速查</h2>
+
+<pre><code>npm install ollama              # 安装 Ollama JS SDK
+npx tsx script.ts               # 用 tsx 直接运行 TypeScript
+npx tsc --init                  # 初始化 tsconfig.json</code></pre>
+
+<h3>ollama-js 核心 API</h3>
+<pre><code>ollama.chat({ model, messages })           # 非流式对话
+ollama.chat({ model, messages, stream })   # 流式对话
+ollama.list()                               # 已安装模型列表
+ollama.show({ model })                      # 模型详细信息
+ollama.abort()                              # 中止所有流式请求</code></pre>
+
+<!-- ============================================================ -->
+<h2>六、自测</h2>
+
+<p>用纸笔回答，不看答案。</p>
+
+<ol>
+  <li>Streaming 和非 Streaming 的核心区别是什么？用户感知上有什么不同？</li>
+  <li>TTFT 是什么？为什么流式场景下 TTFT 远小于 Total Time？</li>
+  <li>ollama-js 的 <code>stream: true</code> 返回的是什么类型？怎么遍历它？</li>
+  <li>为什么 Agent 开发需要用代码调用模型，而不能只用 <code>ollama run</code>？</li>
+  <li>如果用 <code>stream: true</code> 但不用 <code>for await</code>，会发生什么？</li>
+</ol>
+
+<details style="margin:1rem 0;">
+  <summary style="cursor:pointer; font-weight:700; color:var(--accent);">参考答案</summary>
+  <ol style="margin-top:0.5rem;">
+    <li><strong>非 Streaming</strong>：模型生成完所有 token 后才一次性返回完整回复，用户感知是"等半天，突然全出来了"。<strong>Streaming</strong>：模型生成一个 token 就立刻返回一个 token，用户感知是"逐字蹦出，立即有反馈"。Streaming 的首 token 延迟远小于总延迟，用户体验更好——就像网页的 SSR vs CSR，用户更在意"多快能看到东西"而不是"多快全部加载完"。</li>
+    <li><strong>TTFT（Time To First Token）</strong> 是从发送 Prompt 到收到第一个 token 的时间。在流式场景下，模型不需要等全部 token 生成完才返回——生成第一个 token 就立刻 push 给客户端，所以 TTFT 通常 < 1s。而 Total Time 要等所有 token 生成完，取决于输出长度。TTFT 决定了用户感知的"响应速度"，是流式体验的核心指标。</li>
+    <li><code>stream: true</code> 返回的是 <strong>AsyncGenerator</strong>（异步生成器）。用 <code>for await (const chunk of stream)</code> 遍历，每个 chunk 包含 <code>chunk.message.content</code>（当前片段的文本）。每次迭代 await 等待下一个 chunk 到达，所以是"边生成边消费"的模式。</li>
+    <li>因为 Agent 开发需要：① <strong>精确控制</strong>工具调用逻辑（模型输出 function_call → 执行 → 返回结果 → 继续推理），命令行无法做这个循环；② <strong>集成到应用</strong>（React 前端、API 服务、自动化脚本）；③ <strong>精确测量</strong>性能（TTFT、tok/s、内存占用）；④ <strong>类型安全</strong>（TypeScript 定义消息格式、工具参数 Schema）。<code>ollama run</code> 只适合手动测试和快速验证。</li>
+    <li>如果 <code>stream: true</code> 但用非流式的方式消费（比如直接 <code>await ollama.chat(...)</code> 然后读 <code>response.message.content</code>），你会只拿到一个空字符串或第一个 chunk 的内容。因为流式 API 的设计是"边生成边消费"——你不消费 AsyncGenerator，它就不会积累完整回复。正确的做法是用 <code>for await</code> 逐个消费并拼接。</li>
+  </ol>
+</details>
+
+<!-- ============================================================ -->
+<hr style="margin:2rem 0; border:none; border-top:1px solid var(--border);">
+
+<div class="card card--success">
+  <div class="card__title">✅ 本课完成</div>
+  <p style="margin-bottom:0.5rem"><strong>你学到了：</strong>ollama-js SDK 安装与使用、Streaming vs 非 Streaming 原理、TTFT 首 token 延迟、用 TypeScript 写出第一个流式对话脚本。</p>
+  <p style="margin-bottom:0; font-size:0.9rem; color:var(--text-secondary);">
+    🤔 <strong>有问题？</strong>直接问你的 AI 老师——任何不清楚的地方都可以追问。
+  </p>
+</div>
+
+<p style="color:var(--text-secondary); font-size:0.85rem;">
+  📅 第 2 周 Day 3 完成 · 下一步：Day 4 Prompt 工程 + 瘦身实验
+</p>
+
+</body>
+</html>
