@@ -13,218 +13,162 @@
 <p><span class="tag tag--blue">动手</span> <span class="tag tag--green">第 2 周 Day 1</span> <span class="tag tag--amber">约 45 分钟</span></p>
 
 <blockquote>
-  <strong>本课目标：</strong>在 Windows 上安装 Ollama，理解 GGUF 量化概念，学会根据场景选择合适的模型大小和量化级别。
+  <strong>本课目标：</strong>在 Windows 上安装 Ollama，理解 GGUF 量化，学会模型选型。
 </blockquote>
 
-<h2>一、什么是 Ollama？</h2>
+<p>
+  📖 <strong>课前阅读：</strong>
+  <a href="https://ollama.com/" target="_blank">Ollama 官网</a> —
+  <a href="https://huggingface.co/NousResearch/Hermes-3-Llama-3.1-8B" target="_blank">Hermes 3 模型卡</a>
+</p>
+<p>
+  📚 <strong>相关参考：</strong>
+  <a href="../../reference/glossary.html">术语表</a> ·
+  <a href="../../reference/environment-setup.html">环境准备清单</a>
+</p>
 
-<p>Ollama 是一个<strong>本地模型运行工具</strong>。它把复杂的模型下载、量化加载、推理服务打包成简单的命令行操作。</p>
+<!-- ============================================================ -->
+<h2>一、知识：Ollama 是什么</h2>
+
+<p>Ollama 是本地模型运行工具，把模型下载、量化加载、推理服务打包成命令行操作。三个核心能力：</p>
+
+<ol>
+  <li><strong>模型管理</strong>：<code>ollama pull</code> 下载，<code>ollama list</code> 查看</li>
+  <li><strong>本地推理</strong>：数据不出本机，完全离线可用</li>
+  <li><strong>HTTP API</strong>：<code>localhost:11434</code> 提供 REST API，任何语言调用</li>
+</ol>
 
 <div class="card card--accent">
-  <div class="card__title">🔑 Ollama 三大核心能力</div>
-  <ol style="margin-bottom:0;">
-    <li><strong>模型管理</strong>：<code>ollama pull</code> 下载模型，<code>ollama list</code> 查看已安装</li>
-    <li><strong>本地推理</strong>：在你自己电脑上运行，数据不出本机，不用联网</li>
-    <li><strong>HTTP API</strong>：启动后在 <code>localhost:11434</code> 提供 REST API，任何语言都能调用</li>
-  </ol>
+  <div class="card__title">🔑 前端直觉</div>
+  <table style="width:100%; border-collapse:collapse; font-size:0.9rem;">
+    <tr style="background:var(--code-bg);"><th style="padding:0.4rem 0.8rem; border:1px solid var(--border);">Ollama</th><th style="padding:0.4rem 0.8rem; border:1px solid var(--border);">类比</th></tr>
+    <tr><td style="padding:0.4rem 0.8rem; border:1px solid var(--border);"><code>ollama pull hermes3:8b</code></td><td style="padding:0.4rem 0.8rem; border:1px solid var(--border);"><code>npm install react</code></td></tr>
+    <tr><td style="padding:0.4rem 0.8rem; border:1px solid var(--border);"><code>ollama run hermes3:8b</code></td><td style="padding:0.4rem 0.8rem; border:1px solid var(--border);"><code>node index.js</code></td></tr>
+    <tr><td style="padding:0.4rem 0.8rem; border:1px solid var(--border);"><code>ollama list</code></td><td style="padding:0.4rem 0.8rem; border:1px solid var(--border);"><code>npm ls</code></td></tr>
+  </table>
 </div>
 
-<h3>类比：前端工程师的直觉</h3>
+<!-- ============================================================ -->
+<h2>二、知识：GGUF 与量化</h2>
+
+<p>原始 LLM 参数用 <strong>FP16（16 位浮点数）</strong> 存储。8B 模型：</p>
+
+<pre><code>8B 参数 × 2 字节(FP16) = 16 GB — 你的电脑跑不动</code></pre>
+
+<p><strong>量化（Quantization）</strong> 把高精度参数压缩成低精度，用精度换体积：</p>
 
 <table style="width:100%; border-collapse:collapse; margin:1rem 0; font-size:0.9rem;">
-  <tr style="background:var(--code-bg); text-align:left;">
-    <th style="padding:0.5rem 0.8rem; border:1px solid var(--border);">Ollama</th>
-    <th style="padding:0.5rem 0.8rem; border:1px solid var(--border);">前端</th>
-  </tr>
-  <tr>
-    <td style="padding:0.5rem 0.8rem; border:1px solid var(--border);"><code>ollama pull hermes3:8b</code></td>
-    <td style="padding:0.5rem 0.8rem; border:1px solid var(--border);"><code>npm install react</code></td>
-  </tr>
-  <tr>
-    <td style="padding:0.5rem 0.8rem; border:1px solid var(--border);"><code>ollama run hermes3:8b</code></td>
-    <td style="padding:0.5rem 0.8rem; border:1px solid var(--border);"><code>node index.js</code></td>
-  </tr>
-  <tr>
-    <td style="padding:0.5rem 0.8rem; border:1px solid var(--border);"><code>ollama list</code></td>
-    <td style="padding:0.5rem 0.8rem; border:1px solid var(--border);"><code>npm ls</code></td>
-  </tr>
-  <tr>
-    <td style="padding:0.5rem 0.8rem; border:1px solid var(--border);"><code>localhost:11434</code></td>
-    <td style="padding:0.5rem 0.8rem; border:1px solid var(--border);"><code>localhost:3000</code></td>
-  </tr>
+  <tr style="background:var(--code-bg);"><th style="padding:0.4rem 0.8rem; border:1px solid var(--border);">量化级别</th><th style="padding:0.4rem 0.8rem; border:1px solid var(--border);">体积</th><th style="padding:0.4rem 0.8rem; border:1px solid var(--border);">质量</th><th style="padding:0.4rem 0.8rem; border:1px solid var(--border);">评价</th></tr>
+  <tr><td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">FP16</td><td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">16 GB</td><td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">原始</td><td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">个人电脑跑不动</td></tr>
+  <tr><td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">Q8</td><td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">8 GB</td><td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">损失极小</td><td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">需要大内存</td></tr>
+  <tr style="background:var(--accent-bg);"><td style="padding:0.4rem 0.8rem; border:1px solid var(--border);"><strong>Q4_K_M</strong></td><td style="padding:0.4rem 0.8rem; border:1px solid var(--border);"><strong>~5 GB</strong></td><td style="padding:0.4rem 0.8rem; border:1px solid var(--border);"><strong>可接受</strong></td><td style="padding:0.4rem 0.8rem; border:1px solid var(--border);"><strong>⭐ 性价比最高</strong></td></tr>
+  <tr><td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">Q3</td><td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">~3 GB</td><td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">明显下降</td><td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">极限压缩</td></tr>
+  <tr><td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">Q2</td><td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">~2 GB</td><td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">损失较大</td><td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">慎用</td></tr>
 </table>
 
-<h2>二、GGUF 与量化：为什么模型有"大小"之分？</h2>
-
-<h3>原始模型 vs 量化模型</h3>
-
-<p>原始的 LLM 模型参数用 <strong>FP16（16 位浮点数）</strong> 存储。一个 8B（80 亿参数）的模型：</p>
-
-<pre><code>8B 参数 × 2 字节(FP16) = 16 GB 显存/内存
-—— 你的电脑根本跑不动！</code></pre>
-
-<p><strong>量化（Quantization）</strong> 就是把高精度参数"压缩"成低精度，用精度换速度：</p>
-
-<pre><code>FP16（16位） → 16 GB   ← 原始精度，几乎不损失质量
-  Q8（8位）  →  8 GB   ← 整数精度，质量损失极小
-  Q6（6位）  →  6 GB   ← 质量损失很小，体积减半
-  Q4（4位）  →  4 GB   ← 最常用，质量损失可接受
-  Q3（3位）  →  3 GB   ← 体积更小，质量明显下降
-  Q2（2位）  →  2 GB   ← 极限压缩，质量损失较大</code></pre>
-
 <div class="card card--accent">
-  <div class="card__title">🔑 关键认知</div>
-  <p style="margin-bottom:0"><strong>GGUF</strong> 是 Ollama 使用的模型文件格式，里面包含了量化后的模型权重。你看到的 <code>hermes3:8b-q4_K_M</code> 就是一个 GGUF 格式的 4 位量化模型。<strong>Q4_K_M 是当前性价比最高的量化级别</strong>——质量接近原版，体积只有 1/4。</p>
+  <div class="card__title">🔑 GGUF</div>
+  <p style="margin-bottom:0"><strong>GGUF</strong>（GPT-Generated Unified Format）是 Ollama 使用的模型文件格式，包含量化后的权重。你看到的 <code>hermes3:8b</code> 默认就是 Q4_K_M 量化——体积 1/4，质量损失可接受。</p>
 </div>
 
-<h2>三、模型选型：8B vs 3B vs 1.5B，怎么选？</h2>
+<!-- ============================================================ -->
+<h2>三、知识：模型选型</h2>
 
 <table style="width:100%; border-collapse:collapse; margin:1rem 0; font-size:0.9rem;">
-  <thead>
-    <tr style="background:var(--code-bg); text-align:left;">
-      <th style="padding:0.5rem 0.8rem; border:1px solid var(--border);">模型大小</th>
-      <th style="padding:0.5rem 0.8rem; border:1px solid var(--border);">参数量</th>
-      <th style="padding:0.5rem 0.8rem; border:1px solid var(--border);">Q4 体积</th>
-      <th style="padding:0.5rem 0.8rem; border:1px solid var(--border);">内存需求</th>
-      <th style="padding:0.5rem 0.8rem; border:1px solid var(--border);">速度</th>
-      <th style="padding:0.5rem 0.8rem; border:1px solid var(--border);">质量</th>
-      <th style="padding:0.5rem 0.8rem; border:1px solid var(--border);">适用场景</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <td style="padding:0.5rem 0.8rem; border:1px solid var(--border);"><strong>8B</strong></td>
-      <td style="padding:0.5rem 0.8rem; border:1px solid var(--border);">80 亿</td>
-      <td style="padding:0.5rem 0.8rem; border:1px solid var(--border);">~5 GB</td>
-      <td style="padding:0.5rem 0.8rem; border:1px solid var(--border);">8-16 GB</td>
-      <td style="padding:0.5rem 0.8rem; border:1px solid var(--border);">🐢 慢</td>
-      <td style="padding:0.5rem 0.8rem; border:1px solid var(--border);">⭐⭐⭐⭐⭐</td>
-      <td style="padding:0.5rem 0.8rem; border:1px solid var(--border);">主力模型，复杂任务</td>
-    </tr>
-    <tr>
-      <td style="padding:0.5rem 0.8rem; border:1px solid var(--border);"><strong>3B</strong></td>
-      <td style="padding:0.5rem 0.8rem; border:1px solid var(--border);">30 亿</td>
-      <td style="padding:0.5rem 0.8rem; border:1px solid var(--border);">~2 GB</td>
-      <td style="padding:0.5rem 0.8rem; border:1px solid var(--border);">4-8 GB</td>
-      <td style="padding:0.5rem 0.8rem; border:1px solid var(--border);">🐇 中</td>
-      <td style="padding:0.5rem 0.8rem; border:1px solid var(--border);">⭐⭐⭐</td>
-      <td style="padding:0.5rem 0.8rem; border:1px solid var(--border);">开发测试，简单任务</td>
-    </tr>
-    <tr>
-      <td style="padding:0.5rem 0.8rem; border:1px solid var(--border);"><strong>1.5B</strong></td>
-      <td style="padding:0.5rem 0.8rem; border:1px solid var(--border);">15 亿</td>
-      <td style="padding:0.5rem 0.8rem; border:1px solid var(--border);">~1 GB</td>
-      <td style="padding:0.5rem 0.8rem; border:1px solid var(--border);">2-4 GB</td>
-      <td style="padding:0.5rem 0.8rem; border:1px solid var(--border);">🚀 快</td>
-      <td style="padding:0.5rem 0.8rem; border:1px solid var(--border);">⭐</td>
-      <td style="padding:0.5rem 0.8rem; border:1px solid var(--border);">快速原型，自动化测试</td>
-    </tr>
-  </tbody>
+  <tr style="background:var(--code-bg);"><th style="padding:0.4rem 0.8rem; border:1px solid var(--border);">大小</th><th style="padding:0.4rem 0.8rem; border:1px solid var(--border);">参数量</th><th style="padding:0.4rem 0.8rem; border:1px solid var(--border);">Q4 体积</th><th style="padding:0.4rem 0.8rem; border:1px solid var(--border);">内存需求</th><th style="padding:0.4rem 0.8rem; border:1px solid var(--border);">速度</th><th style="padding:0.4rem 0.8rem; border:1px solid var(--border);">质量</th><th style="padding:0.4rem 0.8rem; border:1px solid var(--border);">场景</th></tr>
+  <tr><td style="padding:0.4rem 0.8rem; border:1px solid var(--border);"><strong>8B</strong></td><td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">80 亿</td><td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">~5 GB</td><td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">8-16 GB</td><td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">🐢</td><td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">⭐⭐⭐⭐⭐</td><td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">主力模型</td></tr>
+  <tr><td style="padding:0.4rem 0.8rem; border:1px solid var(--border);"><strong>3B</strong></td><td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">30 亿</td><td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">~2 GB</td><td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">4-8 GB</td><td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">🐇</td><td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">⭐⭐⭐</td><td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">开发测试</td></tr>
+  <tr><td style="padding:0.4rem 0.8rem; border:1px solid var(--border);"><strong>1.5B</strong></td><td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">15 亿</td><td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">~1 GB</td><td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">2-4 GB</td><td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">🚀</td><td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">⭐</td><td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">快速原型</td></tr>
 </table>
 
 <div class="card card--warn">
-  <div class="card__title">⚠️ Hermes 3.1 只有 8B 和 3B 版本</div>
-  <p style="margin-bottom:0">Nous Research 发布的 Hermes 3.1 主要版本是 8B 和 3B。如果电脑配置不够跑 8B，可以用 <strong>Qwen 2.5</strong> 作为替代（有 1.5B、3B、7B、14B 等各种尺寸）。</p>
+  <div class="card__title">⚠️ 你的硬件</div>
+  <p style="margin-bottom:0">GTX 1050 只有 2GB 显存，8B 模型（4.7GB）塞不进 GPU，Ollama 自动 fallback 到 CPU 推理。日常开发建议用 <strong>qwen2.5:3b</strong>（1.9GB），速度快 3-5 倍。Hermes 目前只有 8B/3B 版本，3B 质量一般，日常用 qwen2.5:3b 替代。</p>
 </div>
 
-<h2>四、动手：安装 Ollama</h2>
+<!-- ============================================================ -->
+<h2>四、动手</h2>
 
 <div class="card card--accent">
-  <div class="card__title">📥 Step 1：下载安装</div>
-  <ol style="margin-bottom:0;">
-    <li>打开 <a href="https://ollama.com/download" target="_blank">https://ollama.com/download</a></li>
-    <li>下载 <strong>Windows 版</strong>（.exe 安装包）</li>
-    <li>双击安装，一路下一步，完成</li>
-    <li>安装完成后，Ollama 会在后台运行（右下角托盘图标 🦙）</li>
+  <div class="card__title">📥 Step 1：安装</div>
+  <ol style="margin-bottom:0">
+    <li>打开 <a href="https://ollama.com/download" target="_blank">ollama.com/download</a></li>
+    <li>下载 Windows 版，双击安装，一路下一步</li>
+    <li>验证：终端输入 <code>ollama --version</code></li>
   </ol>
 </div>
 
 <div class="card card--accent" style="margin-top:1rem;">
-  <div class="card__title">✅ Step 2：验证安装</div>
-  <p>打开终端（PowerShell 或 CMD），输入：</p>
-  <pre><code>ollama --version</code></pre>
-  <p>如果看到版本号（如 <code>ollama version is 0.x.x</code>），说明安装成功。</p>
+  <div class="card__title">📦 Step 2：拉取模型</div>
+  <pre><code>ollama pull hermes3:8b    # ~5 GB，5-15 分钟
+ollama pull qwen2.5:3b   # ~2 GB，用于对比速度</code></pre>
 </div>
 
 <div class="card card--accent" style="margin-top:1rem;">
-  <div class="card__title">📦 Step 3：拉取第一个模型</div>
-  <p>先拉取我们的主力模型 Hermes 3.1 8B：</p>
-  <pre><code>ollama pull hermes3:8b</code></pre>
-  <p>这会下载约 5GB 的文件，需要 5-15 分钟（取决于网速）。</p>
-  <p>下载完成后，再拉取一个小模型做对比：</p>
-  <pre><code>ollama pull qwen2.5:3b</code></pre>
-</div>
-
-<div class="card card--accent" style="margin-top:1rem;">
-  <div class="card__title">🧪 Step 4：测试对话</div>
-  <p>直接在终端里和模型聊天：</p>
-  <pre><code>ollama run hermes3:8b</code></pre>
-  <p>试试这几个 Prompt：</p>
-  <pre><code>>>> 你好！用中文介绍一下你自己
+  <div class="card__title">🧪 Step 3：测试对话</div>
+  <pre><code>ollama run qwen2.5:3b
+>>> 你好！用中文介绍一下你自己
 >>> 帮我写一个 TypeScript 的冒泡排序函数
->>> What is the capital of France?（测试英文能力）
->>> /bye  （退出聊天）</code></pre>
+>>> /bye</code></pre>
 </div>
 
 <div class="card card--accent" style="margin-top:1rem;">
-  <div class="card__title">📊 Step 5：对比模型速度</div>
-  <p>用同一个 Prompt 测试两个模型，感受速度差异：</p>
-  <pre><code>ollama run hermes3:8b --verbose
+  <div class="card__title">📊 Step 4：对比速度</div>
+  <pre><code>ollama run qwen2.5:3b --verbose
 >>> 用 TypeScript 写一个函数，计算斐波那契数列第 n 项
 
-ollama run qwen2.5:3b --verbose
+ollama run hermes3:8b --verbose
 >>> 用 TypeScript 写一个函数，计算斐波那契数列第 n 项</code></pre>
-  <p><code>--verbose</code> 会显示每次推理的 token 生成速度（tok/s），记录这两个数字！</p>
+  <p>记录两个模型的 <code>eval rate: XX tokens/s</code>，感受差距。</p>
 </div>
 
-<h2>五、常用 Ollama 命令速查</h2>
+<!-- ============================================================ -->
+<h2>五、命令速查</h2>
 
-<pre><code>ollama list              # 查看已安装的模型
-ollama pull &lt;model&gt;      # 下载模型
-ollama run &lt;model&gt;       # 运行模型（交互对话）
-ollama rm &lt;model&gt;        # 删除模型
-ollama show &lt;model&gt;      # 查看模型详细信息
-ollama ps                 # 查看正在运行的模型
-ollama serve              # 启动 Ollama 服务（默认已后台运行）</code></pre>
+<pre><code>ollama list           # 已安装的模型
+ollama pull &lt;model&gt;   # 下载模型
+ollama run &lt;model&gt;    # 运行模型（交互对话）
+ollama rm &lt;model&gt;     # 删除模型
+ollama ps              # 正在运行的模型
+ollama serve           # 启动 API 服务</code></pre>
 
-<h2>六、本课总结</h2>
+<!-- ============================================================ -->
+<h2>六、自测</h2>
 
-<div class="card card--success">
-  <div class="card__title">✅ 今天你学到了什么</div>
-  <ol style="margin-bottom:0">
-    <li><strong>Ollama 是什么</strong>：本地模型运行工具 = 模型版的 Docker</li>
-    <li><strong>GGUF + 量化</strong>：用精度换速度，Q4 是性价比最高的量化级别</li>
-    <li><strong>模型选型</strong>：8B（质量好但慢）vs 3B（平衡）vs 1.5B（快但质量差）</li>
-    <li><strong>动手安装</strong>：Ollama 安装 + 拉取模型 + 命令行对话</li>
-    <li><strong>速度对比</strong>：用 <code>--verbose</code> 实测不同模型的 tok/s</li>
-  </ol>
-</div>
-
-<h2>七、自测题</h2>
+<p>用纸笔回答，不看答案。</p>
 
 <ol>
-  <li>Ollama 的三个核心作用是什么？</li>
-  <li>什么是量化（Quantization）？Q4 和 Q8 有什么区别？</li>
-  <li>8B 参数、Q4 量化的模型大概需要多少内存？</li>
-  <li>为什么要有 8B/3B/1.5B 不同大小的模型？各适合什么场景？</li>
-  <li><code>ollama run --verbose</code> 中的 <code>--verbose</code> 有什么用？</li>
+  <li>Ollama 的三个核心作用？（各 5 字）</li>
+  <li>量化是什么？Q4 比 FP16 省多少？</li>
+  <li>8B Q4 模型大约需要多少内存？</li>
+  <li>你电脑上为什么 8B 比 3B 慢很多？</li>
+  <li><code>--verbose</code> 显示的最关键指标是什么？</li>
 </ol>
 
 <details style="margin:1rem 0;">
-  <summary style="cursor:pointer; font-weight:700; color:var(--accent);">点击展开参考答案</summary>
+  <summary style="cursor:pointer; font-weight:700; color:var(--accent);">参考答案</summary>
   <ol style="margin-top:0.5rem;">
-    <li>① 模型管理（下载/删除/查看）② 本地推理（数据不出本机）③ 提供 HTTP API（localhost:11434）</li>
-    <li>量化是把高精度参数（FP16）压缩成低精度（如 4 位/8 位整数），用精度换速度。Q8 质量损失极小但体积大（~8GB），Q4 体积只有 1/4（~4GB），质量损失可接受，是性价比最高的选择</li>
-    <li>约 8-16 GB 内存。8B 参数 × 0.5 字节(Q4) ≈ 4GB 模型 + 推理开销 ≈ 总共需要 8-16GB</li>
-    <li><strong>8B</strong>：质量最好，适合复杂任务（Agent 推理、RAG 回答）；<strong>3B</strong>：平衡之选，适合开发测试；<strong>1.5B</strong>：速度最快，适合快速原型和自动化测试。选模型是"质量 vs 速度"的 trade-off</li>
-    <li><code>--verbose</code> 显示每次推理的详细性能数据，最重要的是 <strong>token 生成速度（tok/s）</strong>——用来对比不同模型的推理速度</li>
+    <li><strong>模型管理</strong>（下载/删除/查看模型）、<strong>本地推理</strong>（数据不出本机，完全离线可用）、<strong>HTTP API</strong>（在 localhost:11434 提供 REST API，任何语言都能调用）。类比：模型版的 Docker。</li>
+    <li><strong>量化</strong>是把高精度参数（FP16，16位浮点数）压缩成低精度整数（如 4 位），用精度换体积。Q4 体积约是 FP16 的 <strong>1/4</strong>（16GB → 4GB），质量损失可接受，是性价比最高的量化级别。GGUF 是 Ollama 使用的量化模型文件格式。</li>
+    <li>约 <strong>8-16 GB 内存</strong>。8B 参数 × 0.5 字节(Q4) ≈ 4GB 模型文件本身，但推理时还需要额外内存做中间计算，实际占用 8-16GB。如果内存不够，系统会用磁盘 swap，速度会进一步下降。</li>
+    <li>因为 GTX 1050 只有 <strong>2GB 显存</strong>，而 8B 模型 Q4 量化后约 4.7GB，根本塞不进显存。Ollama 自动 fallback 到 <strong>CPU 推理</strong>——CPU 算力远不如 GPU，所以 8B 模型在 CPU 上只有 2-5 tok/s。3B 模型（1.9GB）虽然也跑在 CPU 上，但计算量小得多，速度自然快 3-5 倍。</li>
+    <li><strong>eval rate（tokens/s）</strong>，即模型每秒能生成多少个 token。这是衡量推理速度的最核心指标，直接决定了你看到回复"蹦字"的快慢。load_duration 和 prompt_eval_duration 也很重要，但 eval rate 是用户最直接感知到的。</li>
   </ol>
 </details>
 
+<!-- ============================================================ -->
 <hr style="margin:2rem 0; border:none; border-top:1px solid var(--border);">
 
+<div class="card card--success">
+  <div class="card__title">✅ 本课完成</div>
+  <p style="margin-bottom:0.5rem"><strong>你学到了：</strong>Ollama 安装、GGUF 量化原理、模型选型（8B/3B/1.5B）、<code>--verbose</code> 速度对比。</p>
+  <p style="margin-bottom:0; font-size:0.9rem; color:var(--text-secondary);">
+    🤔 <strong>有问题？</strong>直接问你的 AI 老师——任何不清楚的地方都可以追问。
+  </p>
+</div>
+
 <p style="color:var(--text-secondary); font-size:0.85rem;">
-  📅 第 2 周 Day 1 完成 · 下一步：Day 2 命令行对话 + 速度实测
+  📅 第 2 周 Day 1 完成 · 下一步：<a href="0007-cli-chat-speed.html">Day 2 命令行对话 + 速度实测</a>
 </p>
 
 </body>

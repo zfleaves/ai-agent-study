@@ -73,8 +73,20 @@
 - [HuggingFace 论坛](https://discuss.huggingface.co/)
   模型使用和微调讨论。Use for: 模型层面的技术问题。
 
+## Knowledge —— 模型格式与推理
+
+- [GGUF 格式规范](https://github.com/ggerganov/ggml/blob/master/docs/gguf.md)
+  GGUF（GPT-Generated Unified Format）是 llama.cpp 和 Ollama 使用的模型文件格式。Use for: 理解量化级别（Q4_K_M、Q8_0 等）和模型文件结构。
+
+- [llama.cpp — GitHub](https://github.com/ggerganov/llama.cpp)
+  Ollama 底层依赖的 C++ 推理引擎，CPU/GPU 混合推理。Use for: 理解量化策略、GPU 卸载、推理后端。
+
+- [MCP 协议规范](https://modelcontextprotocol.io/)
+  Model Context Protocol 官方文档，2026 年 Agent 工具集成标准。Use for: 第 8 周 MCP Server/Client 开发。
+
 ## Gaps
 
+- 缺少 Hermes 3 中文能力的系统性评估。用户需通过实际测试自行判断
+- 缺少 8B/3B/1.5B 模型在不同硬件上的 tok/s 基准数据。现有数据来自社区分散帖子
 - 中文的"前端 → AI Agent"系统教程极少，需要从英文资源提炼
-- JS 生态的 Agent 教程以 Vercel/LangChain 为主，需确认哪个更适合初学者
 - 本地知识库的完整 JS 方案（文档→向量化→检索→LLM）需要自己组装，没有一站式教程

@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第 7 课：命令行对话 + 速度实测</title>
+<link rel="stylesheet" href="../../assets/style.css">
+</head>
+<body>
+
+<h1>💬 第 7 课：命令行对话 + 速度实测</h1>
+
+<p><span class="tag tag--blue">动手</span> <span class="tag tag--green">第 2 周 Day 2</span> <span class="tag tag--amber">约 35 分钟</span></p>
+
+<blockquote>
+  <strong>本课目标：</strong>掌握 System Prompt 和 Temperature，用 <code>--verbose</code> 精确实测推理速度。
+</blockquote>
+
+<p>
+  📖 <strong>课前阅读：</strong>
+  <a href="https://github.com/ollama/ollama/tree/main/docs" target="_blank">Ollama 官方文档</a> ·
+  <a href="https://huggingface.co/NousResearch/Hermes-3-Llama-3.1-8B" target="_blank">Hermes 3 模型卡（ChatML 格式）</a>
+</p>
+<p>
+  📚 <strong>相关参考：</strong>
+  <a href="../../reference/glossary.html">术语表</a> ·
+  <a href="../../reference/environment-setup.html">环境准备</a> ·
+  <a href="0006-ollama-setup.html">← 第 6 课</a>
+</p>
+
+<!-- ============================================================ -->
+<h2>一、知识：推理的三个阶段</h2>
+
+<p>一次推理分三个阶段。Ollama API 返回的指标一一对应：</p>
+
+<pre><code>load_duration:        60.9s  ← 阶段①：模型加载到内存（冷启动）
+prompt_eval_duration:  0.7s  ← 阶段②：理解 Prompt（Prefill 预填充）
+eval_duration:        59.0s  ← 阶段③：逐 token 生成回复（Decode）
+eval rate:            12.9   ← 每秒生成 token 数，核心速度指标</code></pre>
+
+<table style="width:100%; border-collapse:collapse; margin:1rem 0; font-size:0.9rem;">
+  <tr style="background:var(--code-bg);"><th style="padding:0.4rem 0.8rem; border:1px solid var(--border);">阶段</th><th style="padding:0.4rem 0.8rem; border:1px solid var(--border);">耗时</th><th style="padding:0.4rem 0.8rem; border:1px solid var(--border);">用户感知</th><th style="padding:0.4rem 0.8rem; border:1px solid var(--border);">前端类比</th></tr>
+  <tr><td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">① Load</td><td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">30-60s</td><td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">"怎么还没反应"</td><td style="padding:0.4rem 0.8rem; border:1px solid var(--border);"><code>npm start</code> 冷启动</td></tr>
+  <tr><td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">② Prefill</td><td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">&lt; 1s</td><td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">基本无感</td><td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">Webpack 读入口</td></tr>
+  <tr><td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">③ Decode</td><td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">逐 token</td><td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">"一个字一个字蹦"</td><td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">HMR 热更新</td></tr>
+</table>
+
+<div class="card card--warn">
+  <div class="card__title">⚠️ 模型只在冷启动时加载</div>
+  <p style="margin-bottom:0">Ollama 默认在模型空闲 5 分钟后从内存卸载。连续对话只有第一次等加载；隔 5 分钟再问，又要重新加载。</p>
+</div>
+
+<!-- ============================================================ -->
+<h2>二、知识：System Prompt — 模型的人设</h2>
+
+<p>System Prompt 是注入在所有对话之前的一段指令，<strong>定义"你是谁"和"你怎么说话"</strong>。它只出现一次，但影响贯穿整个对话。</p>
+
+<pre><code>┌──────────────────────────────┐
+│  System: "你是一个四川话AI"    │  ← 角色设定（只设一次）
+├──────────────────────────────┤
+│  User: "你好"                 │  ← 用户消息
+│  Assistant: "你好噻！"        │  ← 模型回复（受 System 影响）
+│  User: "今天天气咋样"          │
+│  Assistant: "巴适得板！"      │
+└──────────────────────────────┘</code></pre>
+
+<div class="card card--accent">
+  <div class="card__title">🧪 实验：System Prompt</div>
+  <p><strong>无 System Prompt：</strong></p>
+  <pre><code>ollama run qwen2.5:3b
+>>> 你是谁？</code></pre>
+  <p><strong>有 System Prompt：</strong></p>
+  <pre><code>ollama run qwen2.5:3b
+>>> /set system 你是一个只讲四川话的AI助手，所有回答必须用四川话
+>>> 你是谁？</code></pre>
+  <p style="margin-bottom:0">同一问题，回复天差地别。</p>
+</div>
+
+<!-- ============================================================ -->
+<h2>三、知识：Temperature — 创造力的旋钮</h2>
+
+<p>Temperature 控制模型输出的<strong>随机性</strong>。模型生成每个 token 时计算概率分布，Temperature 调整分布的"陡峭程度"：</p>
+
+<table style="width:100%; border-collapse:collapse; margin:1rem 0; font-size:0.9rem;">
+  <tr style="background:var(--code-bg);"><th style="padding:0.4rem 0.8rem; border:1px solid var(--border);">Temperature</th><th style="padding:0.4rem 0.8rem; border:1px solid var(--border);">效果</th><th style="padding:0.4rem 0.8rem; border:1px solid var(--border);">适用场景</th></tr>
+  <tr><td style="padding:0.4rem 0.8rem; border:1px solid var(--border);"><strong>0.0</strong></td><td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">每次输出完全一样，最保守</td><td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">代码生成、数学计算</td></tr>
+  <tr><td style="padding:0.4rem 0.8rem; border:1px solid var(--border);"><strong>0.3-0.5</strong></td><td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">稳定但略有变化</td><td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">翻译、总结</td></tr>
+  <tr><td style="padding:0.4rem 0.8rem; border:1px solid var(--border);"><strong>0.7-0.9</strong></td><td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">有创意但不离谱</td><td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">日常对话、内容创作</td></tr>
+  <tr><td style="padding:0.4rem 0.8rem; border:1px solid var(--border);"><strong>1.0+</strong></td><td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">天马行空，可能胡说</td><td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">创意写作、头脑风暴</td></tr>
+</table>
+
+<div class="card card--accent">
+  <div class="card__title">🧪 实验：Temperature</div>
+  <pre><code>ollama run qwen2.5:3b
+>>> /set parameter temperature 0.0
+>>> 给我 3 个 TypeScript 变量名，用来存用户信息
+  （记下结果）
+>>> /set parameter temperature 1.5
+>>> 给我 3 个 TypeScript 变量名，用来存用户信息
+  （对比 — 高温度下是不是更"放飞"了？）</code></pre>
+</div>
+
+<!-- ============================================================ -->
+<h2>四、动手：速度实测</h2>
+
+<div class="card card--accent">
+  <div class="card__title">📊 任务：对比两个模型的 tok/s</div>
+  <p>用同一个 Prompt，分别测试两个模型，记录 <code>eval rate</code>：</p>
+  <pre><code>ollama run qwen2.5:3b --verbose
+>>> 用 TypeScript 写一个冒泡排序函数，带类型定义
+
+ollama run hermes3:8b --verbose
+>>> 用 TypeScript 写一个冒泡排序函数，带类型定义</code></pre>
+  <p>每次回复后 <code>--verbose</code> 会打印：</p>
+  <pre><code>eval count:     256 token(s)     ← 生成了多少 token
+eval rate:      17.5 tokens/s   ← 每秒生成速度 ← 记这个！</code></pre>
+  <p style="margin-bottom:0">把你两个模型的 <strong>eval rate</strong> 记下来，这就是你的速度实测报告。</p>
+</div>
+
+<!-- ============================================================ -->
+<h2>五、命令速查</h2>
+
+<pre><code>ollama run &lt;model&gt; --verbose       # 对话 + 性能数据
+ollama run &lt;model&gt; "一句话"         # 单次对话（非交互）
+
+# 交互模式命令（>>> 提示符后）：
+/set system &lt;prompt&gt;               # 设置 System Prompt
+/set parameter temperature &lt;值&gt;    # 设置 Temperature（0.0-2.0）
+/show system                       # 查看当前 System Prompt
+/show parameters                   # 查看当前参数
+/bye                               # 退出</code></pre>
+
+<!-- ============================================================ -->
+<h2>六、自测</h2>
+
+<p>用纸笔回答，不看答案。</p>
+
+<ol>
+  <li>推理三阶段分别叫什么？哪个最耗时？</li>
+  <li>System Prompt 和 User Prompt 区别？</li>
+  <li>Temperature 0.0 和 1.5 输出差在哪？</li>
+  <li>代码生成为什么用低 Temperature？</li>
+  <li><code>eval rate</code> 衡量什么？单位是什么？</li>
+</ol>
+
+<details style="margin:1rem 0;">
+  <summary style="cursor:pointer; font-weight:700; color:var(--accent);">参考答案</summary>
+  <ol style="margin-top:0.5rem;">
+    <li><strong>Load</strong>（模型加载到内存，30-60s，只在冷启动时发生）、<strong>Prefill</strong>（理解 Prompt，< 1s，基本无感）、<strong>Decode</strong>（逐 token 生成回复，取决于输出长度）。Decode 最耗时，用户感知到的"一个字一个字蹦"就是 Decode 阶段，衡量指标是 eval rate（tok/s）。</li>
+    <li><strong>System Prompt</strong> 是"角色设定"，在所有对话之前注入，只设一次，定义"你是谁"和"你怎么说话"；<strong>User Prompt</strong> 是用户每次输入的具体问题，每次对话都有。System Prompt 的影响贯穿整个对话，所以同一句"你是谁？"在不同 System Prompt 下回复完全不同。</li>
+    <li>Temperature 控制模型输出时选择 token 的随机性。<strong>0.0</strong>：只选概率最高的 token，每次输出完全一样，适合代码生成和事实问答；<strong>1.5</strong>：概率分布接近均匀，几乎随机选 token，输出有天马行空的创意但也可能胡说八道，适合头脑风暴。</li>
+    <li>代码生成要求<strong>精确、可复现</strong>——同一个输入应该产生同一个输出。低 Temperature 确保模型每次都选最高概率的 token，不会"发挥创意"把语法写错或用不存在的 API。如果让 Temperature=1.5 的模型写代码，它可能"发明"一个不存在的函数名。</li>
+    <li><strong>eval rate</strong> 衡量模型在 Decode 阶段生成回复的速度，单位是 <strong>tokens/s</strong>（每秒生成多少 token）。这是最核心的速度指标——值越高，回复越快。通过 <code>--verbose</code> 参数可以看到每次推理的 eval rate，用来对比不同模型在你电脑上的实际表现。</li>
+  </ol>
+</details>
+
+<!-- ============================================================ -->
+<hr style="margin:2rem 0; border:none; border-top:1px solid var(--border);">
+
+<div class="card card--success">
+  <div class="card__title">✅ 本课完成</div>
+  <p style="margin-bottom:0.5rem"><strong>你学到了：</strong>推理三阶段（Load/Prefill/Decode）、System Prompt 角色设定、Temperature 控制随机性、<code>--verbose</code> 速度实测。</p>
+  <p style="margin-bottom:0; font-size:0.9rem; color:var(--text-secondary);">
+    🤔 <strong>有问题？</strong>直接问你的 AI 老师——任何不清楚的地方都可以追问。
+  </p>
+</div>
+
+<p style="color:var(--text-secondary); font-size:0.85rem;">
+  📅 第 2 周 Day 2 完成 · 下一步：Day 3 TS SDK 接入 + Streaming
+</p>
+
+</body>
+</html>
