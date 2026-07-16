@@ -29,9 +29,11 @@
 已完成：  第 1 周 ✅（5/5 天）
         第 2 周 Day 1 ✅（Ollama 安装 + 模型选型）
         第 2 周 Day 2 ✅（命令行对话 + System Prompt + Temperature + 速度实测）
+        第 2 周 Day 3 ✅（TS SDK 接入 + Streaming 流式响应）
+        第 2 周 Day 4 ✅（Prompt 工程 + 瘦身实验：Zero-shot/Few-shot/CoT）
         已安装模型：hermes3:8b (4.7GB)、qwen2.5:3b (1.9GB)
-下一步：  Day 3（TS SDK 接入 + Streaming 流式响应）
-待准备：  npm init + 安装 ollama-js，写第一个 TS 流式对话脚本
+下一步：  Day 5（复盘 + Demo 1：命令行聊天机器人）
+待准备：  整合本周所学，完成一个带对话历史 + 流式响应的终端聊天机器人
 ```
 
 ## 已确认的先验知识

@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第 9 课：Prompt 工程 + 瘦身实验</title>
+<link rel="stylesheet" href="../../assets/style.css">
+</head>
+<body>
+
+<h1>✍️ 第 9 课：Prompt 工程 + 瘦身实验</h1>
+
+<p><span class="tag tag--blue">动手</span> <span class="tag tag--green">第 2 周 Day 4</span> <span class="tag tag--amber">约 40 分钟</span></p>
+
+<blockquote>
+  <strong>本课目标：</strong>掌握 Zero-shot、Few-shot、Chain-of-Thought 三种 Prompt 策略的原理与适用场景，理解 Prompt 长度对推理速度的影响机制，学会在效果和速度之间做权衡。
+</blockquote>
+
+<p>
+  📖 <strong>课前阅读：</strong>
+  <a href="https://www.promptingguide.ai/zh" target="_blank">Prompt Engineering Guide（中文）</a> ·
+  <a href="https://arxiv.org/abs/2201.11903" target="_blank">Chain-of-Thought 论文 (Wei et al., 2022)</a>
+</p>
+<p>
+  📚 <strong>相关参考：</strong>
+  <a href="../../reference/glossary.html">术语表</a> ·
+  <a href="0008-ts-sdk-streaming.html">← 第 8 课（TS SDK + Streaming）</a> ·
+  <a href="0007-cli-chat-speed.html">第 7 课（速度实测）</a>
+</p>
+
+<!-- ============================================================ -->
+<h2>一、知识：Prompt 是什么？为什么需要"工程"？</h2>
+
+<h3>1.1 Prompt 的本质</h3>
+
+<p>LLM 的工作方式是<strong>自回归生成</strong>：给定一段文本（Prompt），模型预测下一个最可能出现的 token，然后把新 token 追加到文本末尾，再预测下一个……如此循环直到生成结束标记。</p>
+
+<p>这意味着：<strong>模型不是"理解你的意图"，它只是根据你给的文字做概率预测。</strong>你给的文字越模糊，模型预测的方向就越随机——它会在所有可能的"下一个 token"中选一个，而这个选择可能完全偏离你的期望。</p>
+
+<div class="card card--accent">
+  <div class="card__title">🔑 核心认知</div>
+  <p style="margin-bottom:0"><strong>Prompt 不是"提问"，而是"编程"。</strong>你用自然语言指定：角色（谁在说话）、任务（要做什么）、格式（输出长什么样）、约束（什么不能做）、例子（模仿什么风格）。这五个要素越精确，输出越可控。把 Prompt 当成对模型的"函数调用"——你传参数，它返回结果。</p>
+</div>
+
+<h3>1.2 为什么同样的模型，Prompt 不同，输出天差地别？</h3>
+
+<p>假设你写：<code>"写个排序"</code></p>
+
+<p>模型看到这 4 个字，它的训练数据里有无数种"排序"相关的文本：Python 的 <code>sort()</code>、JavaScript 的 <code>Array.sort</code>、冒泡排序的教程、快速排序的论文、甚至是"把文件按名称排序"的 shell 脚本。模型不知道你要哪一种，所以它<strong>随机选了一个概率最高的方向</strong>——可能输出 Python 代码、可能没有类型、可能不是冒泡排序。</p>
+
+<p>但如果你写：<code>"用 TypeScript 写一个冒泡排序函数，输入 number[]，返回排序后的数组。要求：① 带完整类型定义 ② 包含 JSDoc 注释"</code></p>
+
+<p>现在模型的搜索空间被大幅收窄了：语言是 TypeScript、算法是冒泡、输入输出明确、还要 JSDoc。模型几乎没有"猜"的空间——它只能沿着你指定的方向生成。</p>
+
+<p><strong>这就是 Prompt Engineering 的核心：用精确的自然语言约束模型的概率分布，让输出从"随机"变成"确定"。</strong></p>
+
+<table style="width:100%; border-collapse:collapse; margin:1rem 0; font-size:0.9rem;">
+  <tr style="background:var(--code-bg);"><th style="padding:0.4rem 0.8rem; border:1px solid var(--border);">差的 Prompt</th><th style="padding:0.4rem 0.8rem; border:1px solid var(--border);">好的 Prompt</th><th style="padding:0.4rem 0.8rem; border:1px solid var(--border);">差在哪里</th></tr>
+  <tr>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">写一个排序函数</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">用 TypeScript 写一个冒泡排序函数，输入是 number[]，返回排序后的数组。要求：① 带完整类型定义 ② 包含 JSDoc 注释 ③ 时间复杂度 O(n²)</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">缺语言、缺算法、缺类型、缺格式——模型有太多"猜"的空间</td>
+  </tr>
+  <tr>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">解释 RAG</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">你是一位 AI 架构师，请用 3 句话向一位前端工程师解释什么是 RAG（检索增强生成）。用类比说明，不要用数学公式。</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">缺角色、缺受众、缺长度限制、缺表达方式约束</td>
+  </tr>
+</table>
+
+<!-- ============================================================ -->
+<h2>二、知识：三种 Prompt 策略（本课核心技能）</h2>
+
+<h3>2.1 Zero-shot（零样本）</h3>
+
+<p><strong>定义：</strong>只给任务指令，不给任何例子。模型完全依赖预训练阶段学到的知识来完成。</p>
+
+<pre><code>用 TypeScript 写一个函数，解析 CSV 字符串并返回对象数组。</code></pre>
+
+<p><strong>为什么有效？</strong> 大模型在海量代码上预训练过，CSV 解析是一个极其常见的任务——GitHub 上有几十万个 CSV 解析函数的实现。模型在训练时已经内化了"CSV 解析 → TypeScript 函数"这个映射。所以即使不给例子，模型也能正确输出。</p>
+
+<p><strong>局限：</strong> 当任务超出模型的预训练分布时，Zero-shot 就会失败。比如你公司内部的 DSL、你自定义的工具格式、或者模型训练数据中很少出现的领域。这时模型没有可依赖的"记忆"，只能瞎猜。</p>
+
+<p><strong>适用场景：</strong> 通用编程任务（排序、解析、CRUD）、常见问答、文本摘要——任何模型预训练数据中大量出现的任务。</p>
+
+<h3>2.2 Few-shot（少样本）</h3>
+
+<p><strong>定义：</strong>在 Prompt 中提供 1-3 个"输入→输出"的例子，让模型通过模仿来完成新任务。</p>
+
+<pre><code>把自然语言转成 SQL 查询。
+
+输入："查出所有年龄大于 30 的用户"
+输出：SELECT * FROM users WHERE age > 30
+
+输入："统计每个部门的平均工资"
+输出：SELECT department, AVG(salary) FROM employees GROUP BY department
+
+输入："找出订单金额最高的前 5 个客户"
+输出：</code></pre>
+
+<p><strong>为什么有效？</strong> 这跟人类学习的方式很像——给你看两个例子，你就能推断出第三个该怎么写。背后的机制是 <strong>In-Context Learning（上下文学习）</strong>：模型在预训练时见过无数"模式→实例"的文本结构（比如教科书里的"例题→习题"），所以当它看到两个例子后，注意力机制会自动捕捉输入输出的映射规律，然后应用到第三个上。</p>
+
+<p><strong>为什么比文字描述更可靠？</strong> 文字描述是"间接"的——你说"输出 SQL 语句"，模型需要先理解"SQL 语句"是什么，再决定怎么生成。但例子是"直接"的——模型看到的就是你要的格式本身，不需要中间翻译步骤。实验表明，<strong>Few-shot 在格式控制任务上的准确率通常比 Zero-shot 高 20-40%</strong>。</p>
+
+<p><strong>适用场景：</strong> 格式转换（NL→SQL、JSON 转换）、风格模仿（"用鲁迅的文风写……"）、领域特定任务（公司内部 DSL 解析）。</p>
+
+<h3>2.3 Chain-of-Thought / CoT（思维链）</h3>
+
+<p><strong>定义：</strong>要求模型在给出最终答案之前，先写出详细的推理步骤。</p>
+
+<pre><code>你是一位数学老师。请一步步推理以下问题，先写出解题步骤，再给出最终答案。
+在每一步中，说明你用了什么方法、为什么这样做。
+
+问题：一个长方形的长是宽的 2 倍，周长是 36 厘米。求长和宽各是多少？</code></pre>
+
+<p><strong>为什么有效？这是本课最重要的原理。</strong></p>
+
+<p>模型生成 token 是<strong>自回归</strong>的——每个新 token 都基于之前所有 token 来计算。如果模型直接跳到答案，它只有一次机会猜对。但如果它先生成：</p>
+
+<pre><code>设宽为 x，则长为 2x
+周长 = 2 × (长 + 宽) = 2 × (2x + x) = 6x
+已知周长 = 36，所以 6x = 36
+因此 x = 6，长为 12</code></pre>
+
+<p>这些中间 token <strong>约束了后续 token 的生成方向</strong>。模型在生成"12"的时候，上下文里已经有"6x = 36"和"x = 6"——它不可能再输出"13"或"10"，因为概率分布已经被前面的推理步骤锁死了。</p>
+
+<p><strong>本质：CoT 是一种"用更多计算量换取更高准确率"的策略。</strong>模型生成更多 token（推理步骤），但这些 token 大幅降低了后续关键 token（最终答案）的出错概率。Wei et al. (2022) 的论文显示，在 GSM8K 数学推理数据集上，CoT 将准确率从 ~18% 提升到 ~58%。</p>
+
+<p><strong>适用场景：</strong> 数学计算、逻辑推理、代码调试、多步规划、需要可解释性的决策。</p>
+
+<p><strong>不适合的场景：</strong> 简单事实问答（CoT 只会浪费 token）、创意写作（CoT 会破坏流畅性）、实时对话（TTFT 和总耗时都显著增加）。</p>
+
+<div class="card card--accent">
+  <div class="card__title">📊 三种策略对比总结</div>
+  <table style="width:100%; border-collapse:collapse; margin:1rem 0 0 0; font-size:0.9rem;">
+    <tr style="background:var(--code-bg);">
+      <th style="padding:0.4rem 0.8rem; border:1px solid var(--border);">策略</th>
+      <th style="padding:0.4rem 0.8rem; border:1px solid var(--border);">机制</th>
+      <th style="padding:0.4rem 0.8rem; border:1px solid var(--border);">Prompt 长度</th>
+      <th style="padding:0.4rem 0.8rem; border:1px solid var(--border);">TTFT</th>
+      <th style="padding:0.4rem 0.8rem; border:1px solid var(--border);">适用场景</th>
+    </tr>
+    <tr>
+      <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">Zero-shot</td>
+      <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">依赖预训练知识</td>
+      <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">短</td>
+      <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">✅ 最快</td>
+      <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">通用任务、模型已掌握的知识</td>
+    </tr>
+    <tr>
+      <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">Few-shot</td>
+      <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">上下文学习（In-Context Learning）</td>
+      <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">中</td>
+      <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">⚠️ 中等</td>
+      <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">格式控制、风格模仿、领域特定任务</td>
+    </tr>
+    <tr>
+      <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">CoT</td>
+      <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">自回归约束（中间 token 锁定答案方向）</td>
+      <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">长</td>
+      <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">🐢 最慢</td>
+      <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">复杂推理、数学、逻辑、多步规划</td>
+    </tr>
+  </table>
+</div>
+
+<!-- ============================================================ -->
+<h2>三、知识：Prompt 长度如何影响速度？（瘦身实验的理论基础）</h2>
+
+<h3>3.1 回顾：推理的两阶段</h3>
+
+<pre><code>┌────────────── Prefill 阶段 ──────────────┐  ┌───────── Decode 阶段 ─────────┐
+│ 模型"阅读"Prompt 中的每一个 token          │→│ 逐 token 生成回复               │
+│ 计算所有 token 两两之间的注意力关系         │  │ 每个新 token 只看之前的所有 token │
+│                                             │  │                                 │
+│ 耗时 ∝ Prompt 的 token 数 × 模型层数       │  │ 耗时 ∝ 输出 token 数 × 模型层数  │
+│ （每个 token 要过每一层 Transformer）       │  │ （每个新 token 要过每一层）       │
+└────────────────────────────────────────────┘  └────────────────────────────────┘</code></pre>
+
+<p><strong>关键结论：Prompt 越长 → Prefill 越久 → TTFT 越大。</strong>这是线性关系——Prompt 的 token 数翻倍，Prefill 时间大致翻倍（忽略 GPU 的并行加速效应）。</p>
+
+<h3>3.2 为什么是"瘦身"而不是"砍掉"？</h3>
+
+<p>太短的 Prompt 会带来一个隐藏成本：<strong>多轮纠正</strong>。</p>
+
+<p>假设你写了一个极简 Prompt：<code>"写个排序"</code>。TTFT 确实很快（比如 200ms），但模型输出的是 Python 版。你又说"我要 TypeScript"。模型再输出，这次没带类型。你又说"加类型定义"。来回三轮，总时间可能远超一个完整 Prompt 的一轮调用。</p>
+
+<div class="card card--warn">
+  <div class="card__title">⚠️ 瘦身的正确理解</div>
+  <p style="margin-bottom:0"><strong>瘦身 ≠ 尽量短。</strong>瘦身 = 去掉废话，保留所有必要信息。一个"刚好够用"的 Prompt 包含：角色（可选）、任务（必须）、格式约束（必须）、边界条件（按需）。去掉的是"请你帮我……""麻烦你……"这类礼貌用语，以及 Zero-shot 已经够用时多余的 Few-shot 例子。</p>
+</div>
+
+<h3>3.3 瘦身技巧</h3>
+
+<ul>
+  <li><strong>删礼貌用语</strong>：<code>"请你帮我写一个……"</code> → <code>"写一个……"</code>。模型不需要礼貌，它只需要清晰。</li>
+  <li><strong>合并角色和任务</strong>：<code>"你是一个前端专家。请写一个……"</code> → <code>"作为前端专家，写一个……"</code></li>
+  <li><strong>用符号代替自然语言</strong>：<code>输出格式：JSON</code> 比 <code>"请以 JSON 格式输出结果"</code> 短 40%。</li>
+  <li><strong>按需升级策略</strong>：先用 Zero-shot 测试，效果不够再升级到 Few-shot，还不够再用 CoT。不要一上来就用最重的策略。</li>
+  <li><strong>去掉冗余例子</strong>：Few-shot 一般 1-3 个例子就够了。5 个例子不会比 3 个显著更好，但 Prompt 长了 60%。</li>
+</ul>
+
+<!-- ============================================================ -->
+<h2>四、技能：3 种 Prompt 对比实验</h2>
+
+<div class="card card--accent">
+  <div class="card__title">📦 Step 1：确认实验脚本</div>
+  <p>脚本已创建在 <code>demo/week-02/prompt-lab.ts</code>。它会用同一个任务（写 CSV 解析函数），分别用 Zero-shot、Few-shot、CoT 各跑一次，输出 TTFT、总耗时、输出长度的对比表。</p>
+</div>
+
+<div class="card card--accent" style="margin-top:1rem;">
+  <div class="card__title">▶️ Step 2：运行实验</div>
+  <pre><code>cd demo/week-02
+npx tsx prompt-lab.ts</code></pre>
+  <p>运行过程中注意观察：<strong>哪个策略先开始输出第一个字？</strong>（TTFT 的直观感受）<strong>哪个策略输出的代码质量最好？</strong>（人工判断）</p>
+</div>
+
+<div class="card card--accent" style="margin-top:1rem;">
+  <div class="card__title">🧪 Step 3：自己设计实验</div>
+  <p>修改 <code>prompt-lab.ts</code> 中的 <code>TASK</code> 变量，换成你感兴趣的任务，再跑一次。建议尝试：</p>
+  <ul>
+    <li><strong>格式转换任务</strong>：<code>"把以下 JSON 转成 TypeScript interface"</code>——预期 Few-shot 效果最好</li>
+    <li><strong>推理任务</strong>：<code>"一个水池，进水管 3 小时注满，出水管 5 小时放空，两管同开多久注满？"</code>——预期 CoT 效果最好</li>
+    <li><strong>简单任务</strong>：<code>"写一个 hello world 的 React 组件"</code>——预期三种策略效果差不多，但 Zero-shot 最快</li>
+  </ul>
+  <p>记录每次实验的 TTFT 和输出质量，验证"按需升级"原则是否成立。</p>
+</div>
+
+<!-- ============================================================ -->
+<h2>五、自测</h2>
+
+<p>先自己回答，再对照答案。答案要理解"为什么"，不只是"是什么"。</p>
+
+<ol>
+  <li>Zero-shot、Few-shot、CoT 三种策略的核心机制分别是什么？各适合什么场景？</li>
+  <li>为什么 Prompt 越长，TTFT 越大？从 Transformer 的 Prefill 阶段解释原因。</li>
+  <li>Prompt "瘦身"的目标是什么？为什么"尽量短"不是正确的策略？</li>
+  <li>如果 Zero-shot 的效果已经满足需求，还需要用 Few-shot 或 CoT 吗？为什么？</li>
+  <li>在 Agent 开发中，什么时候应该用 CoT？什么时候用 CoT 反而是错误的？</li>
+</ol>
+
+<details style="margin:1rem 0;">
+  <summary style="cursor:pointer; font-weight:700; color:var(--accent);">📝 参考答案</summary>
+
+  <div style="margin-top:1rem;">
+
+  <h4>第 1 题：三种策略的核心机制和适用场景</h4>
+
+  <p><strong>Zero-shot（零样本）</strong></p>
+  <p><strong>核心机制：</strong>完全依赖模型的预训练知识。模型在预训练阶段（在海量文本上做"下一个 token 预测"）已经内化了大量常见任务的模式。当你给一个通用任务指令时，模型不需要额外信息——它训练数据里已经有足够多的相关样本，注意力机制能自动匹配到正确的输出模式。</p>
+  <p><strong>为什么有效：</strong>大模型的预训练数据覆盖了 GitHub、StackOverflow、Wikipedia 等——CSV 解析、冒泡排序、JSON 转换这些任务在训练数据中出现了成千上万次。模型的参数已经"记住"了这些映射关系。</p>
+  <p><strong>为什么有时失败：</strong>当任务超出预训练分布时（比如你公司内部的自定义 DSL、或者模型训练数据中极少出现的冷门领域），模型没有可依赖的"记忆"，只能根据表面相似性猜测——结果往往不对。</p>
+  <p><strong>适用场景：</strong>通用编程任务、常见问答、文本摘要、翻译——任何在预训练数据中大量出现的任务。</p>
+
+  <p><strong>Few-shot（少样本）</strong></p>
+  <p><strong>核心机制：</strong>In-Context Learning（上下文学习）。模型在预训练时见过无数"模式→实例"的文本结构（教科书里的例题→习题、API 文档里的示例→说明），所以当它在 Prompt 中看到 2-3 个输入→输出对时，注意力机制会<strong>自动捕捉映射规律</strong>，然后应用到新输入上。这个过程不需要更新模型参数——完全靠 Prompt 中的上下文模式来引导生成。</p>
+  <p><strong>为什么比 Zero-shot 更可靠：</strong>Zero-shot 靠的是"模型记得什么"，Few-shot 靠的是"模型看到了什么"。前者受限于训练数据的覆盖度，后者是实时推理出的模式。对于格式控制类任务，Few-shot 通常比 Zero-shot 准确率高 20-40%。</p>
+  <p><strong>为什么 1-3 个例子就够了：</strong>模型在预训练中已经学会了"模式归纳"的能力——它不需要大量样本就能从少数例子中提取规律。超过 3 个例子的边际收益急剧下降，但 Prompt 长度线性增长，TTFT 也随之增加。</p>
+  <p><strong>适用场景：</strong>格式转换（NL→SQL、JSON 重构）、风格模仿、领域特定任务（公司内部 DSL）、任何对输出格式有严格要求的场景。</p>
+
+  <p><strong>Chain-of-Thought / CoT（思维链）</strong></p>
+  <p><strong>核心机制：</strong>自回归约束。模型是逐个 token 生成的，每个新 token 的生成都依赖于之前生成的所有 token。如果模型直接跳到答案（比如直接输出"12"），它只有一次机会猜对。但如果它先生成推理步骤（"设宽为 x，则 2(x+2x)=36，6x=36，x=6，所以长为 12"），这些中间 token 会<strong>改变后续 token 的概率分布</strong>——在"6x=36"和"x=6"的上下文中，模型几乎不可能输出"13"。推理步骤越多，最终答案的确定性越高。</p>
+  <p><strong>为什么能大幅提升准确率：</strong>Wei et al. (2022) 的实验表明，在 GSM8K 数学推理数据集上，CoT 将准确率从 ~18% 提升到 ~58%。这不是因为模型"变聪明了"，而是因为推理步骤把"一次猜对答案"变成了"每一步都确定性地推下一步"——每一步都只需要做简单运算，而非复杂推理。</p>
+  <p><strong>本质：</strong>CoT 是一种"用计算量换准确率"的策略。模型生成更多 token（推理步骤），但这些 token 大幅降低了关键 token（最终答案）的出错概率。对于 Agent 来说，这意味着更少的重试和纠正轮次。</p>
+  <p><strong>适用场景：</strong>数学计算、逻辑推理、代码调试、多步规划、需要可解释性的决策。</p>
+  <p><strong>核心区别总结：</strong>Zero-shot 靠模型已有知识，Few-shot 靠上下文例子引导格式，CoT 靠推理步骤锁定答案方向。</p>
+
+  <h4>第 2 题：为什么 Prompt 越长，TTFT 越大？</h4>
+
+  <p>要理解这个问题，需要先理解 Transformer 的 <strong>Prefill 阶段</strong>做了什么。</p>
+
+  <p>当你发送 Prompt 给模型时，模型需要：</p>
+  <ol>
+    <li><strong>Tokenization</strong>：把 Prompt 文本切成 N 个 token。</li>
+    <li><strong>Embedding</strong>：每个 token 映射为一个高维向量（比如 4096 维）。</li>
+    <li><strong>Self-Attention 计算</strong>：对于 N 个 token，计算每对 token 之间的注意力分数。这个计算量是 <strong>O(N²)</strong>——N 个 token 需要计算 N×N 个注意力权重。</li>
+    <li><strong>逐层前向传播</strong>：每个 token 的向量要经过 L 层 Transformer（qwen2.5:3b 大约有 36 层），每层都做一次 Self-Attention + Feed-Forward。</li>
+  </ol>
+
+  <p><strong>总计算量 ≈ N² × L × d（d 是向量维度）。</strong>所以 Prompt 的 token 数 N 翻倍，计算量大致翻 4 倍（因为 N² 项）。</p>
+
+  <p>但 GPU 有并行能力——所有 token 的 Self-Attention 可以同时计算。所以实际耗时增长<strong>接近线性</strong>（N 翻倍，耗时约翻倍），而不是平方级。不过无论如何，Prompt 越长，模型要处理的矩阵越大，TTFT 一定越大。</p>
+
+  <p><strong>与 Decode 阶段的对比：</strong>Decode 阶段每次只生成 1 个新 token，计算量是 O(N)——只需计算新 token 与已有 token 的注意力。所以 Decode 阶段的每个 token 耗时是固定的（约几毫秒到几十毫秒），而 Prefill 阶段是一次性处理整个 Prompt 的所有 token。</p>
+
+  <p><strong>实际影响：</strong>一个 50 token 的 Zero-shot Prompt，Prefill 可能只需 100ms。一个 200 token 的 CoT Prompt，Prefill 可能需要 400ms。用户感知上，就是"等了 4 倍的时间才看到第一个字"。在产品设计中，这对用户体验是显著的差异。</p>
+
+  <h4>第 3 题：Prompt "瘦身"的目标和正确策略</h4>
+
+  <p><strong>目标：</strong>在不牺牲输出质量的前提下，最小化 Prompt 长度，从而降低 TTFT 和 Prefill 计算量。</p>
+
+  <p><strong>为什么"尽量短"不是正确的策略？</strong></p>
+
+  <p>如果把 Prompt 砍到极致短——比如"写个排序"——模型输出的质量可能很差（语言不对、没有类型、算法不对）。你需要再发一轮纠正："要 TypeScript"。模型再输出，你又纠正："加类型"。来回三轮，总耗时可能是：</p>
+
+  <pre><code>极简策略：TTFT 200ms × 3 轮 + 每轮生成时间 2000ms × 3 = 6600ms
+完整策略：TTFT 400ms × 1 轮 + 生成时间 2000ms × 1 = 2400ms</code></pre>
+
+  <p><strong>极简策略反而更慢。</strong>这就是"瘦身"和"砍掉"的区别。</p>
+
+  <p><strong>正确的瘦身策略：</strong></p>
+  <ul>
+    <li><strong>保留必要信息</strong>：任务描述（做什么）、格式约束（输出长什么样）、边界条件（什么不能做）。这三样一个都不能少。</li>
+    <li><strong>去掉废话</strong>：礼貌用语（"请""麻烦"）、冗余描述（"你是一个很有经验的……"）、不影响输出的修饰语。</li>
+    <li><strong>按需升级</strong>：先用 Zero-shot 测试。如果输出质量已经满足需求，就不需要加 Few-shot 例子或 CoT 指令。只有在 Zero-shot 不够好时，才升级策略。</li>
+    <li><strong>用符号代替自然语言</strong>：<code>输出格式：JSON</code> 比 <code>"请以 JSON 格式输出结果"</code> 短 40%，但传达了相同的信息。</li>
+  </ul>
+
+  <p><strong>判断标准：</strong>一个"刚好够用"的 Prompt 是——如果再删掉任何一个词，输出质量就会明显下降。这个临界点就是最优长度。</p>
+
+  <h4>第 4 题：如果 Zero-shot 效果已经满足需求，还需要用 Few-shot 或 CoT 吗？</h4>
+
+  <p><strong>不需要，而且不应该用。</strong></p>
+
+  <p><strong>原因 1：边际收益为零。</strong>如果你已经拿到了满意的输出，加 Few-shot 例子或 CoT 指令不会让输出变得"更好"——它已经满足需求了。但 Prompt 变长了，TTFT 变慢了，用户体验变差了。这是纯损失。</p>
+
+  <p><strong>原因 2：过度约束可能适得其反。</strong>Few-shot 例子会限制模型的输出格式。如果你给的例子不够通用，模型可能会过度模仿例子中的特定模式，导致在其他合法输入上表现变差。这叫做 <strong>Over-specification</strong>——Prompt 约束太死，模型的泛化能力被抑制了。</p>
+
+  <p><strong>原因 3：浪费 token 预算。</strong>每个 LLM 都有 Context Window 限制（qwen2.5:3b 是 32768 tokens）。Prompt 中的每个 token 都在消耗这个预算。在 Agent 场景中，Context Window 还要放对话历史、工具调用结果、检索到的文档——Prompt 越短，留给这些有用信息的空间就越多。</p>
+
+  <p><strong>正确的策略（"按需升级"原则）：</strong></p>
+  <ol>
+    <li><strong>第一步</strong>：用 Zero-shot 测试。如果输出质量满足需求 → 停止，这就是最优 Prompt。</li>
+    <li><strong>第二步</strong>：如果 Zero-shot 输出格式不对 → 升级到 Few-shot（加 1-2 个例子）。</li>
+    <li><strong>第三步</strong>：如果 Few-shot 的推理逻辑有问题（比如数学题算错）→ 升级到 CoT。</li>
+  </ol>
+  <p>每一步只在前一步不够好时才升级。不要一上来就用最重的策略——这是 Prompt Engineering 最重要的工程原则。</p>
+
+  <h4>第 5 题：Agent 开发中什么时候应该用 CoT？什么时候不应该？</h4>
+
+  <p><strong>应该用 CoT 的场景：</strong></p>
+
+  <ol>
+    <li><strong>多步推理任务</strong>——数学计算、逻辑推理、代码调试。这些任务的核心挑战不是"知道答案"，而是"从已知条件推导出答案"。CoT 把推理过程显式化，每一步都基于前一步的确定性结果，大幅降低出错概率。</li>
+    <li><strong>Agent 规划和任务分解</strong>——用户说"帮我做旅行计划"，Agent 需要分解为：查天气 → 查航班 → 比价 → 排行程。CoT 让 Agent 先写出计划，再逐步执行，避免"想到哪做到哪"的混乱。</li>
+    <li><strong>需要可解释性的决策</strong>——比如金融风控 Agent 拒绝了一笔交易，用户问"为什么？"。如果 Agent 用了 CoT，它的推理过程本身就是解释。没有 CoT，你只能得到一个"是/否"的答案，不知道为什么。</li>
+    <li><strong>工具调用链</strong>——当一个任务需要调用多个工具，且工具之间有依赖关系时（先查天气，再根据天气决定是否查航班），CoT 可以帮助模型理清调用顺序和条件分支。</li>
+  </ol>
+
+  <p><strong>不应该用 CoT 的场景：</strong></p>
+
+  <ol>
+    <li><strong>简单事实性问答</strong>——"今天天气怎么样""React 的 useState 怎么用"。这些问题的答案不需要推理，模型可以直接从训练知识中提取。加 CoT 只会让模型先"思考"一段废话，再给出同样的答案，白白浪费时间和 token。</li>
+    <li><strong>创意生成任务</strong>——"写一首诗""写一个故事开头"。创意的核心是跳跃性思维和意外性，CoT 的"一步步推理"会破坏这种流畅性。你不需要模型先"分析诗歌的韵律结构"再写诗——你只需要它写。</li>
+    <li><strong>实时对话场景</strong>——用户期望秒级响应。CoT 会显著增加 TTFT（Prompt 更长）和总耗时（生成更多 token）。在聊天应用中，用户宁愿接受一个"还不错"的即时回答，也不愿等 5 秒得到一个"完美"的回答。</li>
+    <li><strong>模型已经足够确定的任务</strong>——如果 Zero-shot 或 Few-shot 已经能稳定给出正确答案，加 CoT 就是过度设计。比如"把这段 TypeScript 代码改成 async/await 风格"——模型对这个任务非常熟悉，不需要推理步骤。</li>
+  </ol>
+
+  <p><strong>判断标准：</strong>问自己一个问题——"这个任务的核心挑战是'知道答案'还是'推导答案'？"如果是前者，不需要 CoT。如果是后者，CoT 是必要的。</p>
+
+  </div>
+</details>
+
+<!-- ============================================================ -->
+<hr style="margin:2rem 0; border:none; border-top:1px solid var(--border);">
+
+<div class="card card--success">
+  <div class="card__title">✅ 本课完成</div>
+  <p style="margin-bottom:0.5rem"><strong>你学到了：</strong></p>
+  <ul style="margin-top:0.3rem; margin-bottom:0.5rem; padding-left:1.2rem;">
+    <li>Prompt 的本质是用自然语言约束模型的概率分布</li>
+    <li>Zero-shot（依赖预训练知识）vs Few-shot（In-Context Learning）vs CoT（自回归约束）的机制差异</li>
+    <li>Prompt 长度 → Prefill O(N²) → TTFT 的因果关系</li>
+    <li>"瘦身"的正确含义：去掉废话，保留必要信息，按需升级策略</li>
+    <li>通过对比实验，亲自验证不同策略在你的机器上的实际速度差异</li>
+  </ul>
+  <p style="margin-bottom:0; font-size:0.9rem; color:var(--text-secondary);">
+    🤔 <strong>有问题？</strong>直接问你的 AI 老师——任何不清楚的地方都可以追问。比如"为什么 Few-shot 比 Zero-shot 好但你不能每次都加例子？""CoT 在 Agent 工具调用中具体怎么用？"
+  </p>
+</div>
+
+<p style="color:var(--text-secondary); font-size:0.85rem;">
+  📅 第 2 周 Day 4 完成 · 下一步：<a href="0010-week2-review.html">Day 5 复盘 + Demo 1 命令行聊天机器人</a>
+</p>
+
+</body>
+</html>
