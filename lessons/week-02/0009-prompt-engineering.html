@@ -352,6 +352,135 @@ npx tsx prompt-lab.ts</code></pre>
 </details>
 
 <!-- ============================================================ -->
+<h2>六、追问解答：你可能想问的两个"为什么"</h2>
+
+<h3>6.1 为什么 Few-shot 比 Zero-shot 好，但你不能每次都加例子？</h3>
+
+<p>核心矛盾是 <strong>Prompt 长度 vs 效果</strong> 的 trade-off。Few-shot 确实能提升准确率，但每次加例子都在付出隐性成本：</p>
+
+<h4>成本 1：Self-Attention 是 O(N²) 的</h4>
+
+<p>Prompt 每增加一倍，Prefill 阶段的矩阵计算量翻<strong>四倍</strong>（N 个 token 需要计算 N×N 个注意力权重）。3 个 Few-shot 例子可能让 Prompt 从 200 token 涨到 800 token，TTFT 从 0.5s 涨到 2s+。在聊天应用中，用户从"秒回"变成了"等一等"——体验差距明显。</p>
+
+<h4>成本 2：Context Window 是有限资源</h4>
+
+<p>每个 LLM 都有最大上下文长度限制（qwen2.5:3b 是 32768 tokens）。在 Agent 场景中，这个窗口里还要塞：</p>
+
+<ul>
+  <li><strong>System Prompt</strong>（角色设定 + 行为规则）</li>
+  <li><strong>工具定义</strong>（每个工具的 name、description、parameters schema）</li>
+  <li><strong>对话历史</strong>（多轮对话越积越多）</li>
+  <li><strong>工具调用结果</strong>（一次 RAG 检索可能返回几千 token）</li>
+  <li><strong>你的任务指令</strong></li>
+</ul>
+
+<p>你在 Few-shot 例子上多花 600 token，就少了 600 token 给检索结果——可能恰恰是关键的上下文被截断了。</p>
+
+<h4>成本 3：边际效应递减</h4>
+
+<p>实验表明，Few-shot 的收益是<strong>对数增长</strong>的：第 1 个例子收益最大（可能提升 20-30% 准确率），第 2 个例子还有增量（+5-10%），第 3 个例子几乎没区别（+1-2%），第 5 个例子可能带来负效果（模型过度模仿例子中的特定模式，泛化能力下降）。但 token 成本是<strong>线性增长</strong>的——每个例子花一样多的 token。</p>
+
+<div class="card card--warn">
+  <div class="card__title">🎯 判断标准</div>
+  <p style="margin-bottom:0"><strong>问自己："模型的困难是'不知道格式'还是'不知道答案'？"</strong></p>
+  <ul style="margin-bottom:0">
+    <li><strong>格式问题</strong> → 用 Few-shot（1-2 个例子就够）。因为模型已经知道答案，只是不知道你想要什么格式。</li>
+    <li><strong>知识问题</strong> → 用 Zero-shot + 清晰指令。因为 Few-shot 无法教会模型它不知道的知识，加例子只是在浪费 token。</li>
+    <li><strong>推理问题</strong> → 用 CoT，而不是加更多 Few-shot 例子。因为问题的难点不是格式，而是"怎么推导出答案"。</li>
+  </ul>
+</div>
+
+<h3>6.2 CoT 在 Agent 工具调用中具体怎么用？</h3>
+
+<p>CoT 在 Agent 场景下的用法和纯文本场景<strong>完全不同</strong>。在纯文本场景中，CoT 是让模型"先写出推理步骤，再给出答案"。但在 Agent 中，CoT 的作用是<strong>"先推理该调哪个工具，再调"</strong>。</p>
+
+<h4>用法 1：ReAct 循环中的 Thought 步骤本身就是 CoT</h4>
+
+<p>在 ReAct（Reasoning + Acting）模式中，Agent 的每一步都包含三个部分：</p>
+
+<pre><code>Thought: 我需要先知道用户所在城市的天气，才能推荐穿什么衣服。
+         所以我应该先调用 get_weather 工具。
+Action:  get_weather(city="北京")
+Observation: 北京今天晴，22°C，微风
+
+Thought: 天气晴朗，温度适中。不需要雨伞，建议穿薄外套。
+         我现在可以给出最终建议了。
+Action:  Finish(answer="北京今天晴，22°C，建议穿薄外套出门。")</code></pre>
+
+<p>这里的 <strong>Thought</strong> 就是 CoT 在 Agent 场景下的具体形态——模型不是直接调工具，而是先推理"我需要什么信息""哪个工具能提供这个信息""调完工具后怎么用结果"。每一步 Thought 都在约束下一步 Action 的方向。</p>
+
+<h4>用法 2：隐藏 CoT——推理过程不展示给用户</h4>
+
+<p>在面向用户的 Agent 产品中，Thought 步骤通常<strong>不展示给用户</strong>。用户只看到：</p>
+
+<pre><code>用户："明天穿什么？"
+Agent："北京明天晴，22°C，建议穿薄外套出门。"</code></pre>
+
+<p>但背后模型的推理过程是完整的 CoT——它先思考"需要查天气→调用 get_weather→分析结果→给出建议"。这种设计保留了 CoT 的推理质量，又避免了"思考过程"干扰用户体验。</p>
+
+<h4>用法 3：CoT 指导多工具调用链</h4>
+
+<p>当一个任务需要调用多个工具，且工具之间有依赖关系时，CoT 帮助模型理清调用顺序：</p>
+
+<pre><code>用户："帮我查一下北京到上海的机票，挑最便宜的，然后发邮件给我确认"
+
+Thought: 这个任务分三步：
+  1. 先查机票（需要出发地、目的地、日期——用户没给日期，默认明天）
+  2. 从结果中找最便宜的
+  3. 发邮件（需要用户邮箱——我得先问或者从用户资料中查）
+
+  先执行第 1 步。
+Action: search_flights(from="北京", to="上海", date="2026-07-18")</code></pre>
+
+<p>没有 CoT，模型可能直接跳到"发邮件"而忘了先查机票，或者查了机票但忘了筛选最便宜的。</p>
+
+<h4>⚠️ CoT + Tool-use 的坑</h4>
+
+<div class="card card--warn">
+  <div class="card__title">三个常见陷阱</div>
+  <ol style="margin-bottom:0">
+    <li><strong>Thought 太冗长 → 吃掉 Context Window</strong>：如果每次 Thought 都写 200 token，10 轮对话就消耗了 2000 token 的上下文——留给工具调用结果和对话历史的空间就少了。解决方案：限制 Thought 的长度（"用一句话描述你的推理"）。</li>
+    <li><strong>Thought 和 Action 不一致</strong>：模型在 Thought 中说"我需要查天气"，但 Action 却调了 search_flights。这是因为模型在生成 Thought 和 Action 之间没有强约束。解决方案：在 System Prompt 中明确要求"Action 必须与 Thought 一致"。</li>
+    <li><strong>对简单任务用 CoT 是负优化</strong>：如果用户说"现在几点了"，模型不需要推理——直接调 get_time 就行。加了 CoT 指令后，模型会先生成"我需要知道当前时间，所以调用 get_time 工具"——这段思考对最终结果没有帮助，但多花了 50 token 和 200ms 延迟。</li>
+  </ol>
+</div>
+
+<h4>🎯 判断标准：Agent 中什么时候用 CoT？</h4>
+
+<table style="width:100%; border-collapse:collapse; margin:1rem 0; font-size:0.9rem;">
+  <tr style="background:var(--code-bg);">
+    <th style="padding:0.4rem 0.8rem; border:1px solid var(--border);">场景</th>
+    <th style="padding:0.4rem 0.8rem; border:1px solid var(--border);">需要 CoT？</th>
+    <th style="padding:0.4rem 0.8rem; border:1px solid var(--border);">原因</th>
+  </tr>
+  <tr>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">单工具调用，参数明确</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">❌ 不需要</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">"查天气"不需要推理，直接调就行</td>
+  </tr>
+  <tr>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">多工具调用，有依赖关系</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">✅ 需要</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">需要推理"先调哪个，结果怎么传给下一个"</td>
+  </tr>
+  <tr>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">工具选择不明确</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">✅ 需要</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">用户说"帮我规划旅行"，模型需要在 10+ 个工具中选——CoT 帮助筛选</td>
+  </tr>
+  <tr>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">简单事实查询</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">❌ 不需要</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">"现在几点"——CoT 只会浪费 token 和延迟</td>
+  </tr>
+  <tr>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">需要可解释性（如风控决策）</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">✅ 需要</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">用户需要知道"为什么拒绝这笔交易"——Thought 本身就是解释</td>
+  </tr>
+</table>
+
+<!-- ============================================================ -->
 <hr style="margin:2rem 0; border:none; border-top:1px solid var(--border);">
 
 <div class="card card--success">

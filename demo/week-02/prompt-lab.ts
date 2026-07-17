@@ -5,9 +5,24 @@ const MODEL = 'qwen2.5:3b';
 // 同一个任务，三种 Prompt
 const TASK = '用 TypeScript 写一个函数，输入 CSV 字符串，返回解析后的对象数组';
 
+/**
+ * 💡 实验设计思路：
+ * 同一个任务用三种策略各跑一次，对比 TTFT（首 token 延迟）和总耗时。
+ * 记住：TTFT 主要取决于 Prompt 长度（Prefill O(N²)），
+ * 总耗时 = Prefill + Decode，Decode 取决于输出长度。
+ *
+ * 关键观察点：
+ * - Zero-shot：Prompt 最短 → TTFT 最快，但输出质量可能不稳定
+ * - Few-shot：Prompt 中等 → TTFT 中等，输出格式最可控（In-Context Learning）
+ * - CoT：Prompt 最长 → TTFT 最慢，但复杂推理准确率最高（自回归约束）
+ *
+ * 🎯 按需升级原则：先试 Zero-shot，不够再加 Few-shot，还不够才用 CoT。
+ */
 const prompts: Record<string, string> = {
   zeroShot: TASK,
 
+  // Few-shot：给 1-2 个输入→输出例子，让模型通过 In-Context Learning 模仿格式
+  // 注意：1-2 个例子就够了，第 3 个例子的边际收益几乎为零，但 token 成本线性增长
   fewShot: `${TASK}
 
 示例输入：
@@ -21,6 +36,9 @@ const prompts: Record<string, string> = {
 
 请按以上格式输出。`,
 
+  // CoT：要求模型先写出推理步骤，再给出答案
+  // 本质：中间 token 约束后续 token 的概率分布 → 降低最终答案的出错概率
+  // 代价：Prompt 更长 → Prefill 更久 → TTFT 更大
   cot: `${TASK}
 
 请按以下步骤思考：
