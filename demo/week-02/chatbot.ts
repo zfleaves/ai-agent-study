@@ -134,7 +134,7 @@ function showSpeed(): void {
     return;
   }
 
-  const last = stats[stats.length - 1];
+  const last = stats[stats.length - 1]!;
   const avgTTFT = stats.reduce((s, r) => s + r.ttft, 0) / stats.length;
   const avgTotal = stats.reduce((s, r) => s + r.total, 0) / stats.length;
   const totalOutput = stats.reduce((s, r) => s + r.outputLen, 0);
