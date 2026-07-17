@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第 12 课：定义第一个工具 — 从 TypeScript 到 JSON Schema</title>
+<link rel="stylesheet" href="../../assets/style.css">
+</head>
+<body>
+
+<h1>✍️ 第 12 课：定义第一个工具</h1>
+
+<p><span class="tag tag--blue">技能</span> <span class="tag tag--green">第 3 周 Day 2</span> <span class="tag tag--amber">约 45 分钟</span></p>
+
+<blockquote>
+  <strong>本课目标：</strong>学会用 JSON Schema 为 TypeScript 函数编写工具定义，让 Hermes 能准确调用。写好 description 是 Agent 开发的第一项硬技能。
+</blockquote>
+
+<p>
+  🎯 <strong>本课 Demo：</strong>
+  <a href="../../demo/week-03/tool-workshop.ts">tool-workshop.ts</a> — 运行 <code>cd demo/week-03 && npx tsx tool-workshop.ts</code>，4 个场景对比好/坏描述
+</p>
+
+<p>
+  📚 <strong>相关参考：</strong>
+  <a href="../../reference/glossary.html">术语表</a> ·
+  <a href="0011-tool-calling-intro.html">← 第 11 课（Tool-calling 入门）</a>
+</p>
+
+<!-- ============================================================ -->
+<h2>一、回顾：工具定义长什么样？</h2>
+
+<p>上节课我们知道了工具定义是一个 JSON Schema 对象。这节课深入：<strong>怎么写出好的工具定义</strong>。</p>
+
+<pre><code>// 一个完整的工具定义 = 3 个关键部分
+{
+  type: "function",           // ① 固定值
+  function: {
+    name: "getWeather",       // ② 函数名（模型用它来标识）
+    description: "...",       // ③ 描述（模型用它来理解）← 最重要！
+    parameters: {             // ④ 参数 Schema（模型用它来填参）
+      type: "object",
+      properties: { ... },
+      required: [...],
+    },
+  },
+}</code></pre>
+
+<div class="card card--accent">
+  <div class="card__title">🧠 模型怎么"读"工具定义？</div>
+  <p style="margin-bottom:0">模型不是代码编译器——它不会"理解"你的函数签名。工具定义是<strong>自然语言指令的一部分</strong>，被拼接到 System Prompt 里发给模型。模型用和读用户消息一样的方式"读"工具定义。所以 <code>description</code> 的好坏直接决定了模型能不能正确使用这个工具。</p>
+</div>
+
+<!-- ============================================================ -->
+<h2>二、技能：好的 description 怎么写？</h2>
+
+<h3>2.1 三要素公式</h3>
+
+<p>每个 description 应该包含三个要素：</p>
+
+<div class="card card--accent">
+  <div class="card__title">📝 Description 三要素</div>
+  <ol style="margin-bottom:0">
+    <li><strong>做什么</strong>：这个工具的功能，一句话说清楚</li>
+    <li><strong>返回什么</strong>：调用后会得到什么结果（格式、内容）</li>
+    <li><strong>怎么用</strong>：参数格式、示例值、边界情况</li>
+  </ol>
+</div>
+
+<h3>2.2 对比：好描述 vs 坏描述</h3>
+
+<table style="width:100%; border-collapse:collapse; margin:1rem 0; font-size:0.85rem;">
+  <tr style="background:var(--code-bg);">
+    <th style="padding:0.4rem 0.8rem; border:1px solid var(--border); width:15%;">评级</th>
+    <th style="padding:0.4rem 0.8rem; border:1px solid var(--border); width:42%;">内容</th>
+    <th style="padding:0.4rem 0.8rem; border:1px solid var(--border);">问题</th>
+  </tr>
+  <tr>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">❌ 差</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);"><code>"获取天气"</code></td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">没说返回什么、参数格式。模型可能传 "Beijing" 而不是 "北京"</td>
+  </tr>
+  <tr>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">⚠️ 一般</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);"><code>"获取指定城市的天气"</code></td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">知道要传城市，但不知道格式。没有返回值说明</td>
+  </tr>
+  <tr>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">✅ 好</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);"><code>"获取指定城市的当前天气信息，返回温度、湿度、天气状况。城市名用中文，如 '北京'、'上海'。"</code></td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">功能明确 + 返回内容 + 参数格式 + 示例值</td>
+  </tr>
+</table>
+
+<h3>2.3 参数 description 同样重要</h3>
+
+<p>每个参数的 <code>description</code> 也要写好——模型是逐个参数"理解"的：</p>
+
+<pre><code>// ❌ 坏：参数描述太模糊
+"city": {
+  "type": "string",
+  "description": "城市"        // ← 模型不知道要传中文还是英文
+}
+
+// ✅ 好：带格式说明和示例
+"city": {
+  "type": "string",
+  "description": "城市名称，用中文。支持：北京、上海、深圳、杭州、成都"
+}</code></pre>
+
+<div class="card card--warn">
+  <div class="card__title">⚠️ 常见坑：description 写了但参数没有</div>
+  <p style="margin-bottom:0">函数级的 description 写了"城市名用中文"，但参数级的 description 只写了"城市"——模型可能只看参数描述，照样传错。两个层级的 description 都要写好。</p>
+</div>
+
+<!-- ============================================================ -->
+<h2>三、技能：TypeScript 类型 → JSON Schema 映射</h2>
+
+<p>作为前端开发者，你已经习惯了 TypeScript 的类型系统。JSON Schema 是另一套"类型语言"，需要做映射：</p>
+
+<table style="width:100%; border-collapse:collapse; margin:1rem 0; font-size:0.85rem;">
+  <tr style="background:var(--code-bg);">
+    <th style="padding:0.4rem 0.8rem; border:1px solid var(--border);">TypeScript</th>
+    <th style="padding:0.4rem 0.8rem; border:1px solid var(--border);">JSON Schema</th>
+    <th style="padding:0.4rem 0.8rem; border:1px solid var(--border);">备注</th>
+  </tr>
+  <tr>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);"><code>string</code></td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);"><code>{"type": "string"}</code></td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">可加 <code>enum</code> 限制可选值</td>
+  </tr>
+  <tr>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);"><code>number</code></td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);"><code>{"type": "number"}</code></td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">也可用 <code>"integer"</code></td>
+  </tr>
+  <tr>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);"><code>boolean</code></td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);"><code>{"type": "boolean"}</code></td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);"></td>
+  </tr>
+  <tr>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);"><code>string[]</code></td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);"><code>{"type": "array", "items": {"type": "string"}}</code></td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">数组用 items 定义元素类型</td>
+  </tr>
+  <tr>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);"><code>{ city: string }</code></td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);"><code>{"type": "object", "properties": {...}}</code></td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">对象展开为 properties</td>
+  </tr>
+  <tr>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);"><code>city?: string</code></td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">不在 <code>required</code> 数组中</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">可选 = 不放 required</td>
+  </tr>
+  <tr>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);"><code>type Color = 'red' \| 'blue'</code></td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);"><code>{"type": "string", "enum": ["red", "blue"]}</code></td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">联合字符串字面量 → enum</td>
+  </tr>
+</table>
+
+<div class="card card--accent">
+  <div class="card__title">💡 前端直觉：JSON Schema ≈ PropTypes</div>
+  <p style="margin-bottom:0">如果你用过 React 的 PropTypes，JSON Schema 就是同一件事——描述一个对象的"形状"。区别是 PropTypes 给 React 用，JSON Schema 给 LLM 看。</p>
+</div>
+
+<!-- ============================================================ -->
+<h2>四、动手：写一个完整的工具定义</h2>
+
+<div class="card card--accent">
+  <div class="card__title">✏️ 练习：写一个 searchCode 工具</div>
+  <p>请为以下 TypeScript 函数写出 JSON Schema 工具定义：</p>
+  <pre><code>// 在项目代码库中搜索
+function searchCode(query: string, lang?: string, maxResults?: number): SearchResult[]</code></pre>
+  <ul style="margin-bottom:0">
+    <li><code>query</code>：搜索关键词，必填</li>
+    <li><code>lang</code>：编程语言过滤（如 'ts'、'js'），可选</li>
+    <li><code>maxResults</code>：最多返回条数，可选，默认 10</li>
+  </ul>
+</div>
+
+<details style="margin:1rem 0;">
+  <summary style="cursor:pointer; font-weight:700; color:var(--accent);">📝 参考答案</summary>
+  <div style="margin-top:1rem;">
+  <pre><code>{
+  type: "function",
+  function: {
+    name: "searchCode",
+    description:
+      "在项目代码库中搜索指定关键词，返回匹配的文件路径、行号和代码片段。" +
+      "适用于查找函数定义、API 调用、类型定义等。例如搜索 'useState' 找到所有使用该 Hook 的组件。",
+    parameters: {
+      type: "object",
+      properties: {
+        query: {
+          type: "string",
+          description: "搜索关键词，支持部分匹配。如 'useEffect'、'import.*from'",
+        },
+        lang: {
+          type: "string",
+          enum: ["ts", "tsx", "js", "jsx", "json", "css"],
+          description: "限定编程语言，不传则搜索所有文件类型。可选值：ts, tsx, js, jsx, json, css",
+        },
+        maxResults: {
+          type: "integer",
+          description: "最多返回的搜索结果条数，默认 10。范围 1-50",
+        },
+      },
+      required: ["query"],
+    },
+  },
+}</code></pre>
+  <p><strong>检查清单：</strong></p>
+  <ul>
+    <li>✅ 函数 description 包含三要素：做什么 + 返回什么 + 怎么用（带例子）</li>
+    <li>✅ query 的 description 写了匹配方式</li>
+    <li>✅ lang 用了 <code>enum</code> 限制可选值，减少模型传错的可能</li>
+    <li>✅ maxResults 用 <code>integer</code> 而非 <code>number</code>，写了默认值和范围</li>
+    <li>✅ 只有 query 在 required 中，另外两个是可选的</li>
+  </ul>
+  </div>
+</details>
+
+<!-- ============================================================ -->
+<h2>五、System Prompt 配合工具定义</h2>
+
+<p>除了工具本身的 description，你还可以通过 <strong>System Prompt</strong> 引导模型的行为：</p>
+
+<pre><code>const SYSTEM_PROMPT = `你是一个智能助手，可以调用工具来获取实时信息。
+
+工具使用规则：
+1. 当需要实时数据时，必须调用工具，不要编造
+2. 当缺少工具的必填参数时，先向用户询问，不要猜测
+3. 拿到工具结果后，用自然语言简洁地回复用户
+4. 如果工具返回错误，如实告知用户，不要掩饰`;</code></pre>
+
+<div class="card card--warn">
+  <div class="card__title">⚠️ 关键规则：缺少参数时先问，不要猜</div>
+  <p style="margin-bottom:0">如果用户问"天气怎么样"而没指定城市，模型可能会"猜"一个城市（通常是北京）。这会导致不准确的结果。在 System Prompt 中明确要求"缺少必填参数时先询问用户"，可以大幅减少这种问题。</p>
+</div>
+
+<!-- ============================================================ -->
+<h2>六、自测</h2>
+
+<p>5 题，覆盖工具定义的核心技能。</p>
+
+<ol>
+  <li>为什么工具定义的 <code>description</code> 要写"返回什么"而不仅仅是"做什么"？</li>
+  <li>一个工具有 5 个参数，但只有 2 个是必填的。在 JSON Schema 中如何表达？</li>
+  <li>参数类型用 <code>"integer"</code> 和 <code>"number"</code> 有什么区别？什么时候该用哪个？</li>
+  <li>为什么要在 System Prompt 中写工具使用规则，而不是只靠工具定义？</li>
+  <li>如果模型反复调用同一个工具但传错参数（比如城市名用英文），你应该检查什么？</li>
+</ol>
+
+<details style="margin:1rem 0;">
+  <summary style="cursor:pointer; font-weight:700; color:var(--accent);">📝 参考答案</summary>
+
+  <div style="margin-top:1rem;">
+
+  <h4>第 1 题：为什么 description 要写"返回什么"？</h4>
+
+  <p><strong>因为模型需要知道工具返回的数据长什么样，才能正确地将结果"翻译"给用户。</strong></p>
+
+  <p>模型在收到工具结果后，需要决定如何向用户呈现。如果它不知道返回内容的格式，可能会出现：</p>
+  <ul>
+    <li>忽略关键信息（比如温度数据里包含了降雨概率，但模型没提）</li>
+    <li>错误解读数据（把湿度当成温度）</li>
+    <li>过度简化（返回了 5 个字段，模型只用了 1 个）</li>
+  </ul>
+
+  <p><strong>底层机制：</strong>模型在 Prefill 阶段"阅读"了整个 Prompt（包括工具定义），然后基于所有信息预测下一个 token。如果工具定义里写了"返回温度、湿度、天气状况"，这些词就会出现在模型的注意力窗口里，模型在生成回答时更容易"注意到"这些信息并正确使用。</p>
+
+  <p><strong>类比：</strong>就像调用 API 时看文档——你不仅要看"这个 API 干嘛的"，还要看"返回的 JSON 结构是什么"，才能在前端正确渲染。模型也一样。</p>
+
+  <h4>第 2 题：如何表达"5 个参数但只有 2 个必填"？</h4>
+
+  <p><strong>只把必填参数名放进 <code>required</code> 数组。</strong>不在 required 里的参数，模型会理解为"可选"。</p>
+
+  <pre><code>// 5 个参数，只有 query 和 userId 是必填
+parameters: {
+  type: "object",
+  properties: {
+    query:    { type: "string", description: "搜索关键词" },       // 必填
+    userId:   { type: "string", description: "用户 ID" },           // 必填
+    limit:    { type: "integer", description: "返回条数，默认 20" },  // 可选
+    offset:   { type: "integer", description: "分页偏移，默认 0" },   // 可选
+    sortBy:   { type: "string", description: "排序字段" },           // 可选
+  },
+  required: ["query", "userId"],  // ← 只有这两个必填
+}</code></pre>
+
+  <p><strong>行为差异：</strong></p>
+  <ul>
+    <li><strong>必填参数缺失</strong> → 模型应该询问用户（如果 System Prompt 写得好）或猜测一个值（如果没写）</li>
+    <li><strong>可选参数缺失</strong> → 模型直接跳过，不传这个参数</li>
+  </ul>
+
+  <p><strong>设计原则：</strong>只把"没有它工具就无法执行"的参数设为必填。如果一个参数有合理的默认值，让它可选，在 description 中说明默认值。</p>
+
+  <h4>第 3 题：integer vs number 的区别和使用场景</h4>
+
+  <p><strong>核心区别：</strong><code>integer</code> 只接受整数，<code>number</code> 接受整数和浮点数。这直接影响模型传参的行为。</p>
+
+  <table style="width:100%; border-collapse:collapse; margin:1rem 0; font-size:0.85rem;">
+    <tr style="background:var(--code-bg);">
+      <th style="padding:0.4rem 0.8rem; border:1px solid var(--border);">场景</th>
+      <th style="padding:0.4rem 0.8rem; border:1px solid var(--border);">应该用</th>
+      <th style="padding:0.4rem 0.8rem; border:1px solid var(--border);">原因</th>
+    </tr>
+    <tr>
+      <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">返回条数 (limit)</td>
+      <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);"><code>integer</code></td>
+      <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">不可能是 10.5 条</td>
+    </tr>
+    <tr>
+      <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">温度值</td>
+      <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);"><code>number</code></td>
+      <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">可能是 25.5°C</td>
+    </tr>
+    <tr>
+      <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">页码 (page)</td>
+      <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);"><code>integer</code></td>
+      <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">页码总是整数</td>
+    </tr>
+    <tr>
+      <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">金额</td>
+      <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);"><code>number</code></td>
+      <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">有小数（元.角.分）</td>
+    </tr>
+  </table>
+
+  <p><strong>判断标准：</strong>问自己"这个参数的值可能包含小数点吗？"——可能 → number；不可能 → integer。用对类型可以减少模型传错参数的概率。</p>
+
+  <h4>第 4 题：为什么需要 System Prompt + 工具定义？</h4>
+
+  <p><strong>因为工具定义告诉模型"能做什么"，System Prompt 告诉模型"该怎么做"。</strong></p>
+
+  <p>工具定义是"说明书"——描述工具的接口（输入输出）。System Prompt 是"工作手册"——描述使用工具的规则和策略。两者解决不同层面的问题：</p>
+
+  <table style="width:100%; border-collapse:collapse; margin:1rem 0; font-size:0.85rem;">
+    <tr style="background:var(--code-bg);">
+      <th style="padding:0.4rem 0.8rem; border:1px solid var(--border);">解决的问题</th>
+      <th style="padding:0.4rem 0.8rem; border:1px solid var(--border);">在哪里定义</th>
+    </tr>
+    <tr>
+      <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">这个工具叫什么、需要什么参数</td>
+      <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">工具定义 (tools)</td>
+    </tr>
+    <tr>
+      <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">什么时候该用工具、什么时候不该用</td>
+      <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">System Prompt</td>
+    </tr>
+    <tr>
+      <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">缺少参数时应该询问还是猜测</td>
+      <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">System Prompt</td>
+    </tr>
+    <tr>
+      <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">工具返回错误时怎么处理</td>
+      <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">System Prompt</td>
+    </tr>
+    <tr>
+      <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">回答问题应该用什么风格（简洁/详细）</td>
+      <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">System Prompt</td>
+    </tr>
+  </table>
+
+  <p><strong>具体例子：</strong>工具定义里写了 <code>city</code> 是必填参数。但用户问"天气怎么样"时没指定城市。模型有两种选择：① 猜一个城市（可能猜错）② 反问用户"你想查哪个城市？"。System Prompt 中的"缺少必填参数时先询问用户"就告诉模型选②而不是①。</p>
+
+  <p><strong>类比：</strong>工具定义 = API 文档（接口签名），System Prompt = 团队规范（什么时候调用、怎么处理异常）。两者缺一不可。</p>
+
+  <h4>第 5 题：模型反复传错参数，应该检查什么？</h4>
+
+  <p><strong>按优先级依次检查以下 4 个地方：</strong></p>
+
+  <ol>
+    <li>
+      <strong>参数 description 是否写了格式要求？</strong>
+      <p>如果模型传 "Beijing" 而不是 "北京"，检查参数 description 是否明确写了"城市名用中文"。参数级的 description 比函数级的更直接影响模型行为——模型在"填参数"这一步主要看参数描述。</p>
+    </li>
+    <li>
+      <strong>函数 description 是否有冲突信息？</strong>
+      <p>如果函数描述说"支持全球城市"，参数描述说"仅中国城市"，模型会困惑。两个层级的描述要一致。</p>
+    </li>
+    <li>
+      <strong>是否用了 <code>enum</code> 限制可选值？</strong>
+      <p>如果参数只有有限的合法值（如城市名），用 <code>enum</code> 而不是只靠 description。模型看到 enum 会更严格地选择。</p>
+    </li>
+    <li>
+      <strong>System Prompt 是否缺少行为引导？</strong>
+      <p>如果以上都检查了还是不行，在 System Prompt 中添加更具体的行为规则，如"getWeather 的 city 参数必须是中文城市名，如 '北京'，不要用拼音或英文"。</p>
+    </li>
+  </ol>
+
+  <p><strong>调试技巧：</strong>打印模型返回的原始 tool_call JSON，看看它到底传了什么参数。然后针对性地修改 description。不要猜测——看数据。</p>
+
+  </div>
+</details>
+
+<!-- ============================================================ -->
+<hr style="margin:2rem 0; border:none; border-top:1px solid var(--border);">
+
+<div class="card card--success">
+  <div class="card__title">✅ 本课小结</div>
+  <p style="margin-bottom:0.5rem"><strong>你今天学到了：</strong></p>
+  <ul style="margin-top:0.3rem; margin-bottom:0.5rem; padding-left:1.2rem;">
+    <li>Description 三要素：做什么 + 返回什么 + 怎么用（带示例）</li>
+    <li>TypeScript 类型 → JSON Schema 的映射规则</li>
+    <li>参数级 description 和函数级 description 同等重要</li>
+    <li><code>enum</code> 限制可选值，<code>required</code> 只标记真正必填的参数</li>
+    <li>System Prompt 补充"行为规则"，工具定义补充"接口说明"</li>
+    <li>调试技巧：打印原始 tool_call JSON，看模型到底传了什么</li>
+  </ul>
+  <p style="margin-bottom:0; font-size:0.9rem; color:var(--text-secondary);">
+    🤔 <strong>有问题？</strong>直接问你的 AI 老师。明天 Day 3 将实现完整的工具调用循环——多轮 tool-calling、链式调用、错误处理！
+  </p>
+</div>
+
+<p style="color:var(--text-secondary); font-size:0.85rem;">
+  📅 第 3 周 Day 2 完成 · 下一步：<a href="0013-tool-call-loop.html">第 3 周 Day 3：工具调用循环</a>
+</p>
+
+</body>
+</html>

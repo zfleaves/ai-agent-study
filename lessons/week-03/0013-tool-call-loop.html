@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第 13 课：工具调用循环 — Agent 的"心跳"</title>
+<link rel="stylesheet" href="../../assets/style.css">
+</head>
+<body>
+
+<h1>🔄 第 13 课：工具调用循环</h1>
+
+<p><span class="tag tag--blue">技能</span> <span class="tag tag--green">第 3 周 Day 3</span> <span class="tag tag--amber">约 50 分钟</span></p>
+
+<blockquote>
+  <strong>本课目标：</strong>实现完整的 Agent 循环——模型决策 → 执行工具 → 结果回传 → 继续决策 → 直到任务完成。这是 Agent 开发的"心脏"，理解了循环就理解了 Agent。
+</blockquote>
+
+<p>
+  🎯 <strong>本课 Demo：</strong>
+  <a href="../../demo/week-03/agent-loop.ts">agent-loop.ts</a> — 运行 <code>cd demo/week-03 && npx tsx agent-loop.ts</code>，5 个场景展示完整 Agent 循环
+</p>
+
+<p>
+  📚 <strong>相关参考：</strong>
+  <a href="../../reference/glossary.html">术语表</a> ·
+  <a href="0012-first-tool.html">← 第 12 课（定义第一个工具）</a>
+</p>
+
+<!-- ============================================================ -->
+<h2>一、从"单次调用"到"循环"</h2>
+
+<p>前两节课我们看到的 Tool-calling 是"一次性的"：用户提问 → 模型调工具 → 执行 → 回答。但真正的 Agent 需要<strong>多轮决策</strong>——一个任务可能需要多次工具调用、中间结果需要验证、出错了需要重试。</p>
+
+<h3>1.1 为什么需要循环？</h3>
+
+<div class="card card--accent">
+  <div class="card__title">📋 场景：用户问"北京和上海哪个更热？"</div>
+  <ol style="margin-bottom:0">
+    <li>模型不知道北京和上海的天气 → 需要调 <code>getWeather("北京")</code></li>
+    <li>拿到北京天气，但还需要上海天气 → 再调 <code>getWeather("上海")</code></li>
+    <li>拿到两个城市天气，可以比较了 → 生成最终回答</li>
+  </ol>
+  <p style="margin-top:0.5rem; margin-bottom:0;">这个任务需要 <strong>2 次工具调用</strong>。如果不循环，模型第一次调完工具就停了，任务完不成。</p>
+</div>
+
+<h3>1.2 前端直觉类比</h3>
+
+<pre><code>// 普通调用 = 一次 fetch
+const res = await fetch('/api/chat', { body: question });
+// → 拿到回答，结束
+
+// Agent 循环 = 带重试的异步流水线
+let done = false;
+while (!done && steps < maxSteps) {
+  const decision = await llm.decide(messages);
+  if (decision.wantsToCallTool) {
+    const result = await executeTool(decision.toolCall);  // 执行工具
+    messages.push({ role: 'tool', content: result });      // 回传结果
+    // 继续循环，让模型再决策
+  } else {
+    done = true;  // 模型认为任务完成
+  }
+}</code></pre>
+
+<!-- ============================================================ -->
+<h2>二、Agent 循环的 5 个关键设计</h2>
+
+<h3>2.1 循环结构</h3>
+
+<pre><code>┌─────────────────────────────────────────────────────┐
+│                                                     │
+│   while (step &lt; MAX_STEPS) {                        │
+│                                                     │
+│     ① response = await llm.chat(messages, tools)    │
+│                                                     │
+│     ② if (没有 tool_calls) → 任务完成，退出循环      │
+│                                                     │
+│     ③ for (toolCall of tool_calls) {                │
+│         result = executeTool(name, args)  // 执行    │
+│         messages.push({ role: "tool", result })      │
+│       }                                              │
+│                                                     │
+│     ④ 回到 ①，模型基于新信息继续决策                  │
+│   }                                                  │
+│                                                     │
+└─────────────────────────────────────────────────────┘</code></pre>
+
+<h3>2.2 终止条件：什么时候停？</h3>
+
+<p>循环不能永远跑下去。你需要两个终止条件：</p>
+
+<table style="width:100%; border-collapse:collapse; margin:1rem 0; font-size:0.9rem;">
+  <tr style="background:var(--code-bg);">
+    <th style="padding:0.4rem 0.8rem; border:1px solid var(--border);">条件</th>
+    <th style="padding:0.4rem 0.8rem; border:1px solid var(--border);">触发时机</th>
+    <th style="padding:0.4rem 0.8rem; border:1px solid var(--border);">代码</th>
+  </tr>
+  <tr>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);"><strong>自然终止</strong></td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">模型不再调用工具，直接生成文本回答</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);"><code>if (!toolCalls) break;</code></td>
+  </tr>
+  <tr>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);"><strong>强制终止</strong></td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">达到最大步数（如 5 步），防止无限循环</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);"><code>while (step &lt; MAX_STEPS)</code></td>
+  </tr>
+</table>
+
+<div class="card card--warn">
+  <div class="card__title">⚠️ MAX_STEPS 设多少合适？</div>
+  <ul style="margin-bottom:0">
+    <li><strong>太少了（如 2）</strong>：复杂任务完不成，用户体验差</li>
+    <li><strong>太多了（如 20）</strong>：模型可能陷入循环，浪费 token 和时间</li>
+    <li><strong>推荐值：5-8</strong>。大多数任务在 3-5 步内完成，超过 8 步说明任务需要重新设计</li>
+  </ul>
+</div>
+
+<h3>2.3 链式调用 vs 并行调用</h3>
+
+<p>模型可能一次返回<strong>多个 tool_call</strong>，你需要决定怎么处理：</p>
+
+<div class="compare">
+  <div class="compare__col">
+    <h4>🔗 串行（链式）</h4>
+    <pre><code>// 工具 A 的结果是工具 B 的输入
+getWeather("北京") → 25°C
+getWeather("上海") → 28°C
+// 再比较两个结果</code></pre>
+    <p style="font-size:0.85rem;">适用：结果有依赖关系</p>
+  </div>
+  <div class="compare__col">
+    <h4>⚡ 并行</h4>
+    <pre><code>// 两个工具互不依赖，同时执行
+Promise.all([
+  getWeather("北京"),
+  getWeather("上海"),
+])
+// 拿到两个结果，一起回传</code></pre>
+    <p style="font-size:0.85rem;">适用：结果互不依赖，节省时间</p>
+  </div>
+</div>
+
+<p><strong>判断标准：</strong>问自己"工具 B 需要工具 A 的结果作为参数吗？"——需要 → 串行；不需要 → 并行。</p>
+
+<h3>2.4 错误处理：工具失败了怎么办？</h3>
+
+<p>工具执行可能失败：网络超时、API 限流、参数格式错误……Agent 必须有容错能力：</p>
+
+<pre><code>// ❌ 坏：异常直接抛出，循环崩溃
+const result = executeTool(name, args);
+
+// ✅ 好：捕获异常，作为正常结果回传，让模型决定下一步
+try {
+  const result = executeTool(name, args);
+  messages.push({ role: "tool", content: result });
+} catch (err) {
+  messages.push({
+    role: "tool",
+    content: `工具执行失败: ${err.message}`,
+  });
+  // 模型收到错误后可以：
+  //   ① 换一种方式调用（如换个参数）
+  //   ② 换一个工具
+  //   ③ 如实告知用户
+}</code></pre>
+
+<div class="card card--accent">
+  <div class="card__title">💡 关键设计：把错误也当作"正常结果"</div>
+  <p style="margin-bottom:0">不要把异常抛出循环——把错误信息以 <code>role: "tool"</code> 回传给模型。模型会自己判断：换个参数重试？换另一个工具？还是告诉用户"抱歉，做不到"？这是 Agent 的"韧性"来源。</p>
+</div>
+
+<h3>2.5 消息历史管理</h3>
+
+<p>循环中 messages 数组会快速增长。每次循环添加 assistant 消息 + tool 结果，容易超出 Context Window：</p>
+
+<pre><code>// 一个典型的 3 步循环后的 messages 结构：
+[
+  { role: "system",  content: "..." },           // System Prompt
+  { role: "user",    content: "查天气+计算" },     // 用户输入
+  { role: "assistant", content: "", tool_calls }, // 第 1 步：调 getWeather
+  { role: "tool",    content: "北京 25°C" },      // 工具结果
+  { role: "assistant", content: "", tool_calls }, // 第 2 步：调 calculate
+  { role: "tool",    content: "25×365=9125" },    // 工具结果
+  { role: "assistant", content: "最终回答..." },   // 第 3 步：最终回答
+]</code></pre>
+
+<p>对于本地小模型（3B-8B，Context 32k），这个量级完全没问题。但后续学到更复杂的 Agent 时，需要引入滑动窗口和摘要压缩策略。</p>
+
+<!-- ============================================================ -->
+<h2>三、技能：完整的 Agent 循环代码</h2>
+
+<p>以下是生产级 Agent 循环的骨架代码（也是 Demo 3 的核心）：</p>
+
+<pre><code>async function agentLoop(userInput: string): Promise&lt;string> {
+  const messages: Message[] = [
+    { role: 'system', content: SYSTEM_PROMPT },
+    { role: 'user', content: userInput },
+  ];
+
+  let step = 0;
+  const MAX_STEPS = 5;
+
+  while (step &lt; MAX_STEPS) {
+    step++;
+
+    // ① 调用模型
+    const response = await ollama.chat({
+      model: MODEL,
+      messages,
+      tools: TOOLS,
+    });
+
+    const toolCalls = response.message.tool_calls;
+
+    // ② 终止条件：模型不再调工具
+    if (!toolCalls || toolCalls.length === 0) {
+      return response.message.content;  // ← 任务完成
+    }
+
+    // ③ 保存 assistant 消息
+    messages.push(response.message);
+
+    // ④ 执行工具 + 回传结果
+    for (const tc of toolCalls) {
+      try {
+        const result = executeTool(tc.function.name, tc.function.arguments);
+        messages.push({
+          role: 'tool',
+          content: result,
+          tool_call_id: tc.id,
+        });
+      } catch (err) {
+        messages.push({
+          role: 'tool',
+          content: `错误: ${err.message}`,
+          tool_call_id: tc.id,
+        });
+      }
+    }
+    // ⑤ 回到循环顶部，模型继续决策
+  }
+
+  // ⑥ 达到最大步数，强制结束
+  return forceFinalAnswer(messages);
+}</code></pre>
+
+<!-- ============================================================ -->
+<h2>四、自测</h2>
+
+<p>5 题，覆盖 Agent 循环的核心设计。</p>
+
+<ol>
+  <li>为什么 Agent 需要循环，而不是一次工具调用就结束？</li>
+  <li>Agent 循环的两个终止条件分别是什么？各自解决什么问题？</li>
+  <li>工具执行失败时，为什么应该把错误信息回传给模型而不是抛出异常？</li>
+  <li>什么时候应该并行执行多个工具调用，什么时候应该串行？</li>
+  <li>MAX_STEPS 设得太小和太大各有什么问题？如何确定合理的值？</li>
+</ol>
+
+<details style="margin:1rem 0;">
+  <summary style="cursor:pointer; font-weight:700; color:var(--accent);">📝 参考答案</summary>
+
+  <div style="margin-top:1rem;">
+
+  <h4>第 1 题：为什么需要循环？</h4>
+
+  <p><strong>因为现实任务往往需要多次信息获取才能完成，一次工具调用只能拿到一个维度的信息。</strong></p>
+
+  <p>举个例子：用户问"北京和上海哪个更热？"</p>
+  <ul>
+    <li>第 1 步：调 <code>getWeather("北京")</code> → 拿到 25°C</li>
+    <li>第 2 步：还需要上海的数据 → 调 <code>getWeather("上海")</code> → 拿到 28°C</li>
+    <li>第 3 步：两个数据都有了，可以比较 → 直接回答"上海更热，28°C vs 25°C"</li>
+  </ul>
+
+  <p><strong>底层原因：</strong>模型在单次推理中生成的 tool_calls 是"基于当前已有的信息"做出的决策。它不知道工具结果会是什么——只有在拿到结果后，才能决定下一步。这就像一个人查资料：先查第一本书，发现还缺信息，再查第二本，直到信息够了才写结论。你不能要求他"一次说出所有书的名字"，因为他不确定第一本书里有什么。</p>
+
+  <p><strong>判断标准：</strong>如果任务只需要一个维度的信息（如"今天北京天气"），一次调用就够了。如果任务需要比较、计算、或基于中间结果做新决策，就一定需要循环。</p>
+
+  <h4>第 2 题：两个终止条件</h4>
+
+  <p><strong>① 自然终止</strong>：模型不再输出 tool_calls，而是直接生成文本回答。这说明模型认为"信息够了，可以回答了"。</p>
+
+  <p><strong>原理：</strong>模型在每次收到工具结果后，会重新评估"我还需要更多信息吗？"。当它判断"不需要"时，就会从"工具调用模式"切换到"文本回答模式"。这个切换体现在 token 生成上——模型不再输出 <code>{"function": ...</code> 的 JSON，而是输出自然语言。</p>
+
+  <p><strong>② 强制终止</strong>：达到 MAX_STEPS 上限。防止模型陷入"永远觉得不够"的循环——比如反复调用同一个工具但拿不到想要的结果，或者任务确实太复杂。</p>
+
+  <p><strong>为什么需要强制终止：</strong>模型不是完美的。它可能：</p>
+  <ul>
+    <li>陷入"查→不满意→再查→还不满意→再查"的死循环</li>
+    <li>对简单问题过度拆解，每一步只做一点点</li>
+    <li>工具返回的错误信息被误解为"需要换一种方式重试"</li>
+  </ul>
+
+  <p>强制终止是安全网——确保即使模型失控，系统也不会无限消耗 token 和时间。</p>
+
+  <h4>第 3 题：为什么错误信息要回传而不是抛异常？</h4>
+
+  <p><strong>因为抛出异常会终止循环，而回传错误信息让模型有机会"自我修复"。</strong></p>
+
+  <p>假设用户问"东京天气怎么样"，但你的工具只支持中国城市。如果抛出异常：</p>
+  <ul>
+    <li>❌ 循环崩溃 → 用户看到"系统错误" → 体验很差</li>
+  </ul>
+
+  <p>如果回传错误信息：</p>
+  <ul>
+    <li>✅ 模型收到 "未找到 东京 的天气数据。支持：北京、上海、深圳、杭州、成都"</li>
+    <li>✅ 模型可以回复："抱歉，我目前只能查询中国城市的天气。支持的城市有：北京、上海、深圳、杭州、成都。你想查哪个？"</li>
+    <li>✅ 用户体验好，而且知道了工具的边界</li>
+  </ul>
+
+  <p><strong>更深层的设计哲学：</strong>Agent 的"智能"不在于不出错，而在于<strong>出错后能自己处理</strong>。把错误暴露给模型（而不是吞掉），模型可以：</p>
+  <ol>
+    <li><strong>换参数重试</strong>：传了 "Beijing" → 错误 → 改成 "北京"</li>
+    <li><strong>换工具</strong>：getWeather 不支持 → 试试 searchWeb 搜索天气</li>
+    <li><strong>降级处理</strong>：查不到天气 → 告诉用户"我目前无法获取该城市天气，建议查看天气 App"</li>
+  </ol>
+
+  <p>这就是 ReAct 模式中 "Reasoning + Acting" 的完整闭环——Action 的结果（包括错误）驱动下一轮 Reasoning。</p>
+
+  <h4>第 4 题：并行 vs 串行</h4>
+
+  <p><strong>核心判断：工具 B 的参数是否依赖工具 A 的结果？</strong></p>
+
+  <table style="width:100%; border-collapse:collapse; margin:1rem 0; font-size:0.85rem;">
+    <tr style="background:var(--code-bg);">
+      <th style="padding:0.4rem 0.8rem; border:1px solid var(--border);">场景</th>
+      <th style="padding:0.4rem 0.8rem; border:1px solid var(--border);">策略</th>
+      <th style="padding:0.4rem 0.8rem; border:1px solid var(--border);">原因</th>
+    </tr>
+    <tr>
+      <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">查北京和上海的天气</td>
+      <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">⚡ 并行</td>
+      <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">两个查询互不依赖</td>
+    </tr>
+    <tr>
+      <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">先查天气，再根据温度决定是否算数</td>
+      <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">🔗 串行</td>
+      <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">第 2 步取决于第 1 步的结果</td>
+    </tr>
+    <tr>
+      <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">同时查时间、天气、搜索</td>
+      <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">⚡ 并行</td>
+      <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">三个独立操作</td>
+    </tr>
+  </table>
+
+  <p><strong>实现方式：</strong>模型一次返回多个 tool_call 时，如果它们互不依赖，用 <code>Promise.all()</code> 并行执行，所有结果一起回传。如果模型分开两次返回 tool_call，那是模型认为需要串行——你不需要猜测，照模型说的做就行。</p>
+
+  <p><strong>性能差异：</strong>假设每个工具调用耗时 200ms，2 个互不依赖的工具串行执行 = 400ms，并行执行 = 200ms。在用户体验上，200ms 的差异是"流畅"和"卡顿"的区别。</p>
+
+  <h4>第 5 题：MAX_STEPS 的取值</h4>
+
+  <p><strong>太小（如 2）的问题：</strong>复杂任务被强制截断。比如"查北京和上海天气，比较哪个更热"需要 3 步——查北京 → 查上海 → 比较回答。如果 MAX_STEPS = 2，第二步查到上海天气后就被截断了，用户得不到最终回答。</p>
+
+  <p><strong>太大（如 20）的问题：</strong></p>
+  <ul>
+    <li><strong>token 浪费</strong>：每步都消耗 token（Prompt 里的 messages 越来越长），20 步可能消耗数千 token 却什么都没完成</li>
+    <li><strong>延迟累积</strong>：每步 500ms × 20 = 10 秒，用户早就关了</li>
+    <li><strong>模型可能"绕圈"</strong>：没有自然终止的任务（如模型不满意义前的结果，反复重试），会一直跑到 MAX_STEPS</li>
+  </ul>
+
+  <p><strong>如何确定合理值：</strong></p>
+  <ol>
+    <li><strong>从任务复杂度估算</strong>：每个独立的信息获取 ≈ 1 步。查天气+计算 = 2-3 步。查天气+搜索+计算+比较 = 4-5 步。</li>
+    <li><strong>观察实际数据</strong>：跑 20 个真实任务，统计完成所需步数，取 P95 值 + 1 作为上限。</li>
+    <li><strong>分层设置</strong>：简单 Agent（< 3 个工具）→ MAX_STEPS = 3。复杂 Agent（5+ 个工具）→ MAX_STEPS = 8。</li>
+  </ol>
+
+  <p><strong>推荐起步值：5</strong>。覆盖绝大多数场景，同时防止无限循环。后续根据实际使用数据调整。</p>
+
+  </div>
+</details>
+
+<!-- ============================================================ -->
+<hr style="margin:2rem 0; border:none; border-top:1px solid var(--border);">
+
+<div class="card card--success">
+  <div class="card__title">✅ 本课小结</div>
+  <p style="margin-bottom:0.5rem"><strong>你今天学到了：</strong></p>
+  <ul style="margin-top:0.3rem; margin-bottom:0.5rem; padding-left:1.2rem;">
+    <li>Agent 循环 = while(未完成) { 模型决策 → 执行工具 → 回传结果 }</li>
+    <li>两个终止条件：自然终止（模型不再调工具）+ 强制终止（MAX_STEPS）</li>
+    <li>并行 vs 串行：互不依赖的 tool_call 用 Promise.all() 并行执行</li>
+    <li>错误处理：把错误信息回传给模型，让它自己决定下一步</li>
+    <li>MAX_STEPS 推荐起步值 5，覆盖大部分场景，防止无限循环</li>
+  </ul>
+  <p style="margin-bottom:0; font-size:0.9rem; color:var(--text-secondary);">
+    🤔 <strong>有问题？</strong>直接问你的 AI 老师。明天 Day 4 将学习多工具编排——注册更多工具，让模型自主选择！
+  </p>
+</div>
+
+<p style="color:var(--text-secondary); font-size:0.85rem;">
+  📅 第 3 周 Day 3 完成 · 下一步：<a href="0014-multi-tool.html">第 3 周 Day 4：多工具编排</a>
+</p>
+
+</body>
+</html>

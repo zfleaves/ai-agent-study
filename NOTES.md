@@ -35,8 +35,10 @@
           Day 5 ✅ 复盘 + Demo 1 命令行聊天机器人 (chatbot.ts)
         第 3 周 🔄
           Day 1 ✅ Tool-calling 入门（Function Calling 机制、JSON Schema 工具定义）
+          Day 2 ✅ 定义第一个工具（Description 三要素、TS→JSON Schema 映射、多工具选择）
+          Day 3 ✅ 工具调用循环（Agent 循环、链式/并行调用、错误处理、终止条件）
         已安装模型：hermes3:8b (4.7GB)、qwen2.5:3b (1.9GB)
-下一步：  第 3 周 Day 2 — 定义第一个工具（getWeather），让 Hermes 调用 TS 函数
+下一步：  第 3 周 Day 4 — 多工具编排（注册更多工具，模型自主选择调用顺序）
 ```
 
 ## 已确认的先验知识
