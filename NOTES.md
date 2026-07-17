@@ -24,17 +24,18 @@
 ## 📍 当前进度（换电脑/新会话时读这里）
 
 ```
-当前阶段：第 2 周 — Ollama 环境 + 第一个本地模型
+当前阶段：第 3 周 — Tool-calling（让模型"做事"）
 计划版本：v2.0（16 周，3 语言）
 已完成：  第 1 周 ✅（5/5 天）
-        第 2 周 Day 1 ✅（Ollama 安装 + 模型选型）
-        第 2 周 Day 2 ✅（命令行对话 + System Prompt + Temperature + 速度实测）
-        第 2 周 Day 3 ✅（TS SDK 接入 + Streaming 流式响应）
-        第 2 周 Day 4 ✅（Prompt 工程 + 瘦身实验：Zero-shot/Few-shot/CoT）
-          📝 已补充追问解答：Few-shot 的 trade-off 分析 + CoT 在 Agent 工具调用中的用法（见 0009 课件第六节）
+        第 2 周 ✅（5/5 天）
+          Day 1 ✅ Ollama 安装 + 模型选型
+          Day 2 ✅ 命令行对话 + System Prompt + Temperature + 速度实测
+          Day 3 ✅ TS SDK 接入 + Streaming 流式响应
+          Day 4 ✅ Prompt 工程 + 瘦身实验（Zero-shot/Few-shot/CoT）+ 追问解答
+          Day 5 ✅ 复盘 + Demo 1 命令行聊天机器人 (chatbot.ts)
         已安装模型：hermes3:8b (4.7GB)、qwen2.5:3b (1.9GB)
-下一步：  Day 5（复盘 + Demo 1：命令行聊天机器人）
-待准备：  整合本周所学，完成一个带对话历史 + 流式响应的终端聊天机器人
+下一步：  第 3 周 Day 1 — Tool-calling 入门（理解 Function Calling 机制）
+待准备：  理解 JSON Schema 工具定义，让模型能调用 TypeScript 函数
 ```
 
 ## 已确认的先验知识

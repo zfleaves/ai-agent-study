@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>学习笔记 · AI Agent 开发工程师</title>
+<link rel="stylesheet" href="assets/style.css">
+<style>
+  .file-tree { font-family: var(--font-mono); font-size: 0.85rem; line-height: 1.8; background: var(--code-bg); padding: 1rem 1.2rem; border-radius: 8px; margin: 1rem 0; }
+  .file-tree .dir { color: var(--accent); font-weight: 700; }
+  .file-tree .file { color: var(--text); }
+  .file-tree .comment { color: var(--text-secondary); }
+  .file-tree .done { color: #22c55e; }
+  .progress-bar { background: var(--border); border-radius: 8px; height: 10px; margin: 0.3rem 0 0.8rem; overflow: hidden; }
+  .progress-bar__fill { background: var(--accent); height: 100%; border-radius: 8px; transition: width 0.5s; }
+  .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 0.8rem; margin: 1rem 0; }
+  .stat-card { border: 1px solid var(--border); border-radius: 8px; padding: 0.8rem 1rem; text-align: center; }
+  .stat-card__num { font-size: 1.6rem; font-weight: 700; color: var(--accent); }
+  .stat-card__label { font-size: 0.8rem; color: var(--text-secondary); }
+</style>
+</head>
+<body>
+
+<h1>📝 学习笔记</h1>
+<p><span class="tag tag--green">第 3 周</span> <span class="tag tag--blue">2026-07-17</span></p>
+
+<!-- 统计卡片 -->
+<div class="stat-grid">
+  <div class="stat-card">
+    <div class="stat-card__num">2/16</div>
+    <div class="stat-card__label">周完成</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-card__num">10</div>
+    <div class="stat-card__label">课件完成</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-card__num">1</div>
+    <div class="stat-card__label">Demo 完成</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-card__num">2</div>
+    <div class="stat-card__label">本地模型</div>
+  </div>
+</div>
+
+<!-- 学习进度 -->
+<h2>📍 学习进度</h2>
+<div class="progress-bar"><div class="progress-bar__fill" style="width:12.5%"></div></div>
+
+<table style="width:100%; border-collapse:collapse; font-size:0.9rem;">
+  <tr style="background:var(--code-bg);">
+    <th style="padding:0.4rem 0.8rem; border:1px solid var(--border);">周</th>
+    <th style="padding:0.4rem 0.8rem; border:1px solid var(--border);">主题</th>
+    <th style="padding:0.4rem 0.8rem; border:1px solid var(--border);">进度</th>
+    <th style="padding:0.4rem 0.8rem; border:1px solid var(--border);">课件</th>
+  </tr>
+  <tr>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">1</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">认知地基</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">5/5 ✅</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);"><a href="lessons/week-01/">0001-0005</a></td>
+  </tr>
+  <tr style="background:var(--accent-light);">
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">2</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">Ollama + 推理优化</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">5/5 ✅</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);"><a href="lessons/week-02/">0006-0010</a></td>
+  </tr>
+  <tr>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">3</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">Tool-calling</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">0/5 🔵</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">待创建</td>
+  </tr>
+</table>
+
+<!-- 文件结构 -->
+<h2>📁 项目文件结构</h2>
+<div class="file-tree">
+<span class="dir">gaoyang-study/</span>
+├── <span class="file">MISSION.md</span>              <span class="comment">学习目标</span>
+├── <span class="file">STUDY-PLAN.md</span>           <span class="comment">16 周完整计划</span>
+├── <span class="file done">STUDY-PLAN.html</span>          <span class="comment">✅ 计划预览版</span>
+├── <span class="file">NOTES.md</span>                <span class="comment">用户偏好 + 进度</span>
+├── <span class="file done">NOTES.html</span>               <span class="comment">✅ 笔记预览版</span>
+├── <span class="file">RESOURCES.md</span>            <span class="comment">精选资源</span>
+├── <span class="dir">assets/</span>
+│   └── <span class="file">style.css</span>             <span class="comment">共享样式表</span>
+├── <span class="dir">lessons/</span>
+│   ├── <span class="dir">week-01/</span>              <span class="comment">✅ 5 课完成</span>
+│   │   ├── <span class="file done">0001-hermes-overview.html</span>
+│   │   ├── <span class="file done">0002-llm-core-concepts.html</span>
+│   │   ├── <span class="file done">0003-agent-workflow.html</span>
+│   │   ├── <span class="file done">0004-tech-ecosystem.html</span>
+│   │   └── <span class="file done">0005-week1-review.html</span>
+│   ├── <span class="dir">week-02/</span>              <span class="comment">✅ 5 课完成</span>
+│   │   ├── <span class="file done">0006-ollama-setup.html</span>
+│   │   ├── <span class="file done">0007-cli-chat-speed.html</span>
+│   │   ├── <span class="file done">0008-ts-sdk-streaming.html</span>
+│   │   ├── <span class="file done">0009-prompt-engineering.html</span>
+│   │   └── <span class="file done">0010-week2-review.html</span>
+│   └── <span class="dir">week-03/</span>              <span class="comment">🔵 待创建</span>
+├── <span class="dir">demo/</span>
+│   └── <span class="dir">week-02/</span>
+│       ├── <span class="file done">stream-chat.ts</span>       <span class="comment">Day 3: Streaming 实验</span>
+│       ├── <span class="file done">prompt-lab.ts</span>        <span class="comment">Day 4: Prompt 对比实验</span>
+│       └── <span class="file done">chatbot.ts</span>           <span class="comment">Day 5: Demo 1 聊天机器人</span>
+├── <span class="dir">learning-records/</span>
+└── <span class="dir">reference/</span>
+    └── <span class="file">glossary.html</span>          <span class="comment">术语表</span>
+</div>
+
+<!-- 用户偏好 -->
+<h2>⚙️ 用户偏好</h2>
+<ul>
+  <li>中文教学，英文术语保留原名</li>
+  <li>每次 session 10-20 分钟</li>
+  <li>偏好实操 > 理论推导</li>
+  <li>前端工程师（JS/TS 熟练）</li>
+  <li>TypeScript 优先 — 所有代码统一 TS</li>
+  <li>Java 零基础 — 第 11 周起学习</li>
+  <li>最终目标：AI Agent 全栈落地 + 作品集</li>
+</ul>
+
+<!-- 技术栈 -->
+<h2>🛠️ 技术栈</h2>
+<table style="width:100%; border-collapse:collapse; font-size:0.9rem;">
+  <tr style="background:var(--code-bg);">
+    <th style="padding:0.4rem 0.8rem; border:1px solid var(--border);">层</th>
+    <th style="padding:0.4rem 0.8rem; border:1px solid var(--border);">技术</th>
+    <th style="padding:0.4rem 0.8rem; border:1px solid var(--border);">状态</th>
+  </tr>
+  <tr><td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">语言</td><td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">TypeScript (strict) + Node.js 18+</td><td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">✅ 就绪</td></tr>
+  <tr><td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">运行时</td><td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">tsx（TS 直接执行）</td><td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">✅ 已安装</td></tr>
+  <tr><td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">模型部署</td><td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">Ollama</td><td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">✅ 已安装</td></tr>
+  <tr><td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">模型</td><td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">hermes3:8b (4.7GB) + qwen2.5:3b (1.9GB)</td><td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">✅ 已拉取</td></tr>
+  <tr><td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">Agent SDK</td><td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">ollama-js (npm)</td><td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">✅ 已安装</td></tr>
+  <tr><td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">Agent 框架</td><td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">Vercel AI SDK</td><td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">⬜ 第 7 周</td></tr>
+  <tr><td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">向量数据库</td><td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">LanceDB</td><td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">⬜ 第 5 周</td></tr>
+  <tr><td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">前端</td><td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">Next.js + React + Tailwind</td><td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">⬜ 第 7 周</td></tr>
+  <tr><td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">第二语言</td><td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">Java 17 + Spring Boot + Spring AI</td><td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">⬜ 第 11 周</td></tr>
+</table>
+
+<p style="margin-top:2rem; font-size:0.85rem; color:var(--text-secondary);">
+  📝 最后更新 2026-07-17 · <a href="NOTES.md">查看完整 Markdown 版</a>
+</p>
+
+</body>
+</html>

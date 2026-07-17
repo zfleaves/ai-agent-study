@@ -58,7 +58,7 @@
 | **Day 2** | 命令行对话 + 速度实测 | `ollama run` 命令、System Prompt、**实测并记录每个模型的响应速度** | System Prompt 作用、Temperature 调节、推理速度测量（tok/s） | 用同一 Prompt 测试 3 个模型，记录速度差异表 | 35min |
 | **Day 3** | TS SDK 接入 + Streaming | 使用 `ollama-js` 在 Node.js + TypeScript 中调用模型，流式响应 | Streaming 原理、SSE、异步迭代、首 token 延迟 vs 总延迟 | 写一个 TS 脚本：流式对话 + 测量首 token 时间和总时间 | 45min |
 | **Day 4** | Prompt 工程 + 瘦身实验 | 角色设定、Few-shot、CoT；**实验 System Prompt 长度对速度的影响** | Zero-shot vs Few-shot、CoT 思维链、Prompt 长度与 Prefill 时间关系 | 设计 3 种 Prompt 模板，对比效果 + 速度 | 40min |
-| **Day 5** | 复盘 + Demo | 本周知识点回顾，完成第一个 Demo | 周复盘 | **Demo 1：命令行聊天机器人**（Node.js + TS + Hermes，含速度对比报告） | 45min |
+| **Day 5** | 复盘 + Demo | ✅ 已完成：本周知识点回顾，完成 Demo 1 命令行聊天机器人 | 周复盘、readline、多轮对话、速度统计 | **Demo 1：命令行聊天机器人**（chatbot.ts）| 45min |
 
 ### 🎯 Demo 1：命令行聊天机器人 + 速度报告
 ```

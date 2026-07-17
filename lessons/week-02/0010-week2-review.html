@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第 10 课：第 2 周复盘 + Demo 1</title>
+<link rel="stylesheet" href="../../assets/style.css">
+</head>
+<body>
+
+<h1>🔄 第 10 课：第 2 周复盘 + Demo 1</h1>
+
+<p><span class="tag tag--blue">动手</span> <span class="tag tag--green">第 2 周 Day 5</span> <span class="tag tag--amber">约 45 分钟</span></p>
+
+<blockquote>
+  <strong>本课目标：</strong>回顾本周 5 个核心知识点，完成第一个 Demo——命令行聊天机器人，验证"学到了什么，能做什么"。
+</blockquote>
+
+<p>
+  📚 <strong>相关参考：</strong>
+  <a href="../../reference/glossary.html">术语表</a> ·
+  <a href="0009-prompt-engineering.html">← 第 9 课（Prompt 工程）</a> ·
+  <a href="0006-ollama-setup.html">第 6 课（Ollama 安装）</a>
+</p>
+
+<!-- ============================================================ -->
+<h2>一、本周回顾：5 天学了什么？</h2>
+
+<p>在开始 Demo 之前，先用自己的话回答以下问题——这是<strong>检索练习</strong>，比再看一遍笔记更有效。</p>
+
+<h3>📝 第 2 周复盘</h3>
+
+<div class="card card--accent">
+  <div class="card__title">用你自己的话回答</div>
+  <ol style="margin-bottom:0">
+    <li><strong>本周动手做了什么？</strong>——安装了什么？跑了什么代码？测了什么数据？</li>
+    <li><strong>最有收获的操作是哪个？</strong>——哪个步骤让你有"懂了"的感觉？</li>
+    <li><strong>Prompt 设计心得？</strong>——什么样的 Prompt 效果好？你学到了什么技巧？</li>
+    <li><strong>模型表现观察？</strong>——Hermes 8B 和 Qwen 3B 各有什么特点？中文怎么样？</li>
+    <li><strong>最模糊的概念是哪个？</strong>——还有什么不太懂的？</li>
+  </ol>
+</div>
+
+<p style="margin-top:1rem;">写完后再往下看对照。诚实面对自己的理解程度——模糊的地方正是下周要深入的。</p>
+
+<!-- ============================================================ -->
+<h2>二、本周知识地图</h2>
+
+<p>5 天，5 个核心知识块，它们之间的关系：</p>
+
+<pre><code>Day 1: Ollama 安装 + 模型选型
+  │  GGUF 格式、Q4 量化、8B vs 3B 选型
+  │
+  ├─→ Day 2: 命令行对话 + 速度实测
+  │     System Prompt、Temperature、tok/s 测量
+  │
+  ├─→ Day 3: TS SDK 接入 + Streaming
+  │     ollama-js、流式响应、TTFT vs 总耗时
+  │
+  ├─→ Day 4: Prompt 工程 + 瘦身实验
+  │     Zero-shot / Few-shot / CoT、Prompt 长度与 Prefill 关系
+  │
+  └─→ Day 5: 复盘 + Demo 1 ← 你现在在这里
+        整合所有知识，做出第一个可用的程序</code></pre>
+
+<p><strong>核心主线：</strong>从"能对话"（Day 1-2）→ "能用代码对话"（Day 3）→ "能高效对话"（Day 4）→ "能做出东西"（Day 5）。</p>
+
+<h3>本周关键概念速查</h3>
+
+<table style="width:100%; border-collapse:collapse; margin:1rem 0; font-size:0.9rem;">
+  <tr style="background:var(--code-bg);">
+    <th style="padding:0.4rem 0.8rem; border:1px solid var(--border);">概念</th>
+    <th style="padding:0.4rem 0.8rem; border:1px solid var(--border);">一句话解释</th>
+    <th style="padding:0.4rem 0.8rem; border:1px solid var(--border);">你学到了什么</th>
+  </tr>
+  <tr>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">GGUF</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">量化模型的通用文件格式</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">Q4_K_M 在质量和大小之间最优</td>
+  </tr>
+  <tr>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">量化 (Quantization)</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">把浮点参数压缩到低精度整数</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">Q4 几乎不损失质量，但模型缩小 4 倍</td>
+  </tr>
+  <tr>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">System Prompt</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">设定模型角色和行为的"元指令"</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">角色 + 约束 + 格式，三要素</td>
+  </tr>
+  <tr>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">Temperature</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">控制输出随机性的参数</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">低=保守（代码），高=创意（写作）</td>
+  </tr>
+  <tr>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">TTFT</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">Time To First Token，首 token 延迟</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">主要由 Prompt 长度 → Prefill 决定</td>
+  </tr>
+  <tr>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">Streaming</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">逐 token 输出，不等全部生成完</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">提升感知速度，用户不用等</td>
+  </tr>
+  <tr>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">Zero-shot</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">只给指令，不给例子</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">依赖预训练知识，通用任务首选</td>
+  </tr>
+  <tr>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">Few-shot</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">给 1-3 个输入→输出例子</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">In-Context Learning，格式控制利器</td>
+  </tr>
+  <tr>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">CoT</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">先推理再回答，用中间 token 锁定答案</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">复杂推理场景必备，自回归约束机制</td>
+  </tr>
+  <tr>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">Prefill</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">模型"阅读"Prompt 的阶段</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">O(N²) 计算量，Prompt 越长越慢</td>
+  </tr>
+</table>
+
+<!-- ============================================================ -->
+<h2>三、技能：Demo 1 — 命令行聊天机器人</h2>
+
+<h3>3.1 Demo 功能</h3>
+
+<p>这是一个<strong>整合本周所有知识</strong>的综合练习。你将在终端里和一个本地模型进行多轮对话——就像 ChatGPT，但完全跑在你的电脑上。</p>
+
+<div class="card card--accent">
+  <div class="card__title">🎯 Demo 1 功能清单</div>
+  <ul style="margin-bottom:0">
+    <li><strong>流式对话</strong>：逐字输出，不等全部生成完（Day 3 知识）</li>
+    <li><strong>多轮对话</strong>：模型记住上下文，可以追问（Day 2 知识）</li>
+    <li><strong>System Prompt</strong>：设定角色和行为（Day 2 知识）</li>
+    <li><strong>模型切换</strong>：运行中可切换 8B/3B（Day 1 知识）</li>
+    <li><strong>速度统计</strong>：每轮对话显示 TTFT 和总耗时（Day 3 知识）</li>
+    <li><strong>速度报告</strong>：内置 8B vs 3B 对比表（Day 2 知识）</li>
+    <li><strong>类型安全</strong>：TypeScript strict mode（全课程规范）</li>
+  </ul>
+</div>
+
+<h3>3.2 运行 Demo</h3>
+
+<div class="card card--accent" style="margin-top:1rem;">
+  <div class="card__title">▶️ Step 1：启动 Ollama</div>
+  <p style="margin-bottom:0">确保 Ollama 在后台运行。Windows 任务栏找 Ollama 图标，或运行：</p>
+  <pre><code>ollama serve</code></pre>
+</div>
+
+<div class="card card--accent" style="margin-top:1rem;">
+  <div class="card__title">▶️ Step 2：运行聊天机器人</div>
+  <pre><code>cd demo/week-02
+npx tsx chatbot.ts</code></pre>
+  <p style="margin-bottom:0">看到欢迎界面后，输入任意文字开始对话。</p>
+</div>
+
+<div class="card card--accent" style="margin-top:1rem;">
+  <div class="card__title">▶️ Step 3：体验所有功能</div>
+  <ul style="margin-bottom:0">
+    <li>输入 <code>用 TypeScript 写一个单例模式</code> → 测试代码生成</li>
+    <li>输入 <code>解释一下闭包，用前端例子</code> → 测试中文解释</li>
+    <li>输入 <code>/model hermes3:8b</code> → 切换模型，感受速度差异</li>
+    <li>输入 <code>/speed</code> → 查看当前速度统计</li>
+    <li>输入 <code>/report</code> → 查看模型对比报告</li>
+    <li>追问："能详细解释一下吗？" → 测试多轮对话上下文</li>
+  </ul>
+</div>
+
+<h3>3.3 Demo 架构解析</h3>
+
+<p>理解这个 Demo 的代码结构，有助于你下周自己写 Agent：</p>
+
+<pre><code>┌─────────────────────────────────────────────────────┐
+│                    主循环 (main)                      │
+│  readline 监听用户输入 → 解析命令/对话 → 调用 chat()   │
+└──────────────────────┬──────────────────────────────┘
+                       │
+         ┌─────────────┼─────────────┐
+         ▼             ▼             ▼
+    ┌─────────┐  ┌──────────┐  ┌──────────┐
+    │ /model  │  │  /speed  │  │  对话    │
+    │ 切换模型 │  │ 速度统计  │  │ chat()  │
+    └─────────┘  └──────────┘  └────┬─────┘
+                                    │
+                          ┌─────────┴─────────┐
+                          ▼                   ▼
+                   ┌────────────┐    ┌────────────────┐
+                   │ ollama.chat│    │  messages[]     │
+                   │ stream:true│    │  对话历史管理     │
+                   └─────┬──────┘    └────────────────┘
+                         │
+                         ▼
+                   ┌────────────┐
+                   │ for await   │
+                   │ 逐 chunk 输出│
+                   └────────────┘</code></pre>
+
+<div class="card card--accent">
+  <div class="card__title">🔑 关键设计决策</div>
+  <ul style="margin-bottom:0">
+    <li><strong>messages 数组</strong>：每次对话后 push user + assistant 消息，这是多轮对话的基础。模型不"记住"历史——是你把历史每次都发给它。</li>
+    <li><strong>stats 数组</strong>：每轮记录 TTFT、总耗时、输出长度。这些数据让你在选模型时不是"凭感觉"，而是"看数据"。</li>
+    <li><strong>默认用 3B</strong>：交互式聊天优先级是"响应快"而非"质量最高"。3B 的 200ms TTFT 比 8B 的 1000ms 更适合聊天。</li>
+  </ul>
+</div>
+
+<!-- ============================================================ -->
+<h2>四、本周常见踩坑总结</h2>
+
+<div class="card card--warn">
+  <div class="card__title">⚠️ 第 2 周踩坑记录</div>
+  <ol style="margin-bottom:0">
+    <li><strong>Ollama 没启动</strong>：运行脚本前确认 Ollama 在后台运行（任务栏有图标或 <code>ollama list</code> 能返回模型列表）。</li>
+    <li><strong>模型没拉取</strong>：<code>ollama pull hermes3:8b</code> 需要先下载模型，8B 模型约 4.7GB，首次下载需 10-20 分钟。</li>
+    <li><strong>Node.js 版本太低</strong>：ollama-js 需要 Node.js 18+。用 <code>node --version</code> 检查。</li>
+    <li><strong>tsx 没安装</strong>：<code>npx tsx</code> 首次运行会自动下载。也可以全局安装：<code>npm i -g tsx</code>。</li>
+    <li><strong>对话历史太长</strong>：多轮对话后 messages 数组越来越大，超出 Context Window 会导致模型"忘记"前面的内容。用 <code>/clear</code> 定期清理。</li>
+    <li><strong>8B 模型太慢</strong>：CPU 推理 8B 模型首 token 可能等 1-2 秒。这是正常的——不是你的代码有问题，是模型太大。开发时用 3B，需要质量时切 8B。</li>
+  </ol>
+</div>
+
+<!-- ============================================================ -->
+<h2>五、自测</h2>
+
+<p>5 题，覆盖本周核心知识。先自己回答，再对照答案。</p>
+
+<ol>
+  <li>为什么 Ollama 使用 GGUF 格式而不是原始的 PyTorch 模型文件？</li>
+  <li>Streaming 和非 Streaming 的 TTFT 有什么区别？为什么？</li>
+  <li>Zero-shot、Few-shot、CoT 三种策略，在什么情况下应该选择哪种？给出具体的判断标准。</li>
+  <li>为什么"Prompt 瘦身"的目标不是"尽量短"，而是"刚好够用"？</li>
+  <li>Demo 1 中 messages 数组的作用是什么？如果不清空它会有什么后果？</li>
+</ol>
+
+<details style="margin:1rem 0;">
+  <summary style="cursor:pointer; font-weight:700; color:var(--accent);">📝 参考答案</summary>
+
+  <div style="margin-top:1rem;">
+
+  <h4>第 1 题：为什么 Ollama 使用 GGUF 格式？</h4>
+
+  <p><strong>核心原因：</strong>原始 PyTorch 模型文件（.pt / .safetensors）是 16 位浮点精度（FP16），一个 8B 模型需要约 16GB 显存/内存。普通开发者的电脑根本跑不动。GGUF 格式做了两件事：</p>
+
+  <ol>
+    <li><strong>量化压缩</strong>：把 FP16 参数压缩到 4-bit 整数（Q4_K_M），模型大小从 16GB → 4.7GB，缩小约 3.4 倍。而且 Q4 量化几乎不损失质量——因为模型参数本身就不需要 16 位精度。</li>
+    <li><strong>自包含</strong>：GGUF 文件包含模型权重 + 分词器 + 元数据（模型架构、量化参数、特殊 token 定义），一个文件就是完整的模型。不需要 Python 环境、不需要 PyTorch、不需要 transformers 库。</li>
+  </ol>
+
+  <p><strong>为什么量化几乎不损失质量？</strong> 神经网络在训练时学到的参数分布是连续的，但推理时不需要那么高的精度。就像一张 4K 照片缩小到 1080p——你仍然能认出里面的人。Q4 量化用 16 个离散值（4-bit）来近似连续的浮点值，误差在 1-2% 以内，对文本生成质量的影响微乎其微。</p>
+
+  <h4>第 2 题：Streaming 和非 Streaming 的 TTFT 有什么区别？</h4>
+
+  <p><strong>答案：TTFT 本身是一样的，但用户感知完全不同。</strong></p>
+
+  <p>TTFT（首 token 延迟）主要由 Prefill 阶段决定——模型需要先"阅读"整个 Prompt 并计算所有 token 之间的注意力关系。这个计算量取决于 Prompt 长度，跟是否 Streaming 无关。</p>
+
+  <p>关键区别在于<strong>感知延迟</strong>：</p>
+  <ul>
+    <li><strong>非 Streaming</strong>：用户要等模型生成完<strong>所有</strong> token 后才能看到任何内容。如果生成 500 个 token，每个 token 40ms，用户要等 20000ms（20 秒）才能看到结果。</li>
+    <li><strong>Streaming</strong>：模型生成第一个 token 就立即返回。用户看到 TTFT（比如 400ms）+ 每 40ms 一个新 token。虽然总时间一样，但用户感觉"它正在打"而不是"卡住了"。</li>
+  </ul>
+
+  <p><strong>类比：</strong>非 Streaming 像等一封完整的邮件；Streaming 像看着对方打字——后者让你知道"对方在回复"，心理等待感更短。</p>
+
+  <h4>第 3 题：三种策略如何选择？</h4>
+
+  <p><strong>判断标准：问自己三个问题——</strong></p>
+
+  <ol>
+    <li><strong>"这个任务模型在训练中见过吗？"</strong> → 见过 → Zero-shot 就够了。没见过（如公司内部 DSL）→ 需要 Few-shot。</li>
+    <li><strong>"模型的困难是'不知道格式'还是'不知道答案'？"</strong> → 格式问题 → Few-shot（1-2 个例子）。知识问题 → Zero-shot + 清晰指令。</li>
+    <li><strong>"这个任务的核心挑战是'知道答案'还是'推导答案'？"</strong> → 推导答案 → 需要 CoT。</li>
+  </ol>
+
+  <table style="width:100%; border-collapse:collapse; margin:1rem 0; font-size:0.9rem;">
+    <tr style="background:var(--code-bg);">
+      <th style="padding:0.4rem 0.8rem; border:1px solid var(--border);">场景</th>
+      <th style="padding:0.4rem 0.8rem; border:1px solid var(--border);">策略</th>
+      <th style="padding:0.4rem 0.8rem; border:1px solid var(--border);">原因</th>
+    </tr>
+    <tr>
+      <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">写一个冒泡排序（TS）</td>
+      <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">Zero-shot</td>
+      <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">模型预训练中见过无数次</td>
+    </tr>
+    <tr>
+      <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">把自然语言转成 SQL</td>
+      <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">Few-shot</td>
+      <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">格式控制是核心，1-2 个例子足够</td>
+    </tr>
+    <tr>
+      <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">数学应用题（"水池注水"）</td>
+      <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">CoT</td>
+      <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">需要多步推理，不是一步知道答案</td>
+    </tr>
+    <tr>
+      <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">创意写作（"写一首诗"）</td>
+      <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">Zero-shot</td>
+      <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">CoT 会破坏流畅性，Few-shot 限制创意</td>
+    </tr>
+  </table>
+
+  <h4>第 4 题：为什么"刚好够用"而不是"尽量短"？</h4>
+
+  <p><strong>因为"尽量短"可能导致多轮纠正，总时间反而更长。</strong></p>
+
+  <p>假设你用极简 Prompt "写个排序"：</p>
+  <ul>
+    <li>第 1 轮：模型输出 Python 版（不对）→ TTFT 200ms + 生成 2000ms = 2200ms</li>
+    <li>第 2 轮：你说"要 TypeScript"→ 模型输出 TS 但没类型 → 2200ms</li>
+    <li>第 3 轮：你说"加类型定义"→ 终于对了 → 2200ms</li>
+    <li><strong>总耗时：6600ms</strong></li>
+  </ul>
+
+  <p>如果用完整 Prompt "用 TypeScript 写一个冒泡排序函数，输入 number[]，返回排序后的数组，带完整类型定义"：</p>
+  <ul>
+    <li>第 1 轮：TTFT 400ms + 生成 2000ms = 2400ms</li>
+    <li><strong>总耗时：2400ms</strong></li>
+  </ul>
+
+  <p><strong>完整 Prompt 反而快了近 3 倍。</strong>"刚好够用"的意思是：保留所有必要信息（任务 + 格式 + 约束），去掉冗余（礼貌用语、重复描述）。</p>
+
+  <p><strong>判断标准：</strong>如果再删掉任何一个词，输出质量就会明显下降——这个临界点就是最优长度。</p>
+
+  <h4>第 5 题：messages 数组的作用和风险</h4>
+
+  <p><strong>作用：</strong>messages 数组是对话历史的存储。每次调用 <code>ollama.chat({ messages })</code> 时，你把<strong>整个对话历史</strong>发给模型。模型本身不保存任何状态——它每次都从零开始"阅读"你给的 messages。多轮对话的"记忆"不是模型的能力，而是<strong>你把历史每次都发给它</strong>的结果。</p>
+
+  <p><strong>如果不清空：</strong></p>
+  <ol>
+    <li><strong>Context Window 溢出</strong>：qwen2.5:3b 的上下文窗口是 32768 tokens。每轮对话的 user + assistant 消息加起来可能几百 token。如果一直不清理，几十轮后 messages 的 token 数超过 32768——模型会截断最早的消息，导致"忘记"对话开头的内容。</li>
+    <li><strong>TTFT 越来越慢</strong>：每次 Prefill 要处理整个 messages 数组。messages 越长，Prefill 越久，用户感觉回复越来越慢。</li>
+    <li><strong>token 浪费</strong>：旧的对话内容对当前问题可能毫无帮助，但仍然在消耗 token 预算。</li>
+  </ol>
+
+  <p><strong>解决方案：</strong>Demo 1 中提供了 <code>/clear</code> 命令手动清空。在真正的 Agent 应用中，需要更智能的策略——滑动窗口（保留最近 N 轮）、摘要压缩（把旧对话总结成一段话）、或者 RAG（检索相关历史而非全部保留）。这些会在后续课程中深入学习。</p>
+
+  </div>
+</details>
+
+<!-- ============================================================ -->
+<hr style="margin:2rem 0; border:none; border-top:1px solid var(--border);">
+
+<div class="card card--success">
+  <div class="card__title">✅ 第 2 周完成！</div>
+  <p style="margin-bottom:0.5rem"><strong>本周你学到了：</strong></p>
+  <ul style="margin-top:0.3rem; margin-bottom:0.5rem; padding-left:1.2rem;">
+    <li>在 Windows 上安装 Ollama，拉取和管理本地模型</li>
+    <li>理解 GGUF 格式和量化（Q4_K_M），学会 8B vs 3B 选型</li>
+    <li>用 TypeScript 代码流式调用本地模型，测量 TTFT</li>
+    <li>掌握 Zero-shot / Few-shot / CoT 三种 Prompt 策略及其 trade-off</li>
+    <li>完成第一个 Demo：命令行聊天机器人，支持多轮对话 + 速度统计</li>
+  </ul>
+  <p style="margin-bottom:0; font-size:0.9rem; color:var(--text-secondary);">
+    🤔 <strong>有问题？</strong>直接问你的 AI 老师——任何不清楚的地方都可以追问。下周进入 Tool-calling，这是 Agent 最核心的能力！
+  </p>
+</div>
+
+<p style="color:var(--text-secondary); font-size:0.85rem;">
+  📅 第 2 周 Day 5 完成 · 下一步：<a href="../week-03/0011-tool-calling-intro.html">第 3 周 Day 1：Tool-calling 入门</a>
+</p>
+
+</body>
+</html>

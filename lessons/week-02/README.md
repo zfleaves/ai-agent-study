@@ -2,7 +2,7 @@
 
 > 日期：2026-07-14 ~ 2026-07-18
 > 目标：在 Windows 上安装 Ollama，拉取 Hermes 3.1 模型，用 TypeScript 代码与模型对话
-> 完成度：0/5
+> 完成度：5/5 ✅
 
 ---
 
@@ -17,8 +17,8 @@
 | Day 1 | Ollama 安装 + 模型选型 | — | ⬜ |
 | Day 2 | 命令行对话 + 速度实测 | — | ⬜ |
 | Day 3 | TS SDK 接入 + Streaming | — | ⬜ |
-| Day 4 | Prompt 工程 + 瘦身实验 | — | ⬜ |
-| Day 5 | 复盘 + Demo 1 | — | ⬜ |
+| Day 4 | Prompt 工程 + 瘦身实验 | [0009-prompt-engineering.html](./0009-prompt-engineering.html) | ✅ |
+| Day 5 | 复盘 + Demo 1 | [0010-week2-review.html](./0010-week2-review.html) | ✅ |
 
 ## 本周核心知识点
 

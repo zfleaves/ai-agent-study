@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>学习计划 · AI Agent 开发工程师</title>
+<link rel="stylesheet" href="assets/style.css">
+<style>
+  .progress-bar { background: var(--border); border-radius: 8px; height: 12px; margin: 0.5rem 0 1rem; overflow: hidden; }
+  .progress-bar__fill { background: var(--accent); height: 100%; border-radius: 8px; transition: width 0.5s; }
+  .week-card { border: 1px solid var(--border); border-radius: 8px; padding: 1rem 1.2rem; margin: 1rem 0; }
+  .week-card.done { border-left: 4px solid var(--success-border); background: var(--success-bg); }
+  .week-card.active { border-left: 4px solid var(--accent); }
+  .checklist { list-style: none; padding: 0; }
+  .checklist li { padding: 0.2rem 0; }
+  .checklist li::before { content: '⬜ '; }
+  .checklist li.done::before { content: '✅ '; }
+  .phase-bar { display: flex; gap: 2px; margin: 1rem 0; }
+  .phase-bar__seg { flex: 1; height: 24px; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 0.7rem; color: #fff; font-weight: 700; }
+  .phase-bar__seg.done { background: #22c55e; }
+  .phase-bar__seg.active { background: var(--accent); }
+  .phase-bar__seg.pending { background: var(--border); color: var(--text-secondary); }
+  .demo-link { font-family: var(--font-mono); font-size: 0.85rem; }
+</style>
+</head>
+<body>
+
+<h1>📐 AI Agent 开发工程师 — 学习计划</h1>
+<p><span class="tag tag--green">16 周</span> <span class="tag tag--blue">TS · Java · Python</span> <span class="tag tag--amber">覆盖率 ~95%</span></p>
+
+<!-- 总进度 -->
+<h2>📊 总体进度</h2>
+<div class="progress-bar"><div class="progress-bar__fill" style="width:12.5%"></div></div>
+<p style="font-size:0.9rem; color:var(--text-secondary);">2/16 周完成 · 2/15 个 Demo 完成</p>
+
+<!-- 阶段进度条 -->
+<div class="phase-bar">
+  <div class="phase-bar__seg done">地基</div>
+  <div class="phase-bar__seg active">Agent</div>
+  <div class="phase-bar__seg pending">RAG</div>
+  <div class="phase-bar__seg pending">框架</div>
+  <div class="phase-bar__seg pending">进阶</div>
+  <div class="phase-bar__seg pending">Java</div>
+  <div class="phase-bar__seg pending">Python</div>
+  <div class="phase-bar__seg pending">落地</div>
+</div>
+
+<!-- 第 1 周 -->
+<div class="week-card done">
+  <h3>✅ 第 1 周：认知地基 — "AI Agent 到底是什么"</h3>
+  <p style="color:var(--text-secondary); margin-bottom:0.5rem;">理解 LLM、Agent、Token 等核心概念，建立完整的认知地图</p>
+  <ul class="checklist">
+    <li class="done">Day 1：Agent 全景认知 — <a href="lessons/week-01/0001-hermes-overview.html">第 1 课</a></li>
+    <li class="done">Day 2：LLM 核心概念</li>
+    <li class="done">Day 3：Agent 工作原理</li>
+    <li class="done">Day 4：技术生态地图</li>
+    <li class="done">Day 5：复盘 + 小测</li>
+  </ul>
+</div>
+
+<!-- 第 2 周 -->
+<div class="week-card done">
+  <h3>✅ 第 2 周：Ollama 环境 + 第一个本地模型 + 推理优化</h3>
+  <p style="color:var(--text-secondary); margin-bottom:0.5rem;">安装 Ollama，用 TypeScript 流式调用本地模型，掌握 Prompt 工程</p>
+  <ul class="checklist">
+    <li class="done">Day 1：Ollama 安装 + 模型选型 — <a href="lessons/week-02/0006-ollama-setup.html">第 6 课</a></li>
+    <li class="done">Day 2：命令行对话 + 速度实测 — <a href="lessons/week-02/0007-cli-chat-speed.html">第 7 课</a></li>
+    <li class="done">Day 3：TS SDK 接入 + Streaming — <a href="lessons/week-02/0008-ts-sdk-streaming.html">第 8 课</a></li>
+    <li class="done">Day 4：Prompt 工程 + 瘦身实验 — <a href="lessons/week-02/0009-prompt-engineering.html">第 9 课</a></li>
+    <li class="done">Day 5：复盘 + Demo 1 — <a href="lessons/week-02/0010-week2-review.html">第 10 课</a></li>
+  </ul>
+  <p style="margin-top:0.5rem;">🎯 <strong>Demo 1：</strong> <span class="demo-link">demo/week-02/chatbot.ts</span> — 命令行聊天机器人</p>
+</div>
+
+<!-- 第 3 周 -->
+<div class="week-card active">
+  <h3>🔵 第 3 周：Tool-calling — 让模型"做事" <span class="tag tag--blue">当前</span></h3>
+  <p style="color:var(--text-secondary); margin-bottom:0.5rem;">理解 Function Calling 机制，让模型能调用 TypeScript 函数</p>
+  <ul class="checklist">
+    <li>Day 1：Tool-calling 原理</li>
+    <li>Day 2：定义第一个工具</li>
+    <li>Day 3：工具调用循环</li>
+    <li>Day 4：多工具编排</li>
+    <li>Day 5：复盘 + Demo 2</li>
+  </ul>
+  <p style="margin-top:0.5rem;">🎯 <strong>Demo 2：</strong> 工具调用 Agent（多工具 + 循环）</p>
+</div>
+
+<!-- 第 4 周 -->
+<div class="week-card">
+  <h3>第 4 周：Agent 核心循环 — 从"调用"到"自主"</h3>
+  <p style="color:var(--text-secondary); margin-bottom:0.5rem;">深入 ReAct 模式，实现自主规划和多步执行</p>
+  <ul class="checklist">
+    <li>Day 1：ReAct 模式深入</li>
+    <li>Day 2：Agent 状态管理</li>
+    <li>Day 3：错误处理与重试</li>
+    <li>Day 4：Agent 规划能力</li>
+    <li>Day 5：复盘 + Demo 3</li>
+  </ul>
+  <p style="margin-top:0.5rem;">🎯 <strong>Demo 3：</strong> 自主任务 Agent</p>
+</div>
+
+<!-- 第 5-16 周简略版 -->
+<details style="margin:1rem 0;">
+  <summary style="cursor:pointer; font-weight:700; font-size:1.1rem;">📅 第 5-16 周（展开查看）</summary>
+  <div style="margin-top:1rem;">
+
+<div class="week-card">
+  <h3>第 5 周：RAG 原理 — 让模型"读你的文档"</h3>
+  <p style="color:var(--text-secondary);">RAG 三阶段、文档处理管道、Embedding、向量数据库</p>
+  <p>🎯 <strong>Demo 4：</strong> 文档问答系统</p>
+</div>
+
+<div class="week-card">
+  <h3>第 6 周：本地知识库 — 生产级 RAG</h3>
+  <p style="color:var(--text-secondary);">多文档索引、混合检索、中文优化</p>
+  <p>🎯 <strong>Demo 5：</strong> 本地知识库系统</p>
+</div>
+
+<div class="week-card">
+  <h3>第 7 周：Vercel AI SDK — 前端原生 Agent 框架</h3>
+  <p style="color:var(--text-secondary);">useChat、Tool-calling UI、React 集成</p>
+  <p>🎯 <strong>Demo 6：</strong> Agent 对话 UI</p>
+</div>
+
+<div class="week-card">
+  <h3>第 8 周：MCP 协议 — 2026 Agent 工具标准</h3>
+  <p style="color:var(--text-secondary);">MCP Server/Client、动态工具发现</p>
+  <p>🎯 <strong>Demo 7：</strong> MCP Agent</p>
+</div>
+
+<div class="week-card">
+  <h3>第 9 周：Agent 记忆系统 + 状态持久化</h3>
+  <p style="color:var(--text-secondary);">三层记忆架构、SQLite 持久化、Redis 缓存</p>
+  <p>🎯 <strong>Demo 8：</strong> 记忆 Agent</p>
+</div>
+
+<div class="week-card">
+  <h3>第 10 周：多 Agent 协作 — 团队作战</h3>
+  <p style="color:var(--text-secondary);">Supervisor/Peer-to-Peer、LangGraph、角色分工</p>
+  <p>🎯 <strong>Demo 9：</strong> Agent 团队</p>
+</div>
+
+<div class="week-card">
+  <h3>第 11 周：☕ Java 企业级（上）— Spring Boot + Spring AI</h3>
+  <p style="color:var(--text-secondary);">Java 基础、Spring Boot、Spring AI Tool Calling</p>
+  <p>🎯 <strong>Demo 10-J：</strong> Java 版工具调用 Agent</p>
+</div>
+
+<div class="week-card">
+  <h3>第 12 周：☕ Java 企业级（下）— LangChain4j</h3>
+  <p style="color:var(--text-secondary);">LangChain4j Agent、Java RAG、TS vs Java 对比</p>
+  <p>🎯 <strong>Demo 11-J：</strong> Java 版知识库 Agent</p>
+</div>
+
+<div class="week-card">
+  <h3>第 13 周：🐍 Python AI 生态（上）— LangChain + LlamaIndex</h3>
+  <p style="color:var(--text-secondary);">Python 环境、LangChain Agent、LlamaIndex RAG</p>
+  <p>🎯 <strong>Demo 12-Py：</strong> Python 版知识库 Agent</p>
+</div>
+
+<div class="week-card">
+  <h3>第 14 周：🐍 Python AI 生态（下）— FastAPI + 三语言对比</h3>
+  <p style="color:var(--text-secondary);">FastAPI、Python MCP、TS/Java/Python 全面对比</p>
+  <p>🎯 <strong>Demo 13：</strong> 三语言对比文档</p>
+</div>
+
+<div class="week-card">
+  <h3>第 15 周：模型调优 + Agent 评估 + 生产部署</h3>
+  <p style="color:var(--text-secondary);">LoRA、vLLM、Guardrails、Docker 部署</p>
+  <p>🎯 <strong>Demo 14：</strong> 微调模型 + 评估体系 + 部署方案</p>
+</div>
+
+<div class="week-card">
+  <h3>第 16 周：综合项目 + 作品集 + 最终复盘</h3>
+  <p style="color:var(--text-secondary);">全栈知识库 Agent 应用（三语言版本）</p>
+  <p>🎯 <strong>Demo 15：</strong> 完整知识库 Agent 应用</p>
+</div>
+
+  </div>
+</details>
+
+<!-- 15 个 Demo 总览 -->
+<h2>🧪 15 个 Demo 进度</h2>
+<table style="width:100%; border-collapse:collapse; font-size:0.9rem;">
+  <tr style="background:var(--code-bg);">
+    <th style="padding:0.4rem 0.8rem; border:1px solid var(--border);">#</th>
+    <th style="padding:0.4rem 0.8rem; border:1px solid var(--border);">Demo</th>
+    <th style="padding:0.4rem 0.8rem; border:1px solid var(--border);">周</th>
+    <th style="padding:0.4rem 0.8rem; border:1px solid var(--border);">语言</th>
+    <th style="padding:0.4rem 0.8rem; border:1px solid var(--border);">状态</th>
+  </tr>
+  <tr>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">1</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);"><a href="demo/week-02/chatbot.ts">命令行聊天机器人</a></td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">2</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">TS</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">✅</td>
+  </tr>
+  <tr>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">2</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">工具调用 Agent</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">3</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">TS</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">⬜</td>
+  </tr>
+  <tr>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">3</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">自主任务 Agent</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">4</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">TS</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">⬜</td>
+  </tr>
+  <tr>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">4</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">文档问答系统</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">5</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">TS</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">⬜</td>
+  </tr>
+  <tr>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">5</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">本地知识库系统</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">6</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">TS</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">⬜</td>
+  </tr>
+  <tr><td colspan="5" style="padding:0.4rem 0.8rem; text-align:center; color:var(--text-secondary);">... 展开 STUDY-PLAN.md 查看完整 15 个 Demo</td></tr>
+</table>
+
+<h2>📋 关键知识点 Checklist</h2>
+<h3>LLM 基础</h3>
+<ul class="checklist">
+  <li class="done">Token 和 Tokenization 原理</li>
+  <li class="done">Context Window 和上下文管理</li>
+  <li class="done">Temperature / Top-p / Top-k 采样</li>
+  <li class="done">System Prompt vs User Prompt</li>
+  <li class="done">Few-shot / Zero-shot / Chain-of-Thought</li>
+  <li class="done">模型选型：8B vs 3B，Q4 vs Q3，速度 vs 质量</li>
+  <li class="done">推理速度测量：TTFT（Prefill）vs 总延迟（Decode）</li>
+</ul>
+
+<h3>TypeScript 工程化</h3>
+<ul class="checklist">
+  <li class="done">项目 tsconfig 配置（strict mode + ESM）</li>
+  <li class="done">异步流式处理的类型安全</li>
+  <li>Agent 相关类型定义（Message / Tool / State / Memory）</li>
+  <li>Zod Schema → TypeScript Type 自动推导</li>
+  <li>工具函数的类型安全定义</li>
+</ul>
+
+<h3>Agent 核心</h3>
+<ul class="checklist">
+  <li>ReAct 循环（Reasoning + Acting）</li>
+  <li>Function Calling / Tool-use 机制</li>
+  <li>JSON Schema 工具定义</li>
+  <li>Agent 状态管理</li>
+  <li>错误处理与重试策略</li>
+</ul>
+
+<p style="margin-top:2rem; font-size:0.85rem; color:var(--text-secondary);">
+  📅 计划版本 v2.0 · 最后更新 2026-07-17 · <a href="STUDY-PLAN.md">查看完整 Markdown 版</a>
+</p>
+
+</body>
+</html>
