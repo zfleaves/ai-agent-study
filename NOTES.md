@@ -33,9 +33,10 @@
           Day 3 ✅ TS SDK 接入 + Streaming 流式响应
           Day 4 ✅ Prompt 工程 + 瘦身实验（Zero-shot/Few-shot/CoT）+ 追问解答
           Day 5 ✅ 复盘 + Demo 1 命令行聊天机器人 (chatbot.ts)
+        第 3 周 🔄
+          Day 1 ✅ Tool-calling 入门（Function Calling 机制、JSON Schema 工具定义）
         已安装模型：hermes3:8b (4.7GB)、qwen2.5:3b (1.9GB)
-下一步：  第 3 周 Day 1 — Tool-calling 入门（理解 Function Calling 机制）
-待准备：  理解 JSON Schema 工具定义，让模型能调用 TypeScript 函数
+下一步：  第 3 周 Day 2 — 定义第一个工具（getWeather），让 Hermes 调用 TS 函数
 ```
 
 ## 已确认的先验知识

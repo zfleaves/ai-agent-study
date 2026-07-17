@@ -92,9 +92,28 @@
   <dd>压缩模型权重以降低显存/内存占用和加速推理。例如 4-bit 量化可以让 8B 模型在普通电脑上运行。代价是轻微的质量损失。</dd>
 </dl>
 
+<h2>Agent 核心</h2>
+
+<dl>
+  <dt id="function-calling">Function Calling / Tool-calling（工具调用）</dt>
+  <dd>让 LLM 输出结构化的函数调用请求（JSON），而不是纯文本。模型不执行工具——它只输出"我想调用这个函数"的 JSON，由外部代码执行后把结果返回给模型。是 Agent 的核心能力。</dd>
+
+  <dt id="json-schema">JSON Schema</dt>
+  <dd>一种用 JSON 描述 JSON 数据结构的标准。在 Tool-calling 中用于定义工具的参数格式——告诉模型"这个函数需要什么参数、什么类型、是否必填"。</dd>
+
+  <dt id="tool-choice">tool_choice</dt>
+  <dd>控制模型是否调用工具的参数。可选值：<code>auto</code>（模型自己决定）、<code>required</code>（强制调用）、<code>none</code>（禁止调用）、或指定具体工具名。</dd>
+
+  <dt id="tool-role">Tool Role（工具角色）</dt>
+  <dd>消息中的特殊角色（<code>role: "tool"</code>），用于将工具执行结果返回给模型。与 user/assistant 角色区分，让模型知道这是"数据"而非"对话"。</dd>
+
+  <dt id="agent-loop">Agent Loop（Agent 循环）</dt>
+  <dd>Agent 执行任务的核心循环：用户输入 → 模型决策（是否调工具）→ 执行工具 → 结果回传 → 模型继续推理 → 直到任务完成。即 ReAct（Reasoning + Acting）循环。</dd>
+</dl>
+
 <hr style="margin: 2rem 0; border: none; border-top: 1px solid var(--border);">
 
-<p><em>最后更新：2026-07-09 · <a href="../lessons/0001-hermes-agent-overview.html">返回第 1 课</a></em></p>
+<p><em>最后更新：2026-07-17 · <a href="../lessons/week-03/0011-tool-calling-intro.html">返回第 11 课</a></em></p>
 
 </body>
 </html>

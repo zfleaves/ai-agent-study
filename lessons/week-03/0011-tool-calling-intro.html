@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第 11 课：Tool-calling 入门 — 让模型"做事"</title>
+<link rel="stylesheet" href="../../assets/style.css">
+</head>
+<body>
+
+<h1>🔧 第 11 课：Tool-calling 入门</h1>
+
+<p><span class="tag tag--blue">知识</span> <span class="tag tag--green">第 3 周 Day 1</span> <span class="tag tag--amber">约 40 分钟</span></p>
+
+<blockquote>
+  <strong>本课目标：</strong>理解 Function Calling 机制——模型如何从"说话"变成"做事"。这是 Agent 最核心的能力，没有之一。
+</blockquote>
+
+<p>
+  📖 <strong>课前阅读：</strong>
+  <a href="https://huggingface.co/NousResearch/Hermes-3-Llama-3.1-8B" target="_blank">Hermes 3 模型卡（Tool-calling 部分）</a> ·
+  <a href="https://platform.openai.com/docs/guides/function-calling" target="_blank">OpenAI Function Calling 文档</a>
+</p>
+
+<p>
+  🎯 <strong>本课 Demo：</strong>
+  <a href="../../demo/week-03/tool-calling-demo.ts">tool-calling-demo.ts</a> — 运行 <code>cd demo/week-03 && npx tsx tool-calling-demo.ts</code>，3 个场景逐步展示 Function Calling 完整流程
+</p>
+
+<p>
+  📚 <strong>相关参考：</strong>
+  <a href="../../reference/glossary.html">术语表</a> ·
+  <a href="../week-02/0010-week2-review.html">← 第 10 课（第 2 周复盘）</a>
+</p>
+
+<!-- ============================================================ -->
+<h2>一、为什么需要 Tool-calling？</h2>
+
+<h3>1.1 LLM 的天生局限</h3>
+
+<p>前两周我们学到的 LLM 是"纯文本机器"：输入文字 → 输出文字。这在很多场景下够用，但遇到这些问题就傻眼了：</p>
+
+<div class="card card--warn">
+  <div class="card__title">❌ 纯文本 LLM 做不到的事情</div>
+  <ul style="margin-bottom:0">
+    <li><strong>"现在几点了？"</strong> → 模型不知道当前时间，它的训练数据是过去的</li>
+    <li><strong>"北京今天天气怎么样？"</strong> → 模型没有实时数据</li>
+    <li><strong>"帮我算一下 1234 × 5678"</strong> → 模型是概率预测，不是计算器，大数乘法可能算错</li>
+    <li><strong>"搜索最新的 React 19 文档"</strong> → 模型的知识截止于训练日期</li>
+    <li><strong>"把这个文件内容发到 Slack"</strong> → 模型没有手，不能操作外部系统</li>
+  </ul>
+</div>
+
+<p>这些问题的共同点是：<strong>答案不在模型参数里，而在外部世界</strong>。模型需要"伸手"去拿——这就是 Tool-calling。</p>
+
+<h3>1.2 前端直觉类比</h3>
+
+<p>如果你只写过前端，可以这样理解：</p>
+
+<pre><code>// 普通 LLM  = 纯函数，只能返回字符串
+function askLLM(question: string): string {
+  return "根据我的训练数据，答案是...";
+}
+
+// Tool-calling LLM = 可以调用外部 API 的函数
+async function askAgent(question: string): Promise&lt;string> {
+  const toolCall = await llm.decide("需要调什么工具？");
+  const result = await executeTool(toolCall);  // ← 调用真实的 API
+  return await llm.answer("拿到结果了：" + result);
+}</code></pre>
+
+<p><strong>类比：</strong>普通 LLM 像是一个只能收发短信的秘书——你问什么，他凭记忆回答。Tool-calling Agent 像是秘书有了手机——他可以打电话问天气、查日历、发邮件，然后把结果汇报给你。</p>
+
+<!-- ============================================================ -->
+<h2>二、核心机制：它是怎么工作的？</h2>
+
+<h3>2.1 三步循环</h3>
+
+<p>Tool-calling 的本质是一个<strong>请求→决策→执行→反馈</strong>的循环：</p>
+
+<pre><code>┌─────────────────────────────────────────────────────┐
+│                                                       │
+│   ① User: "北京今天天气怎么样？"                         │
+│      → 发送给模型（带上可用工具列表）                      │
+│                                                       │
+│   ② LLM: 我不会直接知道天气，但有个 getWeather 工具       │
+│      → 输出结构化 JSON：                                │
+│      { "function": "getWeather", "args": { "city": "北京" } } │
+│                                                       │
+│   ③ 你的代码: 执行 getWeather("北京") → 拿到结果          │
+│      → 把结果追加到对话中："北京今天晴，25°C"              │
+│                                                       │
+│   ④ LLM: 收到天气结果，生成最终回答                       │
+│      → "北京今天晴天，气温 25°C，适合出门。"              │
+│                                                       │
+└─────────────────────────────────────────────────────┘</code></pre>
+
+<p><strong>关键洞察：</strong>模型不是"执行"工具——它只是<strong>输出一个 JSON 告诉你"我想调用这个函数"</strong>。你的代码才是真正执行工具的人。模型是大脑，你的代码是手。</p>
+
+<h3>2.2 请求格式：如何告诉模型"你能用什么工具"？</h3>
+
+<p>在发送消息时，除了 messages 数组，还需要附加一个 <strong>tools 数组</strong>——用 JSON Schema 描述每个工具：</p>
+
+<pre><code>// 工具定义：用 JSON Schema 描述函数的签名和用途
+const tools = [
+  {
+    type: "function",
+    function: {
+      name: "getWeather",           // 函数名
+      description: "获取指定城市的当前天气信息",  // 用途描述（关键！）
+      parameters: {                  // 参数定义（JSON Schema）
+        type: "object",
+        properties: {
+          city: {
+            type: "string",
+            description: "城市名称，如 '北京'、'上海'",
+          },
+        },
+        required: ["city"],          // 必填参数
+      },
+    },
+  },
+];
+
+// 发送请求时带上 tools
+const response = await ollama.chat({
+  model: "hermes3:8b",
+  messages: [{ role: "user", content: "北京今天天气怎么样？" }],
+  tools,  // ← 告诉模型：你可以用这些工具
+});</code></pre>
+
+<div class="card card--accent">
+  <div class="card__title">💡 description 字段比你想象的更重要</div>
+  <p style="margin-bottom:0">模型选择哪个工具、传递什么参数，全靠 <code>description</code> 来判断。一个模糊的 description 会导致模型选错工具或传错参数。写 description 就像写 API 文档——要精确、具体、带例子。</p>
+</div>
+
+<h3>2.3 响应格式：模型如何"说"它想调用工具？</h3>
+
+<p>当模型决定调用工具时，它不会输出普通文本，而是在 <code>message</code> 对象中附带 <code>tool_calls</code> 数组：</p>
+
+<pre><code>// 模型返回的响应（简化版）
+{
+  message: {
+    role: "assistant",
+    content: "",                    // ← 工具调用时 content 通常为空
+    tool_calls: [
+      {
+        id: "call_abc123",         // 调用 ID，用于后续关联结果
+        type: "function",
+        function: {
+          name: "getWeather",      // 要调用的函数名
+          arguments: {             // 参数（JSON 对象）
+            city: "北京"
+          },
+        },
+      },
+    ],
+  },
+}</code></pre>
+
+<p>你的代码解析这个响应 → 执行 <code>getWeather("北京")</code> → 把结果告诉模型 → 模型生成最终回答。</p>
+
+<h3>2.4 工具结果回传：如何让模型"知道"结果？</h3>
+
+<p>执行完工具后，你需要把结果以 <strong>tool 角色</strong> 追加到消息历史中：</p>
+
+<pre><code>// 把工具执行结果追加到 messages
+messages.push({
+  role: "tool",                    // ← 特殊角色：tool
+  content: JSON.stringify({        // 工具返回的结果
+    city: "北京",
+    temperature: 25,
+    condition: "晴天",
+    humidity: "45%",
+  }),
+  tool_call_id: "call_abc123",    // 对应之前的调用 ID
+});
+
+// 再次调用模型，它现在能基于结果回答了
+const finalResponse = await ollama.chat({
+  model: "hermes3:8b",
+  messages,
+  tools,
+});</code></pre>
+
+<!-- ============================================================ -->
+<h2>三、Hermes 3 的 Tool-calling 特性</h2>
+
+<h3>3.1 Hermes 的独特之处</h3>
+
+<p>Hermes 3 与其他模型在 Tool-calling 上的关键差异：</p>
+
+<table style="width:100%; border-collapse:collapse; margin:1rem 0; font-size:0.9rem;">
+  <tr style="background:var(--code-bg);">
+    <th style="padding:0.4rem 0.8rem; border:1px solid var(--border);">特性</th>
+    <th style="padding:0.4rem 0.8rem; border:1px solid var(--border);">通用模型（如 GPT-4）</th>
+    <th style="padding:0.4rem 0.8rem; border:1px solid var(--border);">Hermes 3</th>
+  </tr>
+  <tr>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);"><strong>训练方式</strong></td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">RLHF + 系统提示</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">DPO + 合成数据微调</td>
+  </tr>
+  <tr>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);"><strong>工具调用格式</strong></td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">OpenAI 标准格式</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">兼容 OpenAI 格式 + 支持 XML 格式</td>
+  </tr>
+  <tr>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);"><strong>并行调用</strong></td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">支持</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">支持（一次返回多个 tool_call）</td>
+  </tr>
+  <tr>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);"><strong>工具数量</strong></td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">官方建议 ≤ 128</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">实测 5-10 个工具效果最佳</td>
+  </tr>
+  <tr>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);"><strong>中文工具调用</strong></td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">GPT-4 优秀</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">推荐用 Qwen2.5（中文更好）</td>
+  </tr>
+</table>
+
+<div class="card card--accent">
+  <div class="card__title">🔑 Hermes 3 的 Tool-calling 格式</div>
+  <p>Hermes 3 支持两种 tool-calling 格式：</p>
+  <ol style="margin-bottom:0">
+    <li><strong>OpenAI 兼容格式</strong>（推荐）：和上面的 tools 数组、tool_calls 格式完全一致。Ollama 的 <code>ollama.chat()</code> 原生支持这种格式。</li>
+    <li><strong>XML 格式</strong>：用 <code>&lt;tool_call&gt;</code> XML 标签包裹。这是 Hermes 训练数据中使用的格式，但 Ollama 的 JS SDK 已经帮我们处理了转换。</li>
+  </ol>
+</div>
+
+<h3>3.2 tool_choice 参数：控制模型的"调用意愿"</h3>
+
+<p><code>tool_choice</code> 参数告诉模型<strong>是否必须调用工具</strong>：</p>
+
+<table style="width:100%; border-collapse:collapse; margin:1rem 0; font-size:0.9rem;">
+  <tr style="background:var(--code-bg);">
+    <th style="padding:0.4rem 0.8rem; border:1px solid var(--border);">值</th>
+    <th style="padding:0.4rem 0.8rem; border:1px solid var(--border);">含义</th>
+    <th style="padding:0.4rem 0.8rem; border:1px solid var(--border);">适用场景</th>
+  </tr>
+  <tr>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);"><code>"auto"</code></td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">模型自己决定是否调用工具（默认）</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">通用场景——模型会判断"这个问题需要工具吗？"</td>
+  </tr>
+  <tr>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);"><code>"required"</code></td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">强制模型必须调用某个工具</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">Agent 循环中，你知道当前步骤必须用工具</td>
+  </tr>
+  <tr>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);"><code>"none"</code></td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">禁止模型调用工具</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">你只想让模型做纯文本回复</td>
+  </tr>
+  <tr>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);"><code>{"type": "function", "function": {"name": "getWeather"}}</code></td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">强制调用指定工具</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">路由场景——你知道用户意图就是查天气</td>
+  </tr>
+</table>
+
+<!-- ============================================================ -->
+<h2>四、完整流程对比</h2>
+
+<div class="compare">
+  <div class="compare__col">
+    <h4>❌ 无 Tool-calling</h4>
+    <pre><code>User: "北京天气？"
+LLM: "抱歉，我无法获取
+      实时天气信息。
+      建议您查看天气 App。"</code></pre>
+    <p style="margin-top:0.5rem; font-size:0.85rem;">模型只能拒绝，或者<strong>编造</strong>一个天气（幻觉）</p>
+  </div>
+  <div class="compare__col">
+    <h4>✅ 有 Tool-calling</h4>
+    <pre><code>User: "北京天气？"
+LLM: → tool_call: getWeather("北京")
+Code: 执行 getWeather → 结果返回
+LLM: "北京今天晴，25°C，
+      适合出门。"</code></pre>
+    <p style="margin-top:0.5rem; font-size:0.85rem;">模型知道"我不知道但可以调工具"，不编造</p>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<h2>五、动手：理解 JSON Schema 工具定义</h2>
+
+<div class="card card--accent">
+  <div class="card__title">✏️ 练习：设计一个工具定义</div>
+  <p>假设你要让 Agent 能<strong>搜索代码库</strong>。请用 JSON Schema 写出这个工具的定义：</p>
+  <ul style="margin-bottom:0">
+    <li>函数名：<code>searchCodebase</code></li>
+    <li>功能：在项目代码中搜索指定关键词</li>
+    <li>参数：<code>query</code>（搜索关键词，必填）、<code>fileType</code>（文件类型，可选，如 .ts、.tsx）</li>
+  </ul>
+</div>
+
+<details style="margin:1rem 0;">
+  <summary style="cursor:pointer; font-weight:700; color:var(--accent);">📝 参考答案</summary>
+
+  <div style="margin-top:1rem;">
+  <pre><code>{
+  type: "function",
+  function: {
+    name: "searchCodebase",
+    description: "在项目代码中搜索指定关键词。返回匹配的文件路径和行号。例如搜索 'useState' 找到所有使用该 Hook 的组件。",
+    parameters: {
+      type: "object",
+      properties: {
+        query: {
+          type: "string",
+          description: "要搜索的关键词，支持正则表达式，如 'useEffect'、'import.*from'",
+        },
+        fileType: {
+          type: "string",
+          description: "限定文件扩展名，如 '.ts'、'.tsx'、'.json'。不传则搜索所有文件。",
+        },
+      },
+      required: ["query"],
+    },
+  },
+}</code></pre>
+
+  <p><strong>要点：</strong></p>
+  <ul>
+    <li><code>description</code> 要具体——"搜索代码"不够，要说清楚"返回什么"、"搜索什么"</li>
+    <li><code>parameters.description</code> 要带例子——模型看了例子才知道怎么传参数</li>
+    <li><code>required</code> 只标记真正必填的——<code>fileType</code> 不在 required 里，说明是可选的</li>
+  </ul>
+  </div>
+</details>
+
+<!-- ============================================================ -->
+<h2>六、自测</h2>
+
+<p>5 题，覆盖本课核心知识。先自己回答，再对照答案。</p>
+
+<ol>
+  <li>Tool-calling 中，模型真的"执行"了工具吗？如果不是，它做了什么？</li>
+  <li>为什么 JSON Schema 中的 <code>description</code> 字段比 <code>name</code> 字段更重要？</li>
+  <li><code>tool_choice: "auto"</code> 和 <code>tool_choice: "required"</code> 有什么区别？各适合什么场景？</li>
+  <li>工具执行结果回传给模型时，<code>role</code> 应该是什么？为什么不能直接用 <code>user</code> 或 <code>assistant</code>？</li>
+  <li>Hermes 3 支持两种 tool-calling 格式，在使用 Ollama 的 JS SDK 时，我们应该用哪种？为什么？</li>
+</ol>
+
+<details style="margin:1rem 0;">
+  <summary style="cursor:pointer; font-weight:700; color:var(--accent);">📝 参考答案</summary>
+
+  <div style="margin-top:1rem;">
+
+  <h4>第 1 题：模型真的"执行"了工具吗？</h4>
+
+  <p><strong>没有。模型只是输出一个结构化的 JSON，告诉你"我想调用这个函数，参数是这些"。</strong></p>
+
+  <p>这是理解 Tool-calling 最关键的认知：模型是纯粹的文本生成器。它不能执行代码、不能访问网络、不能操作文件系统。它唯一的能力是预测下一个 token。Tool-calling 的本质是：模型在训练中学会了"当我需要外部信息时，我应该输出一个特殊的 JSON 格式"。</p>
+
+  <p><strong>底层的自回归机制：</strong>模型在生成每个 token 时，都是基于之前所有 token 的条件概率分布。当它看到系统提示 + 工具定义 + 用户问题后，概率最高的下一个 token 可能是 <code>{</code>（开始 JSON），然后是 <code>"</code>、<code>function</code>、<code>"</code>……而不是一个自然语言回答。这不是模型"决定"调用工具——而是训练数据让它学会了在这种上下文中输出工具调用 JSON 的概率最高。</p>
+
+  <p><strong>类比：</strong>模型像一个只会写字的机器人，它的手被绑在键盘上。它不能自己站起来去拿杯子，但它可以写下一张纸条："请帮我拿杯水，杯子在厨房桌上"。你的代码就是那个读纸条并执行的人。</p>
+
+  <h4>第 2 题：为什么 description 比 name 更重要？</h4>
+
+  <p><strong>因为模型是"读"description 来理解工具用途的，而不是"记"name。</strong></p>
+
+  <p>模型在预训练和微调中没有见过你的工具。它不知道 <code>getWeather</code> 这个函数名是什么意思。它只能通过你写的 <code>description</code> 来推断：这个工具是干嘛的？什么时候该用它？参数怎么填？</p>
+
+  <p><strong>具体例子：</strong></p>
+
+  <table style="width:100%; border-collapse:collapse; margin:1rem 0; font-size:0.85rem;">
+    <tr style="background:var(--code-bg);">
+      <th style="padding:0.4rem 0.8rem; border:1px solid var(--border);">Description 质量</th>
+      <th style="padding:0.4rem 0.8rem; border:1px solid var(--border);">内容</th>
+      <th style="padding:0.4rem 0.8rem; border:1px solid var(--border);">模型行为</th>
+    </tr>
+    <tr>
+      <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">❌ 差</td>
+      <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);"><code>"获取天气"</code></td>
+      <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">可能传错参数，比如传 "Beijing" 而不是 "北京"</td>
+    </tr>
+    <tr>
+      <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">⚠️ 一般</td>
+      <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);"><code>"获取指定城市的天气"</code></td>
+      <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">知道要传城市名，但不知道格式</td>
+    </tr>
+    <tr>
+      <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">✅ 好</td>
+      <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);"><code>"获取指定城市的当前天气信息，返回温度、湿度、天气状况。城市名用中文，如 '北京'、'上海'。"</code></td>
+      <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">正确传参，格式匹配</td>
+    </tr>
+  </table>
+
+  <p><strong>判断标准：</strong>写完 description 后问自己——"如果我是第一次看到这个工具的人，我能不能准确知道它做什么、怎么用？"如果答案是"不能"，那就需要更详细。</p>
+
+  <h4>第 3 题：auto vs required 的区别和适用场景</h4>
+
+  <p><strong>核心区别：</strong><code>auto</code> 让模型自己判断"这个问题需要工具吗？"，<code>required</code> 强制模型"必须调用工具，不能直接回答"。</p>
+
+  <p><strong>底层机制：</strong>当 <code>tool_choice: "required"</code> 时，模型在生成时的 token 空间被约束——必须以工具调用 JSON 开始，而不能以自然语言开始。这相当于在采样的第一步就限制了可选 token 的范围。当 <code>tool_choice: "auto"</code> 时，模型先从完整的 token 空间中采样，如果它觉得"回答"比"调工具"更合适，就会输出自然语言。</p>
+
+  <table style="width:100%; border-collapse:collapse; margin:1rem 0; font-size:0.9rem;">
+    <tr style="background:var(--code-bg);">
+      <th style="padding:0.4rem 0.8rem; border:1px solid var(--border);">场景</th>
+      <th style="padding:0.4rem 0.8rem; border:1px solid var(--border);">应该用</th>
+      <th style="padding:0.4rem 0.8rem; border:1px solid var(--border);">原因</th>
+    </tr>
+    <tr>
+      <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">自由聊天（用户可能问各种问题）</td>
+      <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);"><code>auto</code></td>
+      <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">大部分问题不需要工具，强制调用反而糟糕</td>
+    </tr>
+    <tr>
+      <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">Agent 循环的第一步（必须分析用户意图）</td>
+      <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);"><code>required</code></td>
+      <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">确保 Agent 一定会调用工具，不会"偷懒"直接回答</td>
+    </tr>
+    <tr>
+      <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">用户明确要求"帮我查..."</td>
+      <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);"><code>required</code> 或指定工具</td>
+      <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">用户意图明确，不需要模型再判断</td>
+    </tr>
+    <tr>
+      <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">工具执行完成后，让模型总结结果</td>
+      <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);"><code>none</code> 或 <code>auto</code></td>
+      <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">此时目标是生成回答，不是再调工具</td>
+    </tr>
+  </table>
+
+  <p><strong>判断标准：</strong>问自己——"在当前步骤，模型还有没有'不调工具直接回答'的正确可能？" 如果有 → <code>auto</code>；如果没有 → <code>required</code>。</p>
+
+  <h4>第 4 题：工具结果回传时 role 为什么是 "tool"？</h4>
+
+  <p><strong>因为模型需要区分"这是工具执行的结果"和"这是用户/助手说的话"。</strong></p>
+
+  <p>在 Transformer 的注意力机制中，每条消息的 role 标签会影响模型对这条消息的"态度"：</p>
+  <ul>
+    <li><code>user</code> 角色：模型认为这是"需要回答的问题"，会认真对待并尝试生成回复</li>
+    <li><code>assistant</code> 角色：模型认为这是"自己之前说的话"，用于保持对话连贯性</li>
+    <li><code>tool</code> 角色：模型认为这是"工具返回的数据"，是客观事实，不需要质疑——直接基于这些数据生成回答</li>
+  </ul>
+
+  <p>如果错误地用 <code>user</code> 角色传工具结果，模型可能会把结果当作"用户的新问题"来理解，导致混淆。如果用 <code>assistant</code> 角色，模型可能会认为"这是我自己说的"——但实际上工具结果不是模型生成的。</p>
+
+  <p><strong>类比：</strong>role 就像消息的"发件人标签"。user = 老板的指令，assistant = 你自己的笔记，tool = 外部数据源返回的报告。你把报告贴在自己笔记里，老板看不到，也不知道有这个数据。</p>
+
+  <h4>第 5 题：Hermes 3 两种格式应该用哪种？</h4>
+
+  <p><strong>使用 OpenAI 兼容格式（JSON 格式）。</strong></p>
+
+  <p><strong>原因：</strong></p>
+  <ol>
+    <li><strong>Ollama 的 JS SDK 原生支持</strong>：<code>ollama.chat()</code> 的 <code>tools</code> 参数就是 OpenAI 格式，SDK 内部会自动处理与 Hermes 的兼容。你不需要手写 XML 标签。</li>
+    <li><strong>生态兼容性</strong>：OpenAI 格式是行业标准。Vercel AI SDK、LangChain、Spring AI 等框架都支持这种格式。用标准格式意味着你的代码可以在不同模型之间切换，不需要改工具定义。</li>
+    <li><strong>XML 格式是训练格式，不是接口格式</strong>：Hermes 训练数据中用 XML 标签标注工具调用，但推理时 Ollama 已经帮我们做了格式转换。你不需要关心底层。</li>
+  </ol>
+
+  <p><strong>唯一例外：</strong>如果你在用 <code>ollama.generate()</code>（非 chat API）直接做文本补全，模型可能输出 XML 格式的工具调用。此时需要手动解析 <code>&lt;tool_call&gt;</code> 标签。但课程中我们统一使用 <code>ollama.chat()</code> + OpenAI 格式，不需要处理这种情况。</p>
+
+  </div>
+</details>
+
+<!-- ============================================================ -->
+<hr style="margin:2rem 0; border:none; border-top:1px solid var(--border);">
+
+<div class="card card--success">
+  <div class="card__title">✅ 本课小结</div>
+  <p style="margin-bottom:0.5rem"><strong>你今天学到了：</strong></p>
+  <ul style="margin-top:0.3rem; margin-bottom:0.5rem; padding-left:1.2rem;">
+    <li>Tool-calling 是 LLM 从"会说话"到"会做事"的关键能力</li>
+    <li>模型不执行工具——它输出 JSON 告诉你的代码"我想调用这个函数"</li>
+    <li>工具定义的核心是 JSON Schema 的 <code>description</code>——写得越好，模型选得越准</li>
+    <li><code>tool_choice</code> 控制模型的调用意愿：auto / required / none / 指定工具</li>
+    <li>工具结果用 <code>role: "tool"</code> 回传，让模型区分"数据"和"对话"</li>
+    <li>Hermes 3 推荐使用 OpenAI 兼容格式，Ollama SDK 原生支持</li>
+  </ul>
+  <p style="margin-bottom:0; font-size:0.9rem; color:var(--text-secondary);">
+    🤔 <strong>有问题？</strong>直接问你的 AI 老师——任何不清楚的地方都可以追问。明天 Day 2 我们将写第一个工具：<code>getWeather(city)</code>，让 Hermes 真正调用你的 TypeScript 函数！
+  </p>
+</div>
+
+<p style="color:var(--text-secondary); font-size:0.85rem;">
+  📅 第 3 周 Day 1 完成 · 下一步：<a href="0012-first-tool.html">第 3 周 Day 2：定义第一个工具</a>
+</p>
+
+</body>
+</html>
