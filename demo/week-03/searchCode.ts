@@ -31,7 +31,7 @@ const SEARCH_CODE: ToolDef = {
             },
             lang: {
                 type: 'string',
-                enum: ['ts", "tsx", "js", "jsx", "json", "css'],
+                enum: ["ts", "tsx", "js", "jsx", "json", "css"],
                 description: "限定编程语言，不传则搜索所有文件类型。可选值：ts, tsx, js, jsx, json, css",
             },
             maxResults: {
