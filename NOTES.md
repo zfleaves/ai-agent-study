@@ -24,7 +24,7 @@
 ## 📍 当前进度（换电脑/新会话时读这里）
 
 ```
-当前阶段：第 3 周 — Tool-calling（让模型"做事"）
+当前阶段：第 4 周 — Agent 核心循环（从"调用"到"自主"）
 计划版本：v2.0（16 周，3 语言）
 已完成：  第 1 周 ✅（5/5 天）
         第 2 周 ✅（5/5 天）
@@ -33,13 +33,14 @@
           Day 3 ✅ TS SDK 接入 + Streaming 流式响应
           Day 4 ✅ Prompt 工程 + 瘦身实验（Zero-shot/Few-shot/CoT）+ 追问解答
           Day 5 ✅ 复盘 + Demo 1 命令行聊天机器人 (chatbot.ts)
-        第 3 周 🔄
+        第 3 周 ✅（5/5 天）
           Day 1 ✅ Tool-calling 入门（Function Calling 机制、JSON Schema 工具定义）
           Day 2 ✅ 定义第一个工具（Description 三要素、TS→JSON Schema 映射、多工具选择）
           Day 3 ✅ 工具调用循环（Agent 循环、链式/并行调用、错误处理、终止条件）
           Day 4 ✅ 多工具编排（5 工具选择、并行 vs 串行、工具重叠处理、searchCode 工具）
+          Day 5 ✅ 复盘 + Demo 2 工具调用 Agent 综合实战 (agent-demo.ts)
         已安装模型：hermes3:8b (4.7GB)、qwen2.5:3b (1.9GB)
-下一步：  第 3 周 Day 5 — 复盘 + Demo 2 工具调用 Agent 综合实战
+下一步：  第 4 周 Day 1 — ReAct 模式深入（Reasoning + Acting 完整循环）
 ```
 
 ## 已确认的先验知识
