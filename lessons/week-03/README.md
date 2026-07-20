@@ -18,7 +18,7 @@
 | Day 2 | 定义第一个工具 | [0012-first-tool.html](./0012-first-tool.html) | ✅ |
 | Day 3 | 工具调用循环 | [0013-tool-call-loop.html](./0013-tool-call-loop.html) | ✅ |
 | Day 4 | 多工具编排 | [0014-multi-tool-orchestration.html](./0014-multi-tool-orchestration.html) | ✅ |
-| Day 5 | 复盘 + Demo 2 | — | ✅ |
+| Day 5 | 复盘 + Demo 2 | [0015-week3-review.html](./0015-week3-review.html) | ✅ |
 
 ## 本周核心知识点
 

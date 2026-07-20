@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第 15 课：第 3 周复盘 + Demo 2</title>
+<link rel="stylesheet" href="../../assets/style.css">
+</head>
+<body>
+
+<h1>🔄 第 15 课：第 3 周复盘 + Demo 2</h1>
+
+<p><span class="tag tag--blue">动手</span> <span class="tag tag--green">第 3 周 Day 5</span> <span class="tag tag--amber">约 50 分钟</span></p>
+
+<blockquote>
+  <strong>本课目标：</strong>回顾本周 5 个核心知识点，完成 Demo 2——工具调用 Agent 综合实战，验证"模型从聊天到做事"的完整能力。
+</blockquote>
+
+<p>
+  📚 <strong>相关参考：</strong>
+  <a href="../../reference/glossary.html">术语表</a> ·
+  <a href="0014-multi-tool-orchestration.html">← 第 14 课（多工具编排）</a> ·
+  <a href="0011-tool-calling-intro.html">第 11 课（Tool-calling 入门）</a>
+</p>
+
+<!-- ============================================================ -->
+<h2>一、本周回顾：5 天学了什么？</h2>
+
+<p>在开始 Demo 之前，先用自己的话回答以下问题——这是<strong>检索练习</strong>，比再看一遍笔记更有效。</p>
+
+<h3>📝 第 3 周复盘</h3>
+
+<div class="card card--accent">
+  <div class="card__title">用你自己的话回答</div>
+  <ol style="margin-bottom:0">
+    <li><strong>Function Calling 的本质是什么？</strong>——模型真的"调用"了你的函数吗？如果不是，它做了什么？</li>
+    <li><strong>工具定义（JSON Schema）中最关键的部分是什么？</strong>——为什么 description 比 parameters 更重要？</li>
+    <li><strong>Agent 循环的工作流程？</strong>——从用户输入到最终回答，中间经历了哪些步骤？</li>
+    <li><strong>什么时候该并行调用，什么时候该串行？</strong>——给出具体的判断标准。</li>
+    <li><strong>多个工具描述重叠时怎么处理？</strong>——比如 searchWeb 和 searchCode 都叫"搜索"。</li>
+  </ol>
+</div>
+
+<p style="margin-top:1rem;">写完后再往下看对照。诚实面对自己的理解程度——模糊的地方正是下周要深入的。</p>
+
+<!-- ============================================================ -->
+<h2>二、本周知识地图</h2>
+
+<p>5 天，5 个核心知识块，它们之间的关系：</p>
+
+<pre><code>Day 1: Tool-calling 原理
+  │  Function Calling 机制、JSON Schema、请求/响应格式
+  │
+  ├─→ Day 2: 定义第一个工具
+  │     Description 三要素、TS → JSON Schema 映射、参数设计
+  │
+  ├─→ Day 3: 工具调用循环
+  │     Agent 循环、链式调用、错误处理、终止条件（MAX_STEPS）
+  │
+  ├─→ Day 4: 多工具编排
+  │     5 工具选择、并行 vs 串行、工具重叠处理、searchCode
+  │
+  └─→ Day 5: 复盘 + Demo 2 ← 你现在在这里
+        整合所有知识，做出完整的工具调用 Agent</code></pre>
+
+<p><strong>核心主线：</strong>从"模型能输出 JSON"（Day 1）→ "能定义工具"（Day 2）→ "能循环调用"（Day 3）→ "能自主选择多个工具"（Day 4）→ "能做出完整的 Agent"（Day 5）。</p>
+
+<h3>本周关键概念速查</h3>
+
+<table style="width:100%; border-collapse:collapse; margin:1rem 0; font-size:0.9rem;">
+  <tr style="background:var(--code-bg);">
+    <th style="padding:0.4rem 0.8rem; border:1px solid var(--border);">概念</th>
+    <th style="padding:0.4rem 0.8rem; border:1px solid var(--border);">一句话解释</th>
+    <th style="padding:0.4rem 0.8rem; border:1px solid var(--border);">你学到了什么</th>
+  </tr>
+  <tr>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">Function Calling</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">模型输出 JSON 指令，代码执行函数</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">模型 = 大脑（决策），代码 = 手（执行）</td>
+  </tr>
+  <tr>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">JSON Schema</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">用 JSON 描述工具的输入输出格式</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">name + description + parameters 三要素</td>
+  </tr>
+  <tr>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">tool_call</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">模型返回的函数调用请求</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">包含 id、name、arguments，代码解析后执行</td>
+  </tr>
+  <tr>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">Agent 循环</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">user → model → tool → model → ... → answer</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">循环是 Agent 的"心跳"，每次迭代都是一次决策</td>
+  </tr>
+  <tr>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">MAX_STEPS</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">最大循环步数，防止无限循环</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">安全护栏，通常设 5-8 步</td>
+  </tr>
+  <tr>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">并行调用</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">一次返回多个 tool_call，同时执行</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">独立任务用并行，减少总延迟</td>
+  </tr>
+  <tr>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">串行调用</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">先调 A，等结果，再决定是否调 B</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">有条件依赖时必须串行，"如果A就B"</td>
+  </tr>
+  <tr>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">工具选择</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">模型根据 description 自主决定调哪个工具</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">description 质量决定选择准确率，80% 靠描述</td>
+  </tr>
+  <tr>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">工具重叠</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">多个工具 description 语义相近导致选错</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">在 description 中明确"适用于/不适用于"</td>
+  </tr>
+  <tr>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">System Prompt</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">告诉模型何时用哪个工具的规则</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">工具选择准确率的关键补充，弥补 description 不足</td>
+  </tr>
+</table>
+
+<!-- ============================================================ -->
+<h2>三、技能：Demo 2 — 工具调用 Agent 综合实战</h2>
+
+<h3>3.1 Demo 功能</h3>
+
+<p>这是一个<strong>整合本周所有知识</strong>的综合练习。你将在终端里运行一个完整的 Agent——它能理解你的自然语言问题，自动选择合适的工具，执行并返回结果。</p>
+
+<div class="card card--accent">
+  <div class="card__title">🎯 Demo 2 功能清单</div>
+  <ul style="margin-bottom:0">
+    <li><strong>5 个工具</strong>：getWeather / calculate / getCurrentTime / searchWeb / searchCode</li>
+    <li><strong>Agent 循环</strong>：模型自主决策 → 调工具 → 看结果 → 继续决策（Day 3 知识）</li>
+    <li><strong>多工具选择</strong>：从 5 个工具中选出正确的那个（Day 4 知识）</li>
+    <li><strong>并行执行</strong>：识别独立任务，一次发起多个 tool_call（Day 4 知识）</li>
+    <li><strong>条件式编排</strong>："如果A就B"的串行推理（Day 3 知识）</li>
+    <li><strong>System Prompt 规则</strong>：引导模型正确选择工具（Day 2 知识）</li>
+    <li><strong>状态追踪</strong>：AgentState 记录每步的工具调用和结果（Day 3 知识）</li>
+    <li><strong>类型安全</strong>：TypeScript strict mode，完整类型定义</li>
+  </ul>
+</div>
+
+<h3>3.2 运行 Demo</h3>
+
+<div class="card card--accent" style="margin-top:1rem;">
+  <div class="card__title">▶️ Step 1：启动 Ollama</div>
+  <p style="margin-bottom:0">确保 Ollama 在后台运行。Windows 任务栏找 Ollama 图标，或运行：</p>
+  <pre><code>ollama serve</code></pre>
+</div>
+
+<div class="card card--accent" style="margin-top:1rem;">
+  <div class="card__title">▶️ Step 2：运行 Agent Demo</div>
+  <pre><code>cd demo/week-03
+npx tsx agent-demo.ts</code></pre>
+  <p style="margin-bottom:0">看到菜单后，按顺序体验 5 个场景。</p>
+</div>
+
+<div class="card card--accent" style="margin-top:1rem;">
+  <div class="card__title">▶️ Step 3：体验所有场景（推荐按顺序）</div>
+  <ul style="margin-bottom:0">
+    <li><strong>场景 1：基础工具调用</strong> — 验证 Function Calling 基本流程通不通</li>
+    <li><strong>场景 2：工具选择</strong> — 5 个工具，模型选哪个？测试选对率</li>
+    <li><strong>场景 3：并行调用</strong> — "同时查北京和上海天气"→ 模型能否一次发起多个调用？</li>
+    <li><strong>场景 4：条件式编排</strong> — "查深圳天气，如果下雨就提醒带伞"→ 完整 Agent 循环</li>
+    <li><strong>场景 5：自由对话</strong> — 自定义问题，交互式 Agent。试试"项目里 MAX_STEPS 设的是多少？"</li>
+  </ul>
+</div>
+
+<h3>3.3 Demo 架构解析</h3>
+
+<p>理解这个 Demo 的代码结构，对你下周自己写 ReAct Agent 至关重要：</p>
+
+<pre><code>┌──────────────────────────────────────────────────────────────┐
+│                      主菜单 (main)                             │
+│         5 个场景选择 → scene1~5 → 各自调用 agentLoop()          │
+└──────────────────────────┬───────────────────────────────────┘
+                           │
+              ┌────────────┼────────────┐
+              ▼            ▼            ▼
+         ┌─────────┐ ┌──────────┐ ┌──────────┐
+         │ scene 1  │ │ scene 2  │ │ scene 4  │  ...
+         │ 单工具测试│ │ 5 选 1  │ │ Agent循环│
+         └─────────┘ └──────────┘ └────┬─────┘
+                                       │
+                          ┌────────────┴────────────┐
+                          │     agentLoop()          │
+                          │  messages[] 对话历史      │
+                          │  state: AgentState 状态   │
+                          └────────────┬────────────┘
+                                       │
+                          while (step &lt; MAX_STEPS) {
+                                       │
+                   ┌───────────────────┼───────────────────┐
+                   ▼                   ▼                   ▼
+            ┌────────────┐     ┌────────────┐     ┌────────────┐
+            │ ollama.chat│     │ 解析        │     │ executeTool│
+            │ + TOOLS    │ ──→ │ tool_calls  │ ──→ │ 执行函数    │
+            │ + messages │     │ 并行/串行    │     │ 返回结果    │
+            └────────────┘     └────────────┘     └─────┬──────┘
+                                                        │
+                                          ← 结果回传 messages.push()
+                                                        │
+                                          ← 模型继续决策或输出答案
+                          }</code></pre>
+
+<div class="card card--accent">
+  <div class="card__title">🔑 关键设计决策</div>
+  <ul style="margin-bottom:0">
+    <li><strong>messages 数组贯穿始终</strong>：system → user → assistant(tool_call) → tool(result) → assistant(tool_call) → ... → assistant(answer)。每一步都 push 进数组，模型每次都"读"完整历史。</li>
+    <li><strong>AgentState 追踪一切</strong>：step 计数、toolCallsMade 记录（工具名 + 参数 + 结果）、finalAnswer、总耗时。状态透明，出问题能回溯。</li>
+    <li><strong>并行检测在代码层</strong>：如果 toolCalls.length > 1 → Promise.all 同时执行。模型不需要知道"并行"是什么——它只管一次返回多个 tool_call。</li>
+    <li><strong>System Prompt 是工具选择的"说明书"</strong>：5 个工具靠 description 区分还不够，System Prompt 给出了明确的规则——"项目代码 → searchCode，外部知识 → searchWeb"。</li>
+    <li><strong>MAX_STEPS = 6</strong>：防止无限循环。达到上限后强制模型基于已有信息总结，不再调工具。</li>
+  </ul>
+</div>
+
+<!-- ============================================================ -->
+<h2>四、本周常见踩坑总结</h2>
+
+<div class="card card--warn">
+  <div class="card__title">⚠️ 第 3 周踩坑记录</div>
+  <ol style="margin-bottom:0">
+    <li><strong>小模型（3b）并行能力弱</strong>：qwen2.5:3b 面对"同时查北京和上海天气"经常只返回 1 个 tool_call。不是代码问题，是模型能力限制。8b 模型通常能正确并行。</li>
+    <li><strong>工具描述太像导致选错</strong>：searchWeb 和 searchCode 都叫"搜索"，模型容易混淆。解决：在 description 中明确写"适用于 X / 不适用于 Y"，并在 System Prompt 中补充规则。</li>
+    <li><strong>System Prompt 缺失导致工具不触发</strong>：场景 1/2/3 最初只传了用户消息，没带 System Prompt。模型看到"项目里 XX 接口怎么定义"可能当成通用知识直接回答。加上 System Prompt 后准确率从 4/5 提升到 5/5。</li>
+    <li><strong>工具执行失败可能导致死循环</strong>：模型调了一个不存在的工具 → 返回错误 → 模型又调 → 又错误。必须设 MAX_STEPS 作为安全护栏。</li>
+    <li><strong>ESM 下 __dirname 不可用</strong>：tsx 以 ESM 模式运行，<code>__dirname</code> 是 undefined。需要用 <code>import.meta.url</code> + <code>fileURLToPath</code> + <code>path.dirname</code> 替代。</li>
+    <li><strong>模型可能"幻觉调用"不存在的工具</strong>：如果 tool 定义不够清晰，模型可能编造一个不存在的工具名。executeTool 中必须有 default 分支处理未知工具。</li>
+  </ol>
+</div>
+
+<!-- ============================================================ -->
+<h2>五、Function Calling 完整流程图</h2>
+
+<pre><code>
+   ┌──────────┐     ┌──────────┐     ┌──────────┐     ┌──────────┐
+   │ 用户提问  │ ──→ │ 模型决策  │ ──→ │ 代码执行  │ ──→ │ 模型回答  │
+   │          │     │ 输出JSON  │     │ 真实函数  │     │ 生成文本  │
+   └──────────┘     └──────────┘     └──────────┘     └──────────┘
+      文字             结构化数据          真实世界           文字
+                      (tool_call)        (getWeather)      (自然语言)
+
+   🔑 关键点：
+   • 模型 = 大脑（决策用哪个工具、传什么参数）
+   • 代码 = 手（执行工具、返回结果）
+   • 模型不执行任何代码——它只输出 JSON 告诉代码"帮我做这件事"
+   • 循环是 Agent 的"心跳"：每次迭代都是一次"思考→行动→观察"</code></pre>
+
+<h3>并行 vs 串行决策树</h3>
+
+<pre><code>用户问题中有多个任务？
+        │
+    ┌───┴───┐
+   是       否
+    │        │
+    ▼        └──→ 单工具调用（串行）
+任务之间互相依赖？
+    │
+┌───┴───┐
+是       否
+│        │
+▼        ▼
+串行      并行
+（先A后B） （A和B同时）</code></pre>
+
+<!-- ============================================================ -->
+<h2>六、自测</h2>
+
+<p>5 题，覆盖本周核心知识。先自己回答，再对照答案。</p>
+
+<ol>
+  <li>Function Calling 中，模型真的"调用"了你的函数吗？如果不是，它实际做了什么？为什么这种设计是合理的？</li>
+  <li>一个工具定义（ToolDef）中，description 为什么比 parameters 更重要？给出一个 description 写得好 vs 写得差的对比例子。</li>
+  <li>Agent 循环中，为什么需要 MAX_STEPS？如果设得太小或太大各有什么问题？</li>
+  <li>什么时候该并行调用，什么时候该串行调用？给出具体的判断标准和代码层面的区别。</li>
+  <li>Demo 2 中，messages 数组里包含了哪些 role？它们各自的作用是什么？顺序重要吗？</li>
+</ol>
+
+<details style="margin:1rem 0;">
+  <summary style="cursor:pointer; font-weight:700; color:var(--accent);">📝 参考答案</summary>
+
+  <div style="margin-top:1rem;">
+
+  <h4>第 1 题：Function Calling 的本质</h4>
+
+  <p><strong>模型没有调用任何函数。</strong>它只是输出了一段结构化的 JSON 数据（tool_call），包含三个字段：</p>
+  <ul>
+    <li><code>id</code>：本次调用的唯一标识（用于后续关联 tool result）</li>
+    <li><code>function.name</code>：想调用的函数名</li>
+    <li><code>function.arguments</code>：传给函数的参数（JSON 对象）</li>
+  </ul>
+
+  <p><strong>真正执行函数的是你的代码。</strong>流程是：</p>
+  <ol>
+    <li>代码收到模型的 tool_call JSON</li>
+    <li>代码解析 JSON，提取函数名和参数</li>
+    <li>代码调用真正的 TypeScript 函数（如 <code>getWeather("北京")</code>）</li>
+    <li>代码把函数返回值包装成 tool role 消息，回传给模型</li>
+  </ol>
+
+  <p><strong>为什么这种设计是合理的？</strong></p>
+  <ul>
+    <li><strong>安全</strong>：模型不能执行任意代码——它只能"建议"调哪个函数，代码决定是否执行。如果模型可以真正调用函数，它就能删文件、发网络请求、执行恶意代码。</li>
+    <li><strong>解耦</strong>：模型只负责推理和决策（"这个城市需要查天气"），不关心函数怎么实现（API 调用还是数据库查询）。你可以在不改模型的前提下切换工具的实现。</li>
+    <li><strong>可控</strong>：代码可以在执行前做校验（参数是否合法？频率是否超限？），模型不需要知道这些限制。</li>
+  </ul>
+
+  <p><strong>前端类比：</strong>就像 React 组件不直接操作 DOM——它输出 Virtual DOM（声明式描述），React 运行时负责把 Virtual DOM 变成真实 DOM。模型输出 tool_call（声明式描述），你的代码负责执行。</p>
+
+  <h4>第 2 题：description 为什么比 parameters 更重要？</h4>
+
+  <p><strong>核心原因：模型靠 description 决定"要不要调这个工具"，parameters 只影响"调的时候传什么参数"。</strong>如果 description 写得不好，模型根本不会选择这个工具，parameters 写得再好也没用。</p>
+
+  <p><strong>对比例子：</strong></p>
+
+  <div class="card card--warn" style="margin-bottom:1rem;">
+    <div class="card__title">❌ 差的 description</div>
+    <pre><code>description: "搜索信息"</code></pre>
+    <p style="margin-bottom:0">问题：太模糊，模型不知道和 searchCode 有什么区别。两个工具都"搜索信息"，选哪个？</p>
+  </div>
+
+  <div class="card card--success">
+    <div class="card__title">✅ 好的 description</div>
+    <pre><code>description: "搜索互联网获取最新信息。适用于：模型知识截止后的内容、最新技术文档、实时资讯。不适用于：查找项目代码、本地文件。与 searchCode 的区别：searchWeb 查外部知识，searchCode 查项目本地代码。"</code></pre>
+    <p style="margin-bottom:0">明确了三要素：① 做什么（搜索互联网）② 何时用（知识截止后、最新资讯）③ 何时不用（项目代码、本地文件）。模型能准确判断。</p>
+  </div>
+
+  <p><strong>Description 三要素（必须包含）：</strong></p>
+  <ol>
+    <li><strong>做什么</strong>：工具的功能描述</li>
+    <li><strong>何时用</strong>：适用场景（"适用于 X"）</li>
+    <li><strong>何时不用</strong>：不适用场景 + 与其他工具的区别（"不适用于 Y，与 Z 的区别是..."）</li>
+  </ol>
+
+  <h4>第 3 题：MAX_STEPS 的必要性</h4>
+
+  <p><strong>为什么需要 MAX_STEPS？</strong></p>
+
+  <p>Agent 循环是一个 while 循环——模型每次决策是否调工具。如果模型陷入困惑（工具返回错误、结果不理想、模型幻觉），它可能不断尝试调工具，形成无限循环。MAX_STEPS 是硬性终止条件。</p>
+
+  <p><strong>太小的后果：</strong></p>
+  <ul>
+    <li>复杂任务（需要多步推理）被强制中断，用户得到不完整的答案</li>
+    <li>例如"查 A 天气，如果下雨就查 B 天气，如果也下雨就算 C"——这个任务需要 3-4 步，MAX_STEPS=2 会提前终止</li>
+  </ul>
+
+  <p><strong>太大的后果：</strong></p>
+  <ul>
+    <li>模型陷入死循环时浪费大量 token 和时间</li>
+    <li>用户体验差——等了很久才发现 Agent 在兜圈子</li>
+    <li>一般设 5-8 步，Demo 2 中设的是 6</li>
+  </ul>
+
+  <p><strong>最佳实践：</strong>达到 MAX_STEPS 后，不要直接返回"失败"，而是给模型一个最终提示："请基于已有信息给出最终回答，不要再调用工具。"——让模型总结已有信息，用户至少能得到一个部分答案。</p>
+
+  <h4>第 4 题：并行 vs 串行的判断标准</h4>
+
+  <p><strong>判断标准：问自己一个问题——"任务 B 的输入是否依赖任务 A 的输出？"</strong></p>
+
+  <ul>
+    <li><strong>依赖 → 串行</strong>：必须先完成 A，拿到结果，才能决定 B 要不要做、怎么做。</li>
+    <li><strong>不依赖 → 并行</strong>：A 和 B 可以同时做，互不影响。</li>
+  </ul>
+
+  <table style="width:100%; border-collapse:collapse; margin:1rem 0; font-size:0.9rem;">
+    <tr style="background:var(--code-bg);">
+      <th style="padding:0.4rem 0.8rem; border:1px solid var(--border);">场景</th>
+      <th style="padding:0.4rem 0.8rem; border:1px solid var(--border);">策略</th>
+      <th style="padding:0.4rem 0.8rem; border:1px solid var(--border);">原因</th>
+    </tr>
+    <tr>
+      <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">"查北京和上海的天气"</td>
+      <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">⚡ 并行</td>
+      <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">两个查询互不依赖</td>
+    </tr>
+    <tr>
+      <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">"如果深圳下雨就提醒我带伞"</td>
+      <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">🔗 串行</td>
+      <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">"是否提醒"依赖"是否下雨"的结果</td>
+    </tr>
+    <tr>
+      <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">"现在几点了？顺便算 1024×768"</td>
+      <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">⚡ 并行</td>
+      <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">两个任务完全独立</td>
+    </tr>
+    <tr>
+      <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">"搜 React 19 新特性，然后总结"</td>
+      <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">🔗 串行</td>
+      <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">"总结"依赖"搜索结果"</td>
+    </tr>
+  </table>
+
+  <p><strong>代码层面的区别：</strong></p>
+  <ul>
+    <li><strong>并行</strong>：<code>Promise.all(toolCalls.map(tc => executeTool(...)))</code>——所有工具同时执行，结果一起回传</li>
+    <li><strong>串行</strong>：<code>executeTool(toolCalls[0])</code> → 回传 → 下一轮 ollama.chat → 可能再调下一个工具</li>
+  </ul>
+
+  <p><strong>注意：</strong>并行调用是小模型的弱项。qwen2.5:3b 面对"同时查北京和上海"经常只返回 1 个 tool_call。这不是代码 bug，是模型能力限制。</p>
+
+  <h4>第 5 题：messages 数组中的 role 类型</h4>
+
+  <p><strong>Demo 2 中 messages 包含 4 种 role，顺序极其重要：</strong></p>
+
+  <table style="width:100%; border-collapse:collapse; margin:1rem 0; font-size:0.9rem;">
+    <tr style="background:var(--code-bg);">
+      <th style="padding:0.4rem 0.8rem; border:1px solid var(--border);">role</th>
+      <th style="padding:0.4rem 0.8rem; border:1px solid var(--border);">作用</th>
+      <th style="padding:0.4rem 0.8rem; border:1px solid var(--border);">示例</th>
+    </tr>
+    <tr>
+      <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);"><code>system</code></td>
+      <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">设定角色和工具选择规则</td>
+      <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">"你是一个智能助手，可以调用工具..."</td>
+    </tr>
+    <tr>
+      <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);"><code>user</code></td>
+      <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">用户的问题或指令</td>
+      <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">"北京今天天气怎么样？"</td>
+    </tr>
+    <tr>
+      <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);"><code>assistant</code></td>
+      <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">模型的回复（文本或 tool_call）</td>
+      <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">{ content: "", tool_calls: [...] }</td>
+    </tr>
+    <tr>
+      <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);"><code>tool</code></td>
+      <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">工具执行的结果，必须关联 tool_call_id</td>
+      <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">"晴天，25°C，湿度 45%"，tool_call_id: "call_abc"</td>
+    </tr>
+  </table>
+
+  <p><strong>为什么顺序重要？</strong>模型是按顺序"阅读" messages 的。tool 消息必须紧跟在对应的 assistant(tool_call) 消息之后，模型才能把"我让你做的事"和"你做完了的结果"关联起来。如果 tool 消息的 tool_call_id 对不上，模型会困惑。</p>
+
+  <p><strong>典型的消息序列：</strong></p>
+  <pre><code>system    →  设定规则
+user      →  "查北京天气"
+assistant →  tool_calls: [getWeather("北京")]
+tool      →  "晴天 25°C" (tool_call_id: call_abc)
+assistant →  "北京今天晴天，25°C..."（最终回答）</code></pre>
+
+  </div>
+</details>
+
+<!-- ============================================================ -->
+<hr style="margin:2rem 0; border:none; border-top:1px solid var(--border);">
+
+<div class="card card--success">
+  <div class="card__title">✅ 第 3 周完成！</div>
+  <p style="margin-bottom:0.5rem"><strong>本周你学到了：</strong></p>
+  <ul style="margin-top:0.3rem; margin-bottom:0.5rem; padding-left:1.2rem;">
+    <li>Function Calling 的完整机制：模型输出 JSON → 代码执行函数 → 结果回传</li>
+    <li>用 JSON Schema 定义工具，掌握 Description 三要素（做什么/何时用/何时不用）</li>
+    <li>实现 Agent 调用循环：模型自主决策多步调用，直到任务完成</li>
+    <li>多工具编排：5 个工具并行/串行，处理工具重叠，模型自主选择</li>
+    <li>完成 Demo 2：工具调用 Agent 综合实战，验证"模型能做事"</li>
+  </ul>
+  <p style="margin-bottom:0; font-size:0.9rem; color:var(--text-secondary);">
+    🤔 <strong>有问题？</strong>直接问你的 AI 老师——任何不清楚的地方都可以追问。下周进入 <strong>Agent 核心循环（ReAct）</strong>，从"能调工具"升级到"能自主规划"！
+  </p>
+</div>
+
+<p style="color:var(--text-secondary); font-size:0.85rem;">
+  📅 第 3 周 Day 5 完成 · 下一步：第 4 周 Day 1：ReAct 模式深入
+</p>
+
+</body>
+</html>
