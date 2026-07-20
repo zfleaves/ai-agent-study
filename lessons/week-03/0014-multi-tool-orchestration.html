@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第 14 课：多工具编排 — 让 Agent 在工具间自主选择</title>
+<link rel="stylesheet" href="../../assets/style.css">
+</head>
+<body>
+
+<h1>🎯 第 14 课：多工具编排</h1>
+
+<p><span class="tag tag--blue">技能</span> <span class="tag tag--green">第 3 周 Day 4</span> <span class="tag tag--amber">约 50 分钟</span></p>
+
+<blockquote>
+  <strong>本课目标：</strong>理解当 Agent 拥有 5+ 个工具时，模型如何自主选择、如何编排调用顺序、如何处理工具功能重叠。从"能调工具"升级到"会选工具"。
+</blockquote>
+
+<p>
+  🎯 <strong>本课 Demo：</strong>
+  <a href="../../demo/week-03/multi-tool-orchestration.ts">multi-tool-orchestration.ts</a> — 运行 <code>cd demo/week-03 && npx tsx multi-tool-orchestration.ts</code>，5 个场景测试工具选择与编排
+</p>
+
+<p>
+  📚 <strong>相关参考：</strong>
+  <a href="../../reference/glossary.html">术语表</a> ·
+  <a href="0013-tool-call-loop.html">← 第 13 课（工具调用循环）</a>
+</p>
+
+<h2>📖 课前阅读</h2>
+
+<p>在开始本课前，先浏览以下资源建立背景认知（各 5 分钟）：</p>
+
+<ol>
+  <li>
+    <strong><a href="https://platform.openai.com/docs/guides/function-calling" target="_blank" rel="noopener">OpenAI Function Calling 文档</a></strong>
+    — 虽然 API 是 OpenAI 的，但 Function Calling 的<strong>概念范式在所有模型中通用</strong>（包括 Hermes、Qwen）。重点看 "Parallel Function Calling" 一节，理解模型如何一次发起多个独立调用。
+  </li>
+  <li>
+    <strong><a href="https://github.com/ollama/ollama-js" target="_blank" rel="noopener">Ollama JS 客户端 — GitHub</a></strong>
+    — 回顾 <code>ollama.chat()</code> 的 <code>tools</code> 参数格式。本课 Demo 基于此 SDK，翻一下 README 的 tool-calling 示例（如有）。
+  </li>
+</ol>
+
+<p style="font-size:0.85rem; color:var(--text-secondary);">💡 这些资源来自 <a href="../../RESOURCES.md">RESOURCES.md</a>，是经过筛选的高信任来源。</p>
+
+<!-- ============================================================ -->
+<h2>一、从"能调工具"到"会选工具"</h2>
+
+<p>Day 1-3 我们学会了让模型调用工具。但前几节课最多只有 3-4 个工具，选择压力不大。真正的 Agent 可能有 5 个、10 个甚至更多的工具——<strong>工具越多，模型选错的风险越大</strong>。</p>
+
+<h3>1.1 核心问题</h3>
+
+<div class="card card--accent">
+  <div class="card__title">🤔 当 Agent 有 5 个工具时，用户问"帮我查一下 React 19"，模型应该选哪个？</div>
+  <table style="width:100%; border-collapse:collapse; margin:0.5rem 0; font-size:0.85rem;">
+    <tr style="background:var(--code-bg);">
+      <th style="padding:0.4rem 0.8rem; border:1px solid var(--border);">工具</th>
+      <th style="padding:0.4rem 0.8rem; border:1px solid var(--border);">功能</th>
+      <th style="padding:0.4rem 0.8rem; border:1px solid var(--border);">应该选吗？</th>
+    </tr>
+    <tr>
+      <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);"><code>searchWeb</code></td>
+      <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">搜索互联网</td>
+      <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">✅ 最合适——React 19 是外部知识</td>
+    </tr>
+    <tr>
+      <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);"><code>searchCode</code></td>
+      <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">搜索项目代码库</td>
+      <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">❌ 不合适——React 19 不在项目代码里</td>
+    </tr>
+    <tr>
+      <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);"><code>getWeather</code></td>
+      <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">查天气</td>
+      <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">❌ 完全不相关</td>
+    </tr>
+  </table>
+  <p style="margin-top:0.5rem; margin-bottom:0;">模型的选择取决于 <strong>description 的语义匹配</strong>——它读完用户问题，再看每个工具的 description，选出最相关的那个。</p>
+</div>
+
+<h3>1.2 前端直觉类比</h3>
+
+<pre><code>// 工具选择 ≈ 路由匹配
+// 用户请求 → 匹配最合适的 handler
+
+const routes = {
+  '/api/weather':  getWeather,    // 匹配天气相关请求
+  '/api/search':   searchWeb,     // 匹配搜索相关请求
+  '/api/code':     searchCode,    // 匹配代码相关请求
+  '/api/calc':     calculate,     // 匹配计算相关请求
+};
+
+// LLM 的"路由匹配"不是精确匹配，而是语义匹配：
+// "React 19 有什么新特性" → 语义上最接近 searchWeb
+// "帮我找一下 useEffect 在项目里怎么用的" → 语义上最接近 searchCode</code></pre>
+
+<!-- ============================================================ -->
+<h2>二、工具选择的核心机制</h2>
+
+<h3>2.1 Description 是"工具广告"</h3>
+
+<p>模型不是通过 if-else 选工具，而是通过<strong>语义匹配</strong>。它读用户问题，再读每个工具的 description，选语义最接近的那个。</p>
+
+<div class="card card--warn">
+  <div class="card__title">⚠️ 常见坑：两个工具 description 太像 → 模型选错</div>
+  <pre><code>// ❌ 两个 description 太像，模型可能选错
+searchWeb:  "搜索信息"
+searchCode: "搜索代码"
+
+// ✅ 明确区分使用场景
+searchWeb:  "搜索互联网获取最新信息。适用于：最新技术文档、实时资讯、模型知识截止后的内容。"
+searchCode: "在项目代码库中搜索。适用于：查找函数定义、API 调用、类型定义。只在项目代码范围内搜索。"</code></pre>
+  <p style="margin-bottom:0">关键：description 不仅要写"做什么"，还要写"什么时候用"和"什么时候不用"。</p>
+</div>
+
+<h3>2.2 工具选择的三个层次</h3>
+
+<table style="width:100%; border-collapse:collapse; margin:1rem 0; font-size:0.9rem;">
+  <tr style="background:var(--code-bg);">
+    <th style="padding:0.4rem 0.8rem; border:1px solid var(--border);">层次</th>
+    <th style="padding:0.4rem 0.8rem; border:1px solid var(--border);">决策</th>
+    <th style="padding:0.4rem 0.8rem; border:1px solid var(--border);">依赖</th>
+  </tr>
+  <tr>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);"><strong>① 要不要调工具？</strong></td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">用户问题需要外部信息/能力吗？</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">模型自身知识 + System Prompt</td>
+  </tr>
+  <tr>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);"><strong>② 选哪个工具？</strong></td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">哪个工具的 description 语义最匹配？</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">工具 description 质量</td>
+  </tr>
+  <tr>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);"><strong>③ 怎么传参数？</strong></td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">从用户输入中提取哪些值作为参数？</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">参数 description + 用户输入</td>
+  </tr>
+</table>
+
+<p>这三个层次是<strong>一次推理完成</strong>的——模型不是先判断"要不要"，再选工具，再填参数。它是一次性输出 <code>tool_calls</code> 的 JSON。所以描述写得好，三个层次都受益。</p>
+
+<!-- ============================================================ -->
+<h2>三、并行调用 vs 串行调用：深入理解</h2>
+
+<h3>3.1 模型如何决定并行还是串行？</h3>
+
+<p>模型<strong>一次返回多个 tool_call</strong> = 它认为这些调用互不依赖，可以并行。模型<strong>分两次返回 tool_call</strong> = 它认为第二次调用需要第一次的结果。</p>
+
+<div class="compare">
+  <div class="compare__col">
+    <h4>⚡ 并行（一次返回多个）</h4>
+    <pre><code>// 用户："查北京和上海的天气"
+// 模型一次返回 2 个 tool_call：
+[
+  { name: "getWeather", args: { city: "北京" } },
+  { name: "getWeather", args: { city: "上海" } },
+]
+// → 两个调用互不依赖，用 Promise.all()</code></pre>
+  </div>
+  <div class="compare__col">
+    <h4>🔗 串行（分两次返回）</h4>
+    <pre><code>// 用户："如果北京比上海热，就算 365×25"
+// 第 1 步：模型返回 2 个 tool_call（并行）
+[ getWeather("北京"), getWeather("上海") ]
+// 拿到结果后，第 2 步：模型判断条件
+// 北京 25°C < 上海 28°C → 不满足条件
+// 直接回答（不再调 calculate）</code></pre>
+  </div>
+</div>
+
+<h3>3.2 判断标准</h3>
+
+<div class="card card--accent">
+  <div class="card__title">💡 核心判断：工具 B 的参数是否来自工具 A 的结果？</div>
+  <ul style="margin-bottom:0">
+    <li><strong>参数独立</strong> → 模型会一次返回多个 tool_call → 你并行执行</li>
+    <li><strong>参数依赖</strong> → 模型分两次返回 → 你串行执行</li>
+    <li><strong>你不需要猜测</strong>——模型怎么返回，你就怎么执行。它比你更清楚依赖关系</li>
+  </ul>
+</div>
+
+<h3>3.3 为什么并行很重要？</h3>
+
+<pre><code>// 假设每个工具调用耗时 200ms
+// 3 个独立工具调用：
+
+// 串行：200ms × 3 = 600ms
+for (const tc of toolCalls) {
+  await executeTool(tc);  // 一个一个等
+}
+
+// 并行：max(200ms, 200ms, 200ms) = 200ms
+await Promise.all(toolCalls.map(tc => executeTool(tc)));  // 同时执行
+
+// 节省 400ms——在用户感知上，"流畅"和"卡顿"的区别</code></pre>
+
+<!-- ============================================================ -->
+<h2>四、工具功能重叠：当两个工具都能做同一件事</h2>
+
+<h3>4.1 问题场景</h3>
+
+<p>假设你的 Agent 同时有 <code>searchWeb</code>（搜互联网）和 <code>searchCode</code>（搜代码库）。用户问"帮我查一下 TypeScript 的泛型用法"——这个问题的答案<strong>既可能在互联网上，也可能在项目代码里</strong>。</p>
+
+<p>模型会选哪个？<strong>取决于 description 怎么写</strong>。</p>
+
+<h3>4.2 三种解决方案</h3>
+
+<table style="width:100%; border-collapse:collapse; margin:1rem 0; font-size:0.85rem;">
+  <tr style="background:var(--code-bg);">
+    <th style="padding:0.4rem 0.8rem; border:1px solid var(--border);">方案</th>
+    <th style="padding:0.4rem 0.8rem; border:1px solid var(--border);">做法</th>
+    <th style="padding:0.4rem 0.8rem; border:1px solid var(--border);">优点</th>
+    <th style="padding:0.4rem 0.8rem; border:1px solid var(--border);">缺点</th>
+  </tr>
+  <tr>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);"><strong>① Description 区分</strong></td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">在 description 中明确使用场景和边界</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">简单、不增加代码</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">依赖模型理解，不一定 100% 准确</td>
+  </tr>
+  <tr>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);"><strong>② System Prompt 引导</strong></td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">在 System Prompt 中写选择规则</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">可以写复杂的判断逻辑</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">Prompt 变长，TTFT 增加</td>
+  </tr>
+  <tr>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);"><strong>③ 代码层兜底</strong></td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">工具执行后检查结果，不合适就换工具</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">最可靠</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">增加复杂度</td>
+  </tr>
+</table>
+
+<div class="card card--success">
+  <div class="card__title">💡 推荐策略：Description 区分 + System Prompt 引导</div>
+  <p style="margin-bottom:0">先用 description 区分 80% 的场景，再用 System Prompt 兜底 20% 的边界情况。代码层兜底是最后的手段，只在误调用代价很高时使用（如写文件、发邮件）。</p>
+</div>
+
+<!-- ============================================================ -->
+<h2>五、工具数量与性能权衡</h2>
+
+<h3>5.1 工具越多，Prompt 越长</h3>
+
+<p>每增加一个工具，tools 数组就多一个 JSON Schema 定义（约 200-500 tokens）。这些全部塞进 Prompt 的 system 部分，直接影响：</p>
+
+<pre><code>// 1 个工具：Prompt ~200 tokens → TTFT ~0.5s (qwen2.5:3b)
+// 5 个工具：Prompt ~1000 tokens → TTFT ~1.5s
+// 20 个工具：Prompt ~4000 tokens → TTFT ~4s
+
+// Self-Attention 是 O(N²) 的——Prompt 翻倍，计算量翻 4 倍</code></pre>
+
+<h3>5.2 甜蜜点：5-10 个工具</h3>
+
+<div class="card card--accent">
+  <div class="card__title">📊 经验数据（qwen2.5:3b，本地 CPU 推理）</div>
+  <table style="width:100%; border-collapse:collapse; margin:0.5rem 0; font-size:0.85rem;">
+    <tr style="background:var(--code-bg);">
+      <th style="padding:0.4rem 0.8rem; border:1px solid var(--border);">工具数</th>
+      <th style="padding:0.4rem 0.8rem; border:1px solid var(--border);">TTFT</th>
+      <th style="padding:0.4rem 0.8rem; border:1px solid var(--border);">选择准确率</th>
+      <th style="padding:0.4rem 0.8rem; border:1px solid var(--border);">建议</th>
+    </tr>
+    <tr>
+      <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">1-3</td>
+      <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">~0.5s</td>
+      <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">95%+</td>
+      <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">✅ 选择压力小</td>
+    </tr>
+    <tr>
+      <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);"><strong>5-10</strong></td>
+      <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);"><strong>~1.5s</strong></td>
+      <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);"><strong>85-95%</strong></td>
+      <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);"><strong>✅ 甜蜜点</strong></td>
+    </tr>
+    <tr>
+      <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">10-20</td>
+      <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">~3s</td>
+      <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">70-85%</td>
+      <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">⚠️ 需要更聪明的选择策略</td>
+    </tr>
+    <tr>
+      <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">20+</td>
+      <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">5s+</td>
+      <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">&lt;70%</td>
+      <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">❌ 需要工具分组/路由</td>
+    </tr>
+  </table>
+  <p style="margin-top:0.5rem; margin-bottom:0; font-size:0.85rem;">这是本地模型的数据。GPT-4/Claude 等大模型在 20+ 工具时仍有 90%+ 准确率。工具选择能力是模型规模的一个重要体现。</p>
+</div>
+
+<h3>5.3 工具分组策略（进阶）</h3>
+
+<p>当工具超过 10 个时，不要全部塞给模型。用<strong>两级路由</strong>：</p>
+
+<pre><code>// 第一级：分类器（轻量，快速判断意图）
+//   "天气相关" → 路由到天气工具组
+//   "代码相关" → 路由到代码工具组
+//   "计算相关" → 路由到计算工具组
+
+// 第二级：具体工具（每组 3-5 个）
+//   天气组：getCurrentWeather, getForecast, getAirQuality
+//   代码组：searchCode, runTest, lintCheck
+//   计算组：calculate, convertUnit, solveEquation</code></pre>
+
+<!-- ============================================================ -->
+<h2>六、技能：给 Agent 添加第 5 个工具</h2>
+
+<p>我们来给 Agent 新增一个 <code>searchCode</code> 工具——在项目代码库中搜索代码。这个工具和 <code>searchWeb</code> 功能接近但场景不同，正好用来测试多工具选择。</p>
+
+<h3>6.1 工具定义</h3>
+
+<pre><code>const SEARCH_CODE_TOOL: ToolDef = {
+  type: 'function',
+  function: {
+    name: 'searchCode',
+    description:
+      "在项目代码库中搜索指定关键词，返回匹配的文件路径、行号和代码片段。" +
+      "适用于查找函数定义、API 调用、类型定义等。" +
+      "与 searchWeb 的区别：searchCode 只在项目本地代码中搜索，不访问互联网。" +
+      "例如搜索 'useState' 找到所有使用该 Hook 的组件。",
+    parameters: {
+      type: 'object',
+      properties: {
+        query: {
+          type: 'string',
+          description: "搜索关键词，支持部分匹配。如 'useEffect'、'import.*from'",
+        },
+        lang: {
+          type: 'string',
+          enum: ['ts', 'tsx', 'js', 'jsx', 'json', 'css'],
+          description: "限定编程语言，不传则搜索所有文件类型",
+        },
+        maxResults: {
+          type: 'integer',
+          description: "最多返回条数，默认 10，范围 1-50",
+        },
+      },
+      required: ['query'],
+    },
+  },
+};</code></pre>
+
+<h3>6.2 工具实现（模拟版）</h3>
+
+<pre><code>function searchCode(query: string, lang?: string, maxResults: number = 10): string {
+  // 模拟搜索——实际项目中用 ripgrep 或 IDE API
+  const mockCodebase: Record&lt;string, string&gt; = {
+    'useState':  "src/App.tsx:12 — const [count, setCount] = useState(0);\n" +
+                 "src/hooks/useAuth.ts:5 — const [user, setUser] = useState(null);",
+    'interface': "src/types.ts:3 — interface Message { role: string; content: string; }\n" +
+                 "src/types.ts:8 — interface ToolDef { type: 'function'; function: {...} }",
+    'ollama':    "src/agent.ts:1 — import ollama from 'ollama';\n" +
+                 "src/agent.ts:42 — const res = await ollama.chat({ model, messages, tools });",
+  };
+
+  const match = Object.entries(mockCodebase)
+    .find(([k]) => query.toLowerCase().includes(k.toLowerCase()));
+  return match
+    ? `找到 ${query} 的匹配:\n${match[1]}`
+    : `在项目代码中未找到 "${query}"。提示：这是一个模拟搜索，实际项目需接入 ripgrep 或 grep。`;
+}</code></pre>
+
+<!-- ============================================================ -->
+<h2>七、自测</h2>
+
+<p>5 题，覆盖多工具编排的核心概念。</p>
+
+<ol>
+  <li>模型是如何从 5 个工具中选择正确的那一个的？它依赖什么信息做决策？</li>
+  <li>两个工具功能重叠时（如 searchWeb 和 searchCode），有哪三种解决方案？各自的适用场景是什么？</li>
+  <li>为什么工具越多，模型选择越容易出错？从 Prompt 长度和语义混淆两个角度解释。</li>
+  <li>模型什么时候会一次返回多个 tool_call（并行），什么时候分两次返回（串行）？</li>
+  <li>工具数量超过 10 个时，除了全部塞给模型，还有什么更好的策略？</li>
+</ol>
+
+<details style="margin:1rem 0;">
+  <summary style="cursor:pointer; font-weight:700; color:var(--accent);">📝 参考答案</summary>
+
+  <div style="margin-top:1rem;">
+
+  <h4>第 1 题：模型如何选择工具？</h4>
+
+  <p><strong>模型通过语义匹配选择工具，核心依赖是工具的 description 文本。</strong></p>
+
+  <p>具体过程：</p>
+  <ol>
+    <li><strong>编码阶段</strong>：所有工具的 name + description + parameters 被序列化成 JSON，作为 Prompt 的一部分（通常放在 system 消息区域）</li>
+    <li><strong>推理阶段</strong>：模型读用户问题，通过 Self-Attention 机制计算用户问题与每个工具描述的语义相似度</li>
+    <li><strong>生成阶段</strong>：模型输出 tool_calls JSON，name 字段指向它认为最匹配的工具，arguments 字段从用户输入中提取</li>
+  </ol>
+
+  <p><strong>为什么 description 质量决定选择准确率：</strong>模型的"理解"完全基于文本。如果 description 写"获取天气"，模型只知道这个词和用户问题中的"天气"匹配。但如果 description 写"获取指定城市的当前天气信息，返回温度、湿度、天气状况。城市名用中文，如'北京'"，模型就能更精确地判断：① 用户有没有指定城市 ② 城市名是不是中文 ③ 用户要的是天气还是预报。</p>
+
+  <p><strong>前端类比：</strong>就像搜索引擎——你的 description 是网页的 meta description，用户的问题是搜索词。description 写得越具体，匹配越精准。</p>
+
+  <h4>第 2 题：工具重叠的三种解决方案</h4>
+
+  <p><strong>① Description 区分（首选，覆盖 80% 场景）</strong></p>
+  <ul>
+    <li>做法：在 description 中明确"适用场景"和"不适用场景"</li>
+    <li>示例：<code>searchWeb</code> 写"搜索互联网获取最新信息"，<code>searchCode</code> 写"只在项目本地代码中搜索，不访问互联网"</li>
+    <li>适用：两个工具功能有清晰边界，可以用文字描述清楚</li>
+    <li>不适用：边界模糊、难以用文字描述的场景（如"搜索文档"和"搜索代码"——文档也可能包含代码）</li>
+  </ul>
+
+  <p><strong>② System Prompt 引导（兜底，覆盖 15% 场景）</strong></p>
+  <ul>
+    <li>做法：在 System Prompt 中写明确的选择规则，如"涉及项目代码的问题用 searchCode，涉及外部知识的问题用 searchWeb"</li>
+    <li>适用：可以用简单规则描述的选择逻辑</li>
+    <li>不适用：规则太复杂（超过 3 条）时，模型可能记不住或混淆</li>
+  </ul>
+
+  <p><strong>③ 代码层兜底（最后手段，覆盖 5% 场景）</strong></p>
+  <ul>
+    <li>做法：工具执行后检查结果是否合理，不合理就换工具重试</li>
+    <li>示例：searchCode 返回空结果 → 自动尝试 searchWeb</li>
+    <li>适用：误调用代价高的场景（如发邮件、写文件、调用付费 API）</li>
+    <li>不适用：大部分场景不需要——增加复杂度，且模型选错的概率本来就不高</li>
+  </ul>
+
+  <p><strong>推荐策略：</strong>先用 Description 区分解决 80% 的问题，再用 System Prompt 引导解决 15%，代码层兜底只用在关键工具上。</p>
+
+  <h4>第 3 题：为什么工具越多越容易出错？</h4>
+
+  <p><strong>从两个角度解释：</strong></p>
+
+  <p><strong>① Prompt 长度角度：</strong></p>
+  <ul>
+    <li>每个工具的 JSON Schema 约 200-500 tokens</li>
+    <li>5 个工具 = ~1500 tokens，20 个工具 = ~6000 tokens</li>
+    <li>Self-Attention 是 O(N²) 的——Prompt 翻 4 倍，计算量翻 16 倍</li>
+    <li>更长的 Prompt 意味着模型需要"关注"更多信息，注意力被稀释</li>
+    <li>本地小模型（3B-8B）的 Context Window 和注意力能力有限，长 Prompt 下更容易"遗忘"靠后的工具定义</li>
+  </ul>
+
+  <p><strong>② 语义混淆角度：</strong></p>
+  <ul>
+    <li>工具越多，语义重叠的概率越大</li>
+    <li>假设有 searchWeb、searchCode、searchDocs、searchHistory 四个"搜索"工具——它们的 description 都包含"搜索"这个词，模型需要区分"搜索互联网"、"搜索代码"、"搜索文档"、"搜索历史"的细微差别</li>
+    <li>当差异很小时（如 searchCode vs searchDocs），模型可能随机选一个</li>
+    <li>这就像前端路由——如果两个路由的 path 都是 <code>/api/search</code>，你无法区分。工具也是一样，description 是"路由规则"，必须足够区分</li>
+  </ul>
+
+  <p><strong>判断标准：</strong>如果你自己读一遍所有工具的 description，不能在 3 秒内判断出该用哪个，模型大概率也判断不准。</p>
+
+  <h4>第 4 题：并行 vs 串行的判断</h4>
+
+  <p><strong>模型不会明确告诉你"这些可以并行"或"这些必须串行"——它通过返回方式隐式表达：</strong></p>
+
+  <ul>
+    <li><strong>一次返回多个 tool_call</strong> → 模型认为这些调用互不依赖 → 你可以并行执行</li>
+    <li><strong>分两次返回 tool_call</strong>（中间隔了一次 tool result）→ 模型认为第二次调用依赖第一次的结果 → 必须串行</li>
+  </ul>
+
+  <p><strong>为什么模型能判断依赖关系？</strong></p>
+  <ul>
+    <li>模型在生成 tool_calls 时，会评估"这个调用需要什么信息？这个信息我现在有吗？"</li>
+    <li>如果所有需要的信息都在用户输入中，模型可以一次生成所有 tool_calls</li>
+    <li>如果某个调用需要未知信息（比如另一个工具的结果），模型会等拿到结果后再生成下一次调用</li>
+  </ul>
+
+  <p><strong>实际例子：</strong></p>
+  <pre><code>// 用户："查北京和上海的天气，然后算一下 365×25"
+// 模型思考：
+// - getWeather("北京") → 参数来自用户输入 ✅ 可以现在调
+// - getWeather("上海") → 参数来自用户输入 ✅ 可以现在调
+// - calculate("365*25") → 参数来自用户输入 ✅ 可以现在调
+// → 三个都独立 → 一次返回 3 个 tool_call
+
+// 用户："如果北京比上海热，就算 365×25"
+// 模型思考：
+// - getWeather("北京") → 参数来自用户输入 ✅ 可以现在调
+// - getWeather("上海") → 参数来自用户输入 ✅ 可以现在调
+// - calculate → 需要先知道"北京是否比上海热" → 条件未知 ❌
+// → 先调两个天气，拿到结果后再决定是否调 calculate</code></pre>
+
+  <h4>第 5 题：工具超过 10 个的策略</h4>
+
+  <p><strong>核心策略：两级路由——不要让模型在 20 个工具中直接选，先分类再选择。</strong></p>
+
+  <p><strong>具体做法：</strong></p>
+  <ol>
+    <li><strong>第一级：意图分类</strong>——用一个轻量 Prompt（或小模型）判断用户意图属于哪个类别（天气、代码、搜索、计算……）</li>
+    <li><strong>第二级：组内选择</strong>——只把该类别下的 3-5 个工具传给模型，让它在小组内选择</li>
+  </ol>
+
+  <p><strong>为什么有效：</strong></p>
+  <ul>
+    <li>Prompt 长度大幅减少（每个类别只有 3-5 个工具，而不是 20 个）</li>
+    <li>语义混淆减少（同组内的工具功能差异更大，更容易区分）</li>
+    <li>TTFT 降低（Prompt 更短）</li>
+  </ul>
+
+  <p><strong>前端类比：</strong>这就像前端路由的嵌套路由——不是把所有路由平铺在根级别，而是分组到 <code>/weather/*</code>、<code>/code/*</code>、<code>/search/*</code> 下，先匹配一级路径，再匹配二级路径。</p>
+
+  <p><strong>还有另一种策略：工具命名空间</strong>——给工具名加前缀，如 <code>weather.getCurrent</code>、<code>code.search</code>。模型看到前缀就能快速排除不相关的工具组。这是 MCP 协议采用的方式。</p>
+
+  </div>
+</details>
+
+<!-- ============================================================ -->
+<hr style="margin:2rem 0; border:none; border-top:1px solid var(--border);">
+
+<div class="card card--success">
+  <div class="card__title">✅ 本课小结</div>
+  <p style="margin-bottom:0.5rem"><strong>你今天学到了：</strong></p>
+  <ul style="margin-top:0.3rem; margin-bottom:0.5rem; padding-left:1.2rem;">
+    <li>模型通过 description 的<strong>语义匹配</strong>选择工具，不是 if-else</li>
+    <li>工具选择三层次：要不要调 → 选哪个 → 怎么传参（一次推理完成）</li>
+    <li>并行 vs 串行：模型隐式决定——一次返回多个 tool_call = 并行，分两次返回 = 串行</li>
+    <li>工具重叠三种解决：Description 区分 → System Prompt 引导 → 代码层兜底</li>
+    <li>工具数量甜蜜点：5-10 个。超过 10 个用两级路由或命名空间</li>
+    <li>新增 searchCode 工具，理解两个"搜索"工具如何通过 description 区分</li>
+  </ul>
+  <p style="margin-bottom:0; font-size:0.9rem; color:var(--text-secondary);">
+    🤔 <strong>有问题？</strong>直接问你的 AI 老师。明天 Day 5 将完成本周复盘 + Demo 2（工具调用 Agent 综合实战）！
+  </p>
+</div>
+
+<p style="color:var(--text-secondary); font-size:0.85rem;">
+  📅 第 3 周 Day 4 完成 · 下一步：<a href="0015-week3-review.html">第 3 周 Day 5：复盘 + Demo 2</a>
+</p>
+
+</body>
+</html>

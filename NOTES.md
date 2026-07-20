@@ -37,8 +37,9 @@
           Day 1 ✅ Tool-calling 入门（Function Calling 机制、JSON Schema 工具定义）
           Day 2 ✅ 定义第一个工具（Description 三要素、TS→JSON Schema 映射、多工具选择）
           Day 3 ✅ 工具调用循环（Agent 循环、链式/并行调用、错误处理、终止条件）
+          Day 4 ✅ 多工具编排（5 工具选择、并行 vs 串行、工具重叠处理、searchCode 工具）
         已安装模型：hermes3:8b (4.7GB)、qwen2.5:3b (1.9GB)
-下一步：  第 3 周 Day 4 — 多工具编排（注册更多工具，模型自主选择调用顺序）
+下一步：  第 3 周 Day 5 — 复盘 + Demo 2 工具调用 Agent 综合实战
 ```
 
 ## 已确认的先验知识
