@@ -165,6 +165,100 @@ async function test(prompt: string, system: string, label: string): Promise<void
 }
 
 // ============================================================
+// 完整 ReAct 循环演示
+// ============================================================
+
+// 模拟工具实现
+function getWeather(city: string): string {
+  const data: Record<string, string> = {
+    '北京': '晴天，25°C，湿度 45%，风力 3 级',
+    '深圳': '阵雨，30°C，湿度 80%，风力 4 级',
+    '上海': '多云，28°C，湿度 65%，风力 2 级',
+  };
+  return data[city] ?? `未找到 "${city}" 的天气数据`;
+}
+
+async function fullReActCycle(prompt: string, system: string, label: string): Promise<void> {
+  console.log(`\n${'─'.repeat(56)}`);
+  console.log(`🧪 完整 ReAct 循环: ${label}`);
+  console.log(`   Question: "${prompt}"`);
+  console.log(`${'─'.repeat(56)}`);
+
+  const messages: Array<{ role: string; content: string | null; tool_calls?: any[]; tool_call_id?: string }> = [
+    { role: 'system', content: system },
+    { role: 'user', content: prompt },
+  ];
+
+  const start = Date.now();
+  let step = 0;
+  const MAX_STEPS = 4;
+
+  while (step < MAX_STEPS) {
+    step++;
+    const res = await client.chat.completions.create({
+      model: MODEL,
+      messages: messages as any,
+      tools: TOOLS,
+    });
+    const msg = res.choices[0]?.message;
+
+    // 打印 Thought
+    if (msg?.content) {
+      console.log(`\n  📍 Step ${step}: 💭 Thought: "${msg.content.trim()}"`);
+    } else {
+      console.log(`\n  📍 Step ${step}: 💭 (无 Thought — 直接行动)`);
+    }
+
+    // 没有工具调用 → 最终回答
+    if (!msg?.tool_calls || msg.tool_calls.length === 0) {
+      console.log(`  ✅ 最终回答: "${msg?.content?.trim()}"`);
+      const ms = Date.now() - start;
+      console.log(`\n  ⏱  总耗时 ${ms}ms，共 ${step} 步`);
+      return;
+    }
+
+    // 有工具调用
+    console.log(`  🔧 调用 ${msg.tool_calls.length} 个工具:`);
+    messages.push(msg as any);
+
+    for (const tc of msg.tool_calls) {
+      const ftc = tc as ChatCompletionMessageFunctionToolCall;
+      const toolName = ftc.function.name;
+      const args = JSON.parse(ftc.function.arguments);
+      console.log(`     → ${toolName}(${JSON.stringify(args)})`);
+
+      // 执行工具
+      let result: string;
+      if (toolName === 'getWeather') {
+        result = getWeather(args.city as string);
+      } else if (toolName === 'calculate') {
+        const expr = args.expr as string;
+        try {
+          result = `${expr} = ${Function('"use strict"; return (' + expr + ')')()}`;
+        } catch (e: any) {
+          result = `计算失败: ${e.message}`;
+        }
+      } else if (toolName === 'getCurrentTime') {
+        result = new Date().toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' });
+      } else {
+        result = `未知工具: ${toolName}`;
+      }
+
+      console.log(`  👁  Observation: "${result}"`);
+
+      // 回传结果
+      messages.push({
+        role: 'tool',
+        content: result,
+        tool_call_id: ftc.id,
+      } as any);
+    }
+  }
+
+  console.log(`  ⚠️  达到最大步数 ${MAX_STEPS}`);
+}
+
+// ============================================================
 // 主函数
 // ============================================================
 
@@ -192,6 +286,15 @@ async function main() {
 
   await test('现在几点了？顺便帮我算一下 2025 × 2026 等于多少', SYSTEM_BASIC, 'C1');
   await test('现在几点了？顺便帮我算一下 2025 × 2026 等于多少', SYSTEM_REACT, 'C2');
+
+  // 实验 4：完整 ReAct 循环 — Thought → Action → Observation → Thought → Answer
+  console.log('\n═══ 实验 4：完整 ReAct 循环（条件式推理） ═══');
+
+  await fullReActCycle(
+    '查一下深圳天气，如果下雨就提醒我带伞，如果晴天就告诉我不用带',
+    SYSTEM_BASIC,
+    'D：完整循环'
+  );
 
   console.log(`\n${'═'.repeat(56)}`);
   console.log('✅ 实验完成。观察两组对比：');
