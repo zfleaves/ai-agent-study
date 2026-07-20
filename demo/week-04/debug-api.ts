@@ -28,7 +28,7 @@ console.log('MODEL:', env.MODEL);
 
 const client = new OpenAI({
   apiKey: env.API_KEY,
-  baseURL: env.BASE_URL + '/v1',
+  baseURL: env.BASE_URL,
 });
 
 async function main() {

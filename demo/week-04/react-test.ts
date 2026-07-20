@@ -10,6 +10,7 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import OpenAI from 'openai';
+import type { ChatCompletionMessageFunctionToolCall } from 'openai/resources/chat/completions/completions';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -42,7 +43,7 @@ const env = loadEnv();
 
 const client = new OpenAI({
   apiKey: env.API_KEY,
-  baseURL: env.BASE_URL + '/v1',
+  baseURL: env.BASE_URL,
 });
 
 const MODEL = env.MODEL || 'qwen2.5:3b';
@@ -155,7 +156,8 @@ async function test(prompt: string, system: string, label: string): Promise<void
   if (msg?.tool_calls && msg.tool_calls.length > 0) {
     console.log(`   🔧 工具调用: ${msg.tool_calls.length} 个`);
     for (const tc of msg.tool_calls) {
-      console.log(`      → ${tc.function.name}(${tc.function.arguments})`);
+      const ftc = tc as ChatCompletionMessageFunctionToolCall;
+      console.log(`      → ${ftc.function.name}(${ftc.function.arguments})`);
     }
   } else {
     console.log(`   📝 直接回答: "${msg?.content?.slice(0, 100) || '(无)'}"`);
