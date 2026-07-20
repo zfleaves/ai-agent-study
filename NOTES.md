@@ -39,8 +39,10 @@
           Day 3 ✅ 工具调用循环（Agent 循环、链式/并行调用、错误处理、终止条件）
           Day 4 ✅ 多工具编排（5 工具选择、并行 vs 串行、工具重叠处理、searchCode 工具）
           Day 5 ✅ 复盘 + Demo 2 工具调用 Agent 综合实战 (agent-demo.ts)
+        第 4 周 🔄
+          Day 1 ✅ ReAct 模式深入（Thought→Action→Observation 循环、自回归约束机制）
         已安装模型：hermes3:8b (4.7GB)、qwen2.5:3b (1.9GB)
-下一步：  第 4 周 Day 1 — ReAct 模式深入（Reasoning + Acting 完整循环）
+下一步：  第 4 周 Day 2 — Agent 状态管理（State 设计、历史截断、TS Class 实现）
 ```
 
 ## 已确认的先验知识

@@ -1,0 +1,599 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第 16 课：ReAct 模式 — Agent 的"思考→行动"循环</title>
+<link rel="stylesheet" href="../../assets/style.css">
+</head>
+<body>
+
+<h1>🧠 第 16 课：ReAct 模式 — Agent 的"思考→行动"循环</h1>
+
+<p><span class="tag tag--blue">技能</span> <span class="tag tag--green">第 4 周 Day 1</span> <span class="tag tag--amber">约 45 分钟</span></p>
+
+<blockquote>
+  <strong>本课目标：</strong>理解 ReAct（Reasoning + Acting）模式的完整循环机制，知道 Agent 如何通过"思考→行动→观察→再思考"自主完成多步任务。从第 3 周的"模型会调工具"升级到"Agent 会自主推理"。
+</blockquote>
+
+<p>
+  📚 <strong>相关参考：</strong>
+  <a href="../../reference/glossary.html">术语表</a> ·
+  <a href="../week-03/0015-week3-review.html">← 第 15 课（第 3 周复盘）</a> ·
+  <a href="../week-03/0013-tool-call-loop.html">第 13 课（工具调用循环）</a> ·
+  <a href="../week-03/0014-multi-tool-orchestration.html">第 14 课（多工具编排）</a>
+</p>
+
+<!-- ============================================================ -->
+<h2>📖 课前阅读</h2>
+
+<p>在开始本课前，先浏览以下资源建立背景认知（各 5 分钟）：</p>
+
+<ol>
+  <li>
+    <strong><a href="https://arxiv.org/abs/2210.03629" target="_blank" rel="noopener">ReAct 原论文：Synergizing Reasoning and Acting in Language Models</a></strong>
+    — Yao et al., 2022。这是 ReAct 的原始论文，定义了 Thought → Action → Observation 循环。重点看 Figure 1（ReAct 循环图）和 Section 3（ReAct 方法描述）。
+  </li>
+  <li>
+    <strong><a href="https://www.promptingguide.ai/techniques/react" target="_blank" rel="noopener">Prompt Engineering Guide — ReAct 章节</a></strong>
+    — 用通俗语言解释 ReAct 如何工作，有实际的 Prompt 模板和示例。对比 ReAct vs CoT vs Act-only 的效果差异。
+  </li>
+</ol>
+
+<p style="font-size:0.85rem; color:var(--text-secondary);">💡 这些资源来自 <a href="../../RESOURCES.md">RESOURCES.md</a>，是经过筛选的高信任来源。</p>
+
+<!-- ============================================================ -->
+<h2>一、第 3 周 Agent 的"天花板"</h2>
+
+<p>第 3 周我们做出了一个能调工具的 Agent。用户可以问：</p>
+
+<pre><code>用户："查北京天气" → Agent 调 getWeather → 返回结果 ✅</code></pre>
+
+<p>但面对这种问题呢？</p>
+
+<pre><code>用户："帮我查一下北京天气，如果下雨就提醒我带伞，然后查明天的高铁到上海"
+
+Agent 需要：
+  1. 先查北京天气
+  2. 读结果，判断是否下雨
+  3. 如果下雨 → 提醒带伞
+  4. 然后查高铁
+  5. 整合所有信息，给出最终回答</code></pre>
+
+<div class="card card--warn">
+  <div class="card__title">⚠️ 第 3 周 Agent 的局限性</div>
+  <p style="margin-bottom:0.5rem">第 3 周的 Agent 循环核心逻辑是：</p>
+  <pre><code>while (step < MAX_STEPS) {
+  模型响应 → 有 tool_call？ → 执行 → 回传 → 继续
+}</code></pre>
+  <p style="margin-top:0.5rem; margin-bottom:0;">这个循环能"调工具"，但缺少一个关键环节：<strong>模型在调工具之前，没有显式地思考"为什么调这个工具"和"调完要达到什么目的"</strong>。当任务涉及多步推理和条件判断时，模型容易迷失方向——它只是在机械地"调工具→看结果→调下一个"，而不是在"想清楚再行动"。</p>
+</div>
+
+<!-- ============================================================ -->
+<h2>二、ReAct 是什么？</h2>
+
+<h3>2.1 核心思想：Thought → Action → Observation</h3>
+
+<p>ReAct = <strong>Re</strong>asoning + <strong>Act</strong>ing，是 Yao et al. 在 2022 年提出的 Agent 推理框架。核心思想是：<strong>Agent 在每次行动前，先输出一个"思考"（Thought），解释为什么要做这个行动、期望达到什么效果。</strong></p>
+
+<pre><code>┌─────────────────────────────────────────────────────────┐
+│                    ReAct 循环                             │
+│                                                         │
+│   Thought → Action → Observation → Thought → Action → │
+│     思考      行动       观察        再思考    再行动     │
+│                                                         │
+│   例：                                                  │
+│   Thought: "用户想知道北京天气，我需要查天气数据"         │
+│   Action:  getWeather("北京")                           │
+│   Observation: "晴天，25°C"                             │
+│   Thought: "天气好，不需要提醒带伞。接下来查高铁"         │
+│   Action:  searchWeb("北京到上海高铁")                   │
+│   Observation: "G123 次，09:00-13:30"                   │
+│   Thought: "信息齐全了，可以回答用户"                    │
+│   Answer:  "北京今天晴天 25°C，不需要带伞..."            │
+└─────────────────────────────────────────────────────────┘</code></pre>
+
+<h3>2.2 对比：有 Thought vs 没有 Thought</h3>
+
+<table style="width:100%; border-collapse:collapse; margin:1rem 0; font-size:0.9rem;">
+  <tr style="background:var(--code-bg);">
+    <th style="padding:0.4rem 0.8rem; border:1px solid var(--border);">维度</th>
+    <th style="padding:0.4rem 0.8rem; border:1px solid var(--border);">纯 Tool-calling（第 3 周）</th>
+    <th style="padding:0.4rem 0.8rem; border:1px solid var(--border);">ReAct（本课）</th>
+  </tr>
+  <tr>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);"><strong>流程</strong></td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">用户提问 → 模型调工具 → 返回结果</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">用户提问 → <strong>模型思考</strong> → 调工具 → 观察结果 → <strong>再思考</strong> → ...</td>
+  </tr>
+  <tr>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);"><strong>模型输出</strong></td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">只输出 tool_call 或 final answer</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">输出 <strong>Thought</strong> + tool_call 或 final answer</td>
+  </tr>
+  <tr>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);"><strong>多步推理</strong></td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">弱——模型可能"调了再说"</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);"><strong>强</strong>——每步都有明确的推理目标</td>
+  </tr>
+  <tr>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);"><strong>条件判断</strong></td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">隐式——模型心里知道，但没写出来</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);"><strong>显式</strong>——"如果A就B"写在 Thought 里</td>
+  </tr>
+  <tr>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);"><strong>可调试性</strong></td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">差——不知道模型为什么选错工具</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);"><strong>好</strong>——Thought 告诉你模型的推理过程</td>
+  </tr>
+  <tr>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);"><strong>Token 消耗</strong></td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">少</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">多（Thought 也消耗 token）</td>
+  </tr>
+</table>
+
+<h3>2.3 前端直觉类比</h3>
+
+<pre><code>// 纯 Tool-calling ≈ 直接调 API，不写注释
+async function handleUserRequest(query: string) {
+  const tool = pickTool(query);        // 黑盒决策
+  const result = await execute(tool);  // 执行
+  return format(result);               // 返回
+}
+
+// ReAct ≈ 每步都写 console.log + 注释，解释"为什么"
+async function handleUserRequestReAct(query: string) {
+  console.log("Thought: 需要先查天气，判断是否下雨");
+  //  ↑ 显式思考，出问题时能看到推理过程
+  const weather = await getWeather("北京");
+
+  console.log("Observation: 天气是晴天，不需要提醒带伞");
+  //  ↑ 观察结果，决定下一步
+
+  console.log("Thought: 天气没问题，接下来查高铁");
+  const train = await searchWeb("北京到上海高铁");
+
+  console.log("Thought: 信息齐全，可以回答");
+  return format(weather, train);
+}</code></pre>
+
+<p><strong>核心区别：</strong>ReAct 的 Thought 就像代码里的注释和日志——没有它代码也能跑，但有了它，你（和模型自己）就能看清楚每一步"为什么这么做"。</p>
+
+<!-- ============================================================ -->
+<h2>三、为什么 ReAct 有效？底层机制</h2>
+
+<h3>3.1 自回归约束机制 — 为什么"写出来"比"心里想"好</h3>
+
+<p>这和第 2 周讲的 CoT（Chain of Thought，思维链）原理相同：</p>
+
+<div class="card card--accent">
+  <div class="card__title">🔬 自回归约束（Autoregressive Constraint）</div>
+  <p style="margin-bottom:0.5rem">Transformer 模型是<strong>自回归</strong>的——生成每个 token 时，只能看到<strong>前面已经生成的 token</strong>。这意味着：</p>
+  <ol style="margin-bottom:0">
+    <li><strong>已生成的 token 会锁定后续 token 的概率分布</strong>。当模型写下"Thought: 用户想知道北京天气，如果下雨就需要提醒"时，这段话中的"下雨"、"提醒"等词会大幅提高后续生成"带伞"、"雨具"等词的概率。</li>
+    <li><strong>没写出来的推理 ≈ 不存在</strong>。如果模型不在 Thought 中显式写下"如果下雨就..."，那这个条件判断对后续 token 的约束力就很弱——模型可能"忘了"要判断天气状况。</li>
+    <li><strong>Thought 是模型的"工作记忆"</strong>。人类做复杂推理时会自言自语或打草稿，模型也一样——把中间推理写出来，就相当于在 Context Window 中创建了一个"便签"，后续生成时随时可以参考。</li>
+  </ol>
+</div>
+
+<h3>3.2 ReAct 如何提升工具选择准确率</h3>
+
+<p>第 3 周我们遇到过一个场景：模型不调 searchCode 而是直接回答"接口是怎么定义的"。这是因为模型没有显式思考"这个问题需要查代码"。</p>
+
+<p>在 ReAct 模式下：</p>
+
+<pre><code>❌ 纯 Tool-calling：
+  用户："项目里 ToolDef 接口怎么定义的？"
+  模型：（心里想）"我知道 interface 是什么，直接回答吧"
+  输出：interface ToolDef { type: 'function'; ... }  ← 这是模型编的，不是项目实际代码
+
+✅ ReAct：
+  用户："项目里 ToolDef 接口怎么定义的？"
+  模型：Thought: 用户在问项目代码中的接口定义，这需要查项目本地文件，不是外部知识
+  Action: searchCode("ToolDef interface")
+  Observation: agent-demo.ts:53  interface ToolDef { type: 'function'; ... }
+  Thought: 找到了，在 agent-demo.ts 第 53 行
+  Answer: 项目中 ToolDef 接口定义在 agent-demo.ts 第 53 行...</code></pre>
+
+<p><strong>关键洞察：</strong>Thought 强制模型在行动前"解释自己的选择"，这个解释过程本身就纠正了很多选择错误。就像 code review 时口头解释自己的代码，往往说着说着就发现 bug 了。</p>
+
+<!-- ============================================================ -->
+<h2>四、ReAct 的 Prompt 设计</h2>
+
+<h3>4.1 ReAct 格式规范</h3>
+
+<p>ReAct 论文定义了标准的输出格式。在 System Prompt 中告诉模型：</p>
+
+<pre><code>你是一个使用 ReAct 模式工作的智能助手。每次行动前，你必须先输出 Thought。
+
+可用格式：
+  Thought: &lt;你的推理过程，解释为什么做这个行动&gt;
+  Action: &lt;工具名&gt;[&lt;参数&gt;]
+  Observation: &lt;工具返回的结果&gt;
+
+当信息足够时，输出：
+  Thought: 信息齐全，可以回答
+  Answer: &lt;最终回答&gt;
+
+重要规则：
+  1. Thought 必须在 Action 之前
+  2. 每次 Action 后，等待 Observation 再继续
+  3. 不要在 Thought 中猜测结果——等 Observation 后再判断</code></pre>
+
+<h3>4.2 第 3 周 Agent vs ReAct Agent 的 System Prompt 对比</h3>
+
+<table style="width:100%; border-collapse:collapse; margin:1rem 0; font-size:0.85rem;">
+  <tr style="background:var(--code-bg);">
+    <th style="padding:0.4rem 0.8rem; border:1px solid var(--border);">维度</th>
+    <th style="padding:0.4rem 0.8rem; border:1px solid var(--border);">第 3 周 System Prompt</th>
+    <th style="padding:0.4rem 0.8rem; border:1px solid var(--border);">ReAct System Prompt</th>
+  </tr>
+  <tr>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">工具选择</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">"天气查询 → getWeather"</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">"先 Think 再选工具，Think 里解释为什么选"</td>
+  </tr>
+  <tr>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">输出格式</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">tool_call 或纯文本</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">Thought + tool_call / Thought + Answer</td>
+  </tr>
+  <tr>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">终止条件</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">"直接回答"</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">"Thought: 信息齐全 → Answer"</td>
+  </tr>
+  <tr>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">错误处理</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">"缺少参数时询问"</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">"Thought: 工具返回错误，原因可能是... → 尝试替代方案"</td>
+  </tr>
+</table>
+
+<!-- ============================================================ -->
+<h2>五、动手：用 ReAct 视角重看 Demo 2</h2>
+
+<h3>5.1 练习：给 Demo 2 的 Agent 循环加"Thought 日志"</h3>
+
+<div class="card card--accent">
+  <div class="card__title">🛠️ 任务</div>
+  <p>打开 <code>demo/week-03/agent-demo.ts</code>，找到 <code>agentLoop()</code> 函数。当前它在每个 Step 只打印：</p>
+  <pre><code>console.log(`  🔧 请求 ${toolCalls.length} 个工具`);</code></pre>
+  <p style="margin-bottom:0.5rem">你的任务：<strong>在调用模型后、执行工具前，先检查模型是否输出了 Thought（即 response.message.content 是否非空），如果有就打印出来。</strong>像这样：</p>
+  <pre><code>// 在 toolCalls 判断之前加入：
+if (response.message.content) {
+  console.log(`  💭 Thought: ${response.message.content.slice(0, 120)}`);
+}</code></pre>
+  <p style="margin-bottom:0;"><strong>预期效果：</strong>当模型在调工具前先"思考"时，你能在终端看到它的推理过程。对比有无 Thought 时的工具选择准确率差异。</p>
+</div>
+
+<h3>5.2 观察：模型什么时候会"思考"？</h3>
+
+<p>跑几个测试，观察模型的行为：</p>
+
+<table style="width:100%; border-collapse:collapse; margin:1rem 0; font-size:0.9rem;">
+  <tr style="background:var(--code-bg);">
+    <th style="padding:0.4rem 0.8rem; border:1px solid var(--border);">问题类型</th>
+    <th style="padding:0.4rem 0.8rem; border:1px solid var(--border);">模型可能的行为</th>
+    <th style="padding:0.4rem 0.8rem; border:1px solid var(--border);">为什么</th>
+  </tr>
+  <tr>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">"北京天气"</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">无 Thought，直接调工具</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">任务简单，不需要显式推理</td>
+  </tr>
+  <tr>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">"如果深圳下雨就提醒我带伞"</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">可能有 Thought</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">有条件判断，需要先想清楚依赖关系</td>
+  </tr>
+  <tr>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">"查天气+搜新闻+计算"</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">可能有 Thought（并行分析）</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">需要判断哪些任务独立、哪些依赖</td>
+  </tr>
+</table>
+
+<p><strong>关键观察：</strong>小模型（3b）通常不会自动输出 Thought——它们倾向于直接行动。这正是 ReAct 格式的价值：<strong>用 System Prompt 强制模型输出 Thought</strong>，即使它"觉得"不需要。</p>
+
+<!-- ============================================================ -->
+<h2>六、ReAct 的适用场景与局限</h2>
+
+<table style="width:100%; border-collapse:collapse; margin:1rem 0; font-size:0.9rem;">
+  <tr style="background:var(--code-bg);">
+    <th style="padding:0.4rem 0.8rem; border:1px solid var(--border);">场景</th>
+    <th style="padding:0.4rem 0.8rem; border:1px solid var(--border);">ReAct 合适吗？</th>
+    <th style="padding:0.4rem 0.8rem; border:1px solid var(--border);">原因</th>
+  </tr>
+  <tr>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">多步推理（"先查A，如果A就B，再C"）</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">✅ 非常适合</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">Thought 帮助模型跟踪子目标</td>
+  </tr>
+  <tr>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">单工具调用（"查天气"）</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">⚠️ 过度设计</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">Thought 浪费 token，直接调工具即可</td>
+  </tr>
+  <tr>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">创意写作（"写一首诗"）</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">❌ 不适用</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">Thought 破坏流畅性，和 CoT 一样的问题</td>
+  </tr>
+  <tr>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">简单知识问答（"React 是什么"）</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">❌ 不适用</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">不需要工具，不需要推理</td>
+  </tr>
+  <tr>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">调试 Agent 行为</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">✅ 非常有用</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">Thought 是天然的 debug 日志</td>
+  </tr>
+</table>
+
+<div class="card card--warn">
+  <div class="card__title">⚠️ 判断标准：什么时候用 ReAct？</div>
+  <p style="margin-bottom:0.5rem">问自己两个问题：</p>
+  <ol style="margin-bottom:0">
+    <li><strong>这个任务需要 2 步以上的工具调用吗？</strong> → 是 → 用 ReAct</li>
+    <li><strong>步骤之间有条件依赖吗？</strong>（"如果A就B"）→ 是 → 必须用 ReAct</li>
+  </ol>
+  <p style="margin-top:0.5rem; margin-bottom:0;">如果两个答案都是"否"，纯 Tool-calling 就够，不需要 ReAct 的 overhead。</p>
+</div>
+
+<!-- ============================================================ -->
+<h2>七、ReAct vs 其他推理策略对比</h2>
+
+<table style="width:100%; border-collapse:collapse; margin:1rem 0; font-size:0.85rem;">
+  <tr style="background:var(--code-bg);">
+    <th style="padding:0.4rem 0.8rem; border:1px solid var(--border);">策略</th>
+    <th style="padding:0.4rem 0.8rem; border:1px solid var(--border);">机制</th>
+    <th style="padding:0.4rem 0.8rem; border:1px solid var(--border);">工具调用</th>
+    <th style="padding:0.4rem 0.8rem; border:1px solid var(--border);">适用场景</th>
+    <th style="padding:0.4rem 0.8rem; border:1px solid var(--border);">Token 开销</th>
+  </tr>
+  <tr>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);"><strong>Zero-shot</strong></td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">只给指令，不给例子</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">无需</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">简单任务、知识问答</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">最低</td>
+  </tr>
+  <tr>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);"><strong>CoT</strong></td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">先推理再回答，思想链</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">无需</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">数学推理、逻辑分析</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">中等</td>
+  </tr>
+  <tr>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);"><strong>Tool-calling</strong></td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">调工具，无显式推理</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">单步</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">查天气、搜索、计算</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">低</td>
+  </tr>
+  <tr>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);"><strong>ReAct</strong></td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">Thought → Action → Observation</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">多步</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">多步推理 + 工具调用</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">高</td>
+  </tr>
+  <tr>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);"><strong>Plan-then-Act</strong></td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">先制定完整计划，再逐步执行</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">多步</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">复杂多步任务（Day 4 会讲）</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">最高</td>
+  </tr>
+</table>
+
+<!-- ============================================================ -->
+<h2>八、自测</h2>
+
+<p>5 题，覆盖本课核心知识。先自己回答，再对照答案。</p>
+
+<ol>
+  <li>ReAct 中的 Thought、Action、Observation 分别是什么？用一个具体的例子说明三者的顺序。</li>
+  <li>为什么 ReAct 比纯 Tool-calling 更适合多步推理任务？从自回归约束机制的角度解释。</li>
+  <li>ReAct 和 CoT（思维链）有什么区别？它们在什么场景下各自适用？</li>
+  <li>什么情况下不应该用 ReAct？给出两个具体场景并解释原因。</li>
+  <li>在 System Prompt 中强制模型输出 Thought，和让模型自己决定是否输出 Thought，各有什么利弊？</li>
+</ol>
+
+<details style="margin:1rem 0;">
+  <summary style="cursor:pointer; font-weight:700; color:var(--accent);">📝 参考答案</summary>
+
+  <div style="margin-top:1rem;">
+
+  <h4>第 1 题：Thought、Action、Observation 的定义</h4>
+
+  <p><strong>三个要素：</strong></p>
+  <ul>
+    <li><strong>Thought（思考）</strong>：模型在行动前输出的推理文本。解释"为什么做这个行动"、"期望达到什么效果"、"当前已知什么信息"。</li>
+    <li><strong>Action（行动）</strong>：模型输出的工具调用（tool_call）。是具体的函数名 + 参数，由代码执行。</li>
+    <li><strong>Observation（观察）</strong>：工具执行后返回的结果。是外部世界对 Action 的反馈，模型读取后决定下一步。</li>
+  </ul>
+
+  <p><strong>具体例子——"查北京天气，如果下雨就提醒带伞"：</strong></p>
+
+  <pre><code>① Thought:  "用户想知道北京天气，我需要先查天气数据，才能判断是否下雨"
+② Action:   getWeather("北京")
+③ Observation: "晴天，25°C，湿度 45%，风力 3 级"
+④ Thought:  "天气是晴天，没有下雨。不需要提醒用户带伞。信息已经足够回答了。"
+⑤ Answer:   "北京今天晴天，25°C，不需要带伞。"</code></pre>
+
+  <p><strong>顺序是关键：</strong>Thought 必须在 Action 之前，Observation 必须在 Action 之后。这个顺序保证了模型在行动前有明确的推理方向，在收到反馈后能重新评估。</p>
+
+  <h4>第 2 题：ReAct 为什么比纯 Tool-calling 更适合多步推理？</h4>
+
+  <p><strong>核心原因：自回归约束机制。</strong></p>
+
+  <p>Transformer 模型是自回归的——生成每个 token 时，只能看到前面已经生成的 token。这意味着：</p>
+
+  <ol>
+    <li><strong>已生成的 token 锁定后续概率分布</strong>：当模型写下"Thought: 需要先判断是否下雨，如果下雨就提醒用户带伞"时，这段文本中的"下雨"、"提醒"、"带伞"等词作为已生成的 token，会大幅提高后续生成相关内容的概率。模型在生成 Action 时，注意力机制会注意到这些词，从而更准确地选择正确的工具和参数。</li>
+    <li><strong>纯 Tool-calling 缺少"中间记忆"</strong>：如果模型不写 Thought，它只能依赖前面几轮对话的上下文来做判断。对于多步推理（"如果A就B，否则C，然后D"），这个上下文链条太长，模型容易"忘记"前面的条件。</li>
+    <li><strong>Thought 是模型的"工作记忆"</strong>：每次 Thought 都相当于在 Context Window 中写下一个便签。后续步骤可以引用前面的 Thought，形成推理链条。就像人类做复杂数学题时需要在草稿纸上写中间步骤——不写就容易忘。</li>
+  </ol>
+
+  <p><strong>具体例子：</strong></p>
+  <pre><code>纯 Tool-calling（3 步任务）：
+  Step 1: 调工具 → 结果
+  Step 2: 调工具 → 结果  ← 模型可能已经忘了 Step 1 的目的是什么
+  Step 3: 调工具 → 结果  ← 推理方向完全丢失
+
+ReAct（3 步任务）：
+  Step 1: Thought:"目标是X，先做A" → 调工具 → 结果
+  Step 2: Thought:"A的结果是Y，还需要B" → 调工具 → 结果
+  Step 3: Thought:"现在有了A和B的结果，可以回答X" → 回答
+  ↑ 每一步都有明确的推理方向，Thought 之间形成逻辑链</code></pre>
+
+  <h4>第 3 题：ReAct 和 CoT 的区别</h4>
+
+  <p><strong>CoT（Chain of Thought）</strong> 和 <strong>ReAct</strong> 都利用了"思考 token 锁定后续分布"的自回归约束机制，但应用场景不同：</p>
+
+  <table style="width:100%; border-collapse:collapse; margin:1rem 0; font-size:0.9rem;">
+    <tr style="background:var(--code-bg);">
+      <th style="padding:0.4rem 0.8rem; border:1px solid var(--border);">维度</th>
+      <th style="padding:0.4rem 0.8rem; border:1px solid var(--border);">CoT</th>
+      <th style="padding:0.4rem 0.8rem; border:1px solid var(--border);">ReAct</th>
+    </tr>
+    <tr>
+      <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">核心能力</td>
+      <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">推理（Reasoning）</td>
+      <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">推理 + 行动（Reasoning + Acting）</td>
+    </tr>
+    <tr>
+      <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">是否需要工具</td>
+      <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">否</td>
+      <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">是</td>
+    </tr>
+    <tr>
+      <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">外部信息</td>
+      <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">只依赖模型内部知识</td>
+      <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">通过工具获取外部信息（Observation）</td>
+    </tr>
+    <tr>
+      <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">典型场景</td>
+      <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">数学题、逻辑推理、代码调试</td>
+      <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">多工具编排、条件判断、实时信息查询</td>
+    </tr>
+    <tr>
+      <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">输出格式</td>
+      <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">"让我们一步步思考..." → 最终答案</td>
+      <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">Thought → Action → Observation → ... → Answer</td>
+    </tr>
+  </table>
+
+  <p><strong>判断标准：</strong>问自己"这个推理过程需要获取外部信息吗？"</p>
+  <ul>
+    <li>不需要（如数学题：已知条件都在题目里）→ CoT 就够了</li>
+    <li>需要（如查天气、搜索、读文件）→ 必须用 ReAct</li>
+  </ul>
+
+  <p><strong>ReAct 可以看作 CoT 的扩展</strong>——在 CoT 的推理链中插入了 Action 和 Observation 环节。CoT 是"纯思考"，ReAct 是"思考 + 行动 + 观察 + 再思考"。</p>
+
+  <h4>第 4 题：什么时候不应该用 ReAct？</h4>
+
+  <p><strong>场景 1：单工具调用（"查北京天气"）</strong></p>
+  <ul>
+    <li><strong>原因：</strong>任务太简单，不需要多步推理。Thought 的 token 开销（50-100 tokens）相对于任务本身是不必要的。就像用大炮打蚊子——效率低下。</li>
+    <li><strong>代价：</strong>每次 Thought 消耗 50-100 tokens，如果一天 1000 次调用，多消耗 100k tokens。对于简单任务，这是纯浪费。</li>
+    <li><strong>替代方案：</strong>直接用纯 Tool-calling，或者只在首次调用失败时才启用 ReAct 重试。</li>
+  </ul>
+
+  <p><strong>场景 2：创意写作（"写一首关于春天的诗"）</strong></p>
+  <ul>
+    <li><strong>原因：</strong>和 CoT 一样，ReAct 的 Thought 会破坏输出的流畅性。创意写作需要的是"一气呵成"的连贯性，而不是"先分析再写"的机械感。</li>
+    <li><strong>代价：</strong>模型在 Thought 中分析"第一句应该用春天的意象，第二句应该转折..."，然后写出来的诗读起来像论文——失去了诗歌的韵律和情感。</li>
+    <li><strong>替代方案：</strong>Zero-shot 直接写，不满意再让模型自己修改。</li>
+  </ul>
+
+  <p><strong>通用判断标准：</strong></p>
+  <pre><code>if (任务需要工具调用 && 需要多步推理) {
+  用 ReAct
+} else if (任务需要工具调用 && 只需一步) {
+  用纯 Tool-calling
+} else if (任务不需要工具 && 需要推理) {
+  用 CoT
+} else {
+  用 Zero-shot
+}</code></pre>
+
+  <h4>第 5 题：强制 Thought vs 自主 Thought 的利弊</h4>
+
+  <p><strong>强制 Thought（System Prompt 要求"每次行动前必须输出 Thought"）：</strong></p>
+
+  <table style="width:100%; border-collapse:collapse; margin:1rem 0; font-size:0.85rem;">
+    <tr style="background:var(--code-bg);">
+      <th style="padding:0.4rem 0.8rem; border:1px solid var(--border);">利</th>
+      <th style="padding:0.4rem 0.8rem; border:1px solid var(--border);">弊</th>
+    </tr>
+    <tr>
+      <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">✅ 每次行动都有推理依据，可调试</td>
+      <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">❌ 简单任务也强制输出 Thought，浪费 token</td>
+    </tr>
+    <tr>
+      <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">✅ 小模型也能正确推理（被强制思考）</td>
+      <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">❌ 增加 TTFT（Thought 也是生成的 token）</td>
+    </tr>
+    <tr>
+      <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">✅ 工具选择准确率更高</td>
+      <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">❌ 可能导致"过度思考"——对简单问题分析太多</td>
+    </tr>
+  </table>
+
+  <p><strong>自主 Thought（让模型自己决定是否输出 Thought）：</strong></p>
+
+  <table style="width:100%; border-collapse:collapse; margin:1rem 0; font-size:0.85rem;">
+    <tr style="background:var(--code-bg);">
+      <th style="padding:0.4rem 0.8rem; border:1px solid var(--border);">利</th>
+      <th style="padding:0.4rem 0.8rem; border:1px solid var(--border);">弊</th>
+    </tr>
+    <tr>
+      <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">✅ 简单任务不浪费 token</td>
+      <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">❌ 小模型可能"偷懒"，不输出 Thought</td>
+    </tr>
+    <tr>
+      <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">✅ 响应更快（不需要生成 Thought token）</td>
+      <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">❌ 复杂任务可能选错工具（没有推理约束）</td>
+    </tr>
+    <tr>
+      <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">✅ 更自然——像人类一样，只在需要时思考</td>
+      <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">❌ 不可调试——不知道模型为什么选错</td>
+    </tr>
+  </table>
+
+  <p><strong>最佳实践：</strong>开发阶段强制 Thought（方便调试），生产环境用自适应策略——简单任务跳过 Thought，复杂任务触发 ReAct。这需要 Agent 状态管理（Day 2 会讲）来实现。</p>
+
+  </div>
+</details>
+
+<!-- ============================================================ -->
+<hr style="margin:2rem 0; border:none; border-top:1px solid var(--border);">
+
+<div class="card card--success">
+  <div class="card__title">✅ 本课完成！</div>
+  <p style="margin-bottom:0.5rem"><strong>本课你学到了：</strong></p>
+  <ul style="margin-top:0.3rem; margin-bottom:0.5rem; padding-left:1.2rem;">
+    <li>ReAct = Reasoning + Acting，是 Agent 从"调工具"到"自主推理"的关键升级</li>
+    <li>Thought → Action → Observation 循环的完整流程和底层机制（自回归约束）</li>
+    <li>ReAct vs CoT vs 纯 Tool-calling 的适用场景和 trade-off</li>
+    <li>如何在 System Prompt 中设计 ReAct 格式，强制模型输出推理过程</li>
+    <li>动手任务：给 Demo 2 的 Agent 循环加 Thought 日志</li>
+  </ul>
+  <p style="margin-bottom:0; font-size:0.9rem; color:var(--text-secondary);">
+    🤔 <strong>有问题？</strong>直接问你的 AI 老师——ReAct 是 Agent 最核心的概念之一，务必理解透彻再往下走。明天的课会讲 Agent 状态管理，为 Demo 3 做准备。
+  </p>
+</div>
+
+<p style="color:var(--text-secondary); font-size:0.85rem;">
+  📅 第 4 周 Day 1 完成 · 下一步：<a href="0017-agent-state.html">第 4 周 Day 2：Agent 状态管理</a>
+</p>
+
+</body>
+</html>

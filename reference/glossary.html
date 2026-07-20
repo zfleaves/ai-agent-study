@@ -109,6 +109,18 @@
 
   <dt id="agent-loop">Agent Loop（Agent 循环）</dt>
   <dd>Agent 执行任务的核心循环：用户输入 → 模型决策（是否调工具）→ 执行工具 → 结果回传 → 模型继续推理 → 直到任务完成。即 ReAct（Reasoning + Acting）循环。</dd>
+
+  <dt id="react">ReAct（Reasoning + Acting）</dt>
+  <dd>Yao et al. (2022) 提出的 Agent 推理框架。核心是 <strong>Thought → Action → Observation</strong> 循环：模型在每次行动前先输出"思考"（Thought），解释为什么做这个行动；然后执行行动（Action）；收到结果后观察（Observation）再决定下一步。相比纯 Tool-calling，ReAct 通过自回归约束机制强制模型显式推理，显著提升多步推理和条件判断的准确率。</dd>
+
+  <dt id="thought">Thought（思考）</dt>
+  <dd>ReAct 循环中的第一步。模型在调用工具前输出的推理文本，解释"为什么调这个工具"、"期望达到什么效果"。Thought 利用自回归约束机制——已生成的 Thought token 会锁定后续 Action 和 Answer 的概率分布，使推理更加准确。</dd>
+
+  <dt id="observation">Observation（观察）</dt>
+  <dd>ReAct 循环中的第三步。工具执行后返回的结果，是外部世界对 Action 的反馈。模型读取 Observation 后进入下一轮 Thought，决定是否继续调工具、换工具、还是输出最终答案。</dd>
+
+  <dt id="plan-then-act">Plan-then-Act（先计划后执行）</dt>
+  <dd>与 ReAct 交替执行的细粒度推理不同，Plan-then-Act 先制定完整的多步计划，再逐步执行。适合步骤明确、依赖关系清晰的复杂任务。缺点是对意外情况响应慢（计划是固定的）。</dd>
 </dl>
 
 <hr style="margin: 2rem 0; border: none; border-top: 1px solid var(--border);">
