@@ -205,16 +205,15 @@ async function handleUserRequestReAct(query: string) {
 
 <p>ReAct 论文定义了标准的输出格式。在 System Prompt 中告诉模型：</p>
 
-<pre><code>你是一个使用 ReAct 模式工作的智能助手。每次行动前，你必须先输出 Thought。
+<pre><code>// 你是一个使用 ReAct 模式工作的智能助手。
+// 每次行动前，你必须先输出 Thought，解释为什么做这个行动。
 
 可用格式：
-  Thought: &lt;你的推理过程，解释为什么做这个行动&gt;
-  Action: &lt;工具名&gt;[&lt;参数&gt;]
+  Thought: &lt;你的推理过程&gt;
+  Action: &lt;工具名&gt;(&lt;参数&gt;)
   Observation: &lt;工具返回的结果&gt;
 
-当信息足够时，输出：
-  Thought: 信息齐全，可以回答
-  Answer: &lt;最终回答&gt;
+当信息足够时，输出最终回答。
 
 重要规则：
   1. Thought 必须在 Action 之前
@@ -252,50 +251,91 @@ async function handleUserRequestReAct(query: string) {
 </table>
 
 <!-- ============================================================ -->
-<h2>五、动手：用 ReAct 视角重看 Demo 2</h2>
+<h2>五、动手实验：Basic vs ReAct Prompt 对比</h2>
 
-<h3>5.1 练习：给 Demo 2 的 Agent 循环加"Thought 日志"</h3>
+<h3>5.1 实验设计</h3>
+
+<p>我们写了一个对比实验 <code>demo/week-04/react-test.ts</code>，用云端 API（<code>deepseek-v4-pro</code>）测试两种 System Prompt：</p>
+
+<ul>
+  <li><strong>Basic Prompt</strong>：只描述工具选择规则，不要求 Thought</li>
+  <li><strong>ReAct Prompt</strong>：强制要求"每次行动前必须先输出 Thought"</li>
+</ul>
 
 <div class="card card--accent">
-  <div class="card__title">🛠️ 任务</div>
-  <p>打开 <code>demo/week-03/agent-demo.ts</code>，找到 <code>agentLoop()</code> 函数。当前它在每个 Step 只打印：</p>
-  <pre><code>console.log(`  🔧 请求 ${toolCalls.length} 个工具`);</code></pre>
-  <p style="margin-bottom:0.5rem">你的任务：<strong>在调用模型后、执行工具前，先检查模型是否输出了 Thought（即 response.message.content 是否非空），如果有就打印出来。</strong>像这样：</p>
-  <pre><code>// 在 toolCalls 判断之前加入：
-if (response.message.content) {
-  console.log(`  💭 Thought: ${response.message.content.slice(0, 120)}`);
-}</code></pre>
-  <p style="margin-bottom:0;"><strong>预期效果：</strong>当模型在调工具前先"思考"时，你能在终端看到它的推理过程。对比有无 Thought 时的工具选择准确率差异。</p>
+  <div class="card__title">▶️ 运行实验</div>
+  <pre><code>cd demo/week-04
+npx tsx react-test.ts</code></pre>
+  <p style="margin-bottom:0;">需要先 <code>npm install</code>。实验会自动进行 3 组对比测试（简单任务 / 条件式任务 / 多步任务），每组跑两次（Basic + ReAct Prompt）。</p>
 </div>
 
-<h3>5.2 观察：模型什么时候会"思考"？</h3>
+<h3>5.2 实验结果</h3>
 
-<p>跑几个测试，观察模型的行为：</p>
+<p>以下是 <code>deepseek-v4-pro</code> 的实际输出：</p>
 
-<table style="width:100%; border-collapse:collapse; margin:1rem 0; font-size:0.9rem;">
+<table style="width:100%; border-collapse:collapse; margin:1rem 0; font-size:0.85rem;">
   <tr style="background:var(--code-bg);">
-    <th style="padding:0.4rem 0.8rem; border:1px solid var(--border);">问题类型</th>
-    <th style="padding:0.4rem 0.8rem; border:1px solid var(--border);">模型可能的行为</th>
-    <th style="padding:0.4rem 0.8rem; border:1px solid var(--border);">为什么</th>
+    <th style="padding:0.4rem 0.8rem; border:1px solid var(--border);">场景</th>
+    <th style="padding:0.4rem 0.8rem; border:1px solid var(--border);">Basic Prompt</th>
+    <th style="padding:0.4rem 0.8rem; border:1px solid var(--border);">ReAct Prompt（强制）</th>
   </tr>
   <tr>
-    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">"北京天气"</td>
-    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">无 Thought，直接调工具</td>
-    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">任务简单，不需要显式推理</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">简单任务<br>"北京天气？"</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">✅ 💭 "好的，我来帮您查询北京今天的天气"<br>✅ 调 getWeather("北京")</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">⚠️ 无 Thought<br>✅ 调 getWeather("北京")</td>
   </tr>
   <tr>
-    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">"如果深圳下雨就提醒我带伞"</td>
-    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">可能有 Thought</td>
-    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">有条件判断，需要先想清楚依赖关系</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">条件式任务<br>"如果下雨就..."</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">✅ 💭 "好的，我先查一下深圳当前的天气"<br>✅ 调 getWeather("深圳")</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">⚠️ 无 Thought<br>✅ 调 getWeather("深圳")</td>
   </tr>
   <tr>
-    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">"查天气+搜新闻+计算"</td>
-    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">可能有 Thought（并行分析）</td>
-    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">需要判断哪些任务独立、哪些依赖</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">多步任务<br>"时间+计算"</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">✅ 💭 "好的，我同时帮你查询时间和计算"<br>✅ ⚡ 并行 2 个工具</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">✅ 💭 "我来同时获取当前时间和计算结果"<br>✅ ⚡ 并行 2 个工具</td>
   </tr>
 </table>
 
-<p><strong>关键观察：</strong>小模型（3b）通常不会自动输出 Thought——它们倾向于直接行动。这正是 ReAct 格式的价值：<strong>用 System Prompt 强制模型输出 Thought</strong>，即使它"觉得"不需要。</p>
+<h3>5.3 关键发现：强模型天然就是 ReAct</h3>
+
+<div class="card card--success">
+  <div class="card__title">💡 核心洞察</div>
+  <p style="margin-bottom:0.5rem"><strong>deepseek-v4-pro 不需要 ReAct Prompt 也能自动输出 Thought。</strong> Basic Prompt 下，简单任务和条件式任务都自动输出了 Thought；ReAct Prompt 反而在某些场景抑制了 Thought 输出。</p>
+  <p style="margin-bottom:0;">这意味着：</p>
+  <ul style="margin-bottom:0">
+    <li><strong>强模型（deepseek-v4-pro、GPT-4、Claude）</strong> → 天然会用 Thought 辅助推理，不需要额外 Prompt 强制</li>
+    <li><strong>弱模型（qwen2.5:3b、hermes3:8b）</strong> → 需要 ReAct Prompt 外力推动，否则直接行动不思考</li>
+    <li><strong>ReAct 不是 Prompt 技巧，而是 Agent 的自然行为模式</strong>——模型够强时，它自己就会"想清楚再行动"</li>
+  </ul>
+</div>
+
+<h3>5.4 代码解读：云端 API 的 ReAct 调用</h3>
+
+<p>和本地 Ollama 的调用方式对比：</p>
+
+<pre><code>// 本地 Ollama（第 3 周）
+import ollama from 'ollama';
+const res = await ollama.chat({ model: 'qwen2.5:3b', messages, tools });
+
+// 云端 API（第 4 周起）
+import OpenAI from 'openai';
+const client = new OpenAI({
+  apiKey: process.env.API_KEY,
+  baseURL: process.env.BASE_URL,
+});
+const res = await client.chat.completions.create({
+  model: process.env.MODEL,   // deepseek-v4-pro
+  messages,
+  tools,
+});
+
+// 两者返回格式基本一致，只是属性名略有不同：
+// Ollama:   res.message.tool_calls
+// OpenAI:   res.choices[0].message.tool_calls
+// Ollama:   res.message.content
+// OpenAI:   res.choices[0].message.content  ← Thought 在这里</code></pre>
+
+<p><strong>共同点：</strong>无论哪种 API，模型都会在 <code>message.content</code> 中输出 Thought 文本，在 <code>message.tool_calls</code> 中输出工具调用。ReAct 的循环逻辑完全不变——只是调用的 SDK 换了。</p>
 
 <!-- ============================================================ -->
 <h2>六、ReAct 的适用场景与局限</h2>
