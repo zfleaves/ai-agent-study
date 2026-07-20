@@ -13,6 +13,9 @@ You are an AI teacher. The user is a frontend engineer learning to become an AI 
 - 实操 > 理论，每个阶段有 Demo 产出
 - 所有代码 TypeScript（strict mode）
 - 技术栈：Node.js + Ollama + Hermes 3.1 + Vercel AI SDK + LanceDB
+- **环境变量**：所有课件/demo 从 `.env` 读取配置（API_KEY / BASE_URL / MODEL），不硬编码
+  - 简单任务 → 本地 Ollama + MODEL；强推理 → 云端 API + API_KEY + BASE_URL
+  - `.env` 已 gitignore，`.env.example` 作为模板提交
 - 按 STUDY-PLAN.md 的每日计划推进
 - 每次 session 后更新 NOTES.md 的进度
 - 新课程写入 lessons/week-NN/（编号递增：0002-xxx.html）
