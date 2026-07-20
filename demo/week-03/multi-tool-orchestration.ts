@@ -50,7 +50,7 @@ interface ToolCall {
 // ============================================================
 
 const MAX_STEPS = 6;
-const MODEL = 'hermes3:8b';
+const MODEL = process.env.DEEPSEEK_MODEL || 'qwen2.5:3b';
 
 // ============================================================
 // System Prompt（增加了工具选择规则）
