@@ -68,15 +68,16 @@
 所有课件统一从 `.env` 读取配置，不硬编码。换电脑/换模型只改 `.env`：
 
 ```
-API_KEY=xxx          # 云端 API Key（强推理场景用）
-BASE_URL=xxx         # 云端 API 地址
-MODEL=qwen2.5:3b     # 模型名（Ollama 本地 + 云端 API 共用）
+API_KEY=xxx              # 云端 API Key（强推理场景用）
+BASE_URL=xxx/v1          # 云端 API 地址（需含 /v1 路径）
+MODEL=deepseek-v4-pro    # 云端 API 模型名
+LOCAL_MODEL=qwen2.5:3b   # 本地 Ollama 模型名
 ```
 
 使用规则：
-- **简单任务**（工具选择、基础对话）→ 本地 Ollama + `MODEL`
-- **强推理**（ReAct 循环、条件式编排、多 Agent 协作）→ 云端 API + `API_KEY` + `BASE_URL`
-- 代码中 `process.env.MODEL` 读取，不改代码
+- **简单任务**（工具选择、基础对话）→ 本地 Ollama + `LOCAL_MODEL`
+- **强推理**（ReAct 循环、条件式编排、多 Agent 协作）→ 云端 API + `API_KEY` + `BASE_URL` + `MODEL`
+- 代码中 `process.env.MODEL` 读取云端模型，`process.env.LOCAL_MODEL` 读取本地模型
 
 ## 技术栈方向（Java — 第二语言，第 9 周起）
 
