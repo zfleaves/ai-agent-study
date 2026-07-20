@@ -60,6 +60,21 @@
 - 前端：Next.js + React + Tailwind CSS（TS 全栈）
 - 类型定义：所有工具、Agent 状态、RAG 管道均定义 interface/type
 
+## 环境变量规范（.env）
+
+所有课件统一从 `.env` 读取配置，不硬编码。换电脑/换模型只改 `.env`：
+
+```
+API_KEY=xxx          # 云端 API Key（强推理场景用）
+BASE_URL=xxx         # 云端 API 地址
+MODEL=qwen2.5:3b     # 模型名（Ollama 本地 + 云端 API 共用）
+```
+
+使用规则：
+- **简单任务**（工具选择、基础对话）→ 本地 Ollama + `MODEL`
+- **强推理**（ReAct 循环、条件式编排、多 Agent 协作）→ 云端 API + `API_KEY` + `BASE_URL`
+- 代码中 `process.env.MODEL` 读取，不改代码
+
 ## 技术栈方向（Java — 第二语言，第 9 周起）
 
 - 语言：**Java 17+**（LTS 版本）
