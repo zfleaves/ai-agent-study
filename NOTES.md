@@ -13,7 +13,11 @@
 
 ## 当前状态
 
-- 2026-07-09: 首次接触 AI Agent，从 Hermes Agent 概览开始
+- 2026-07-23: **学习计划升级 v3.0**，终局项目：知识库管理平台
+  - 技术栈：Python（后端 Agent）+ Next.js（简单接口 + 前端）+ 云端 API（LLM）
+  - 5 步流水线：知识打标 → 别名确认 → 内容确认 → 图谱构建 → 知识问答
+  - 现有前端：loop_web/src/pages/etl-process/（React + TS + Ant Design）
+  - 设计文档：projects/knowledge-vault/DESIGN.md + PIPELINE-DESIGN.md
 - 用户已明确真实目标：AI Agent 全栈落地（不止 Hermes）
 - 三大学习支柱：① Agent 开发 ② 本地知识库(RAG) ③ 项目落地
 - 第 1 课（Hermes 概览）已完成 ✅
@@ -25,7 +29,7 @@
 
 ```
 当前阶段：第 4 周 — Agent 核心循环（从"调用"到"自主"）
-计划版本：v2.0（16 周，3 语言）
+计划版本：v3.0（16 周，Python + Next.js + 云端 API）
 已完成：  第 1 周 ✅（5/5 天）
         第 2 周 ✅（5/5 天）
           Day 1 ✅ Ollama 安装 + 模型选型
@@ -52,32 +56,36 @@
 - AI/ML 领域是新手——概念需要从零讲起
 - 不了解 Transformer、Fine-tuning 等概念
 
-## 技术栈方向（全部 TypeScript）
+## 技术栈方向（混合架构）
 
-- 语言：**TypeScript（strict mode）**——所有代码统一 TS
-- 运行时：Node.js 18+ + tsx（TypeScript 直接执行）
-- 模型部署：Ollama（本地模型部署）
-- Agent 框架：Vercel AI SDK（TS 原生）、LangChain.js（TS 版）
-- 向量数据库：LanceDB（TS SDK 原生）、Chroma（TS 客户端）
-- 模型：Hermes 3.1 / Qwen 2.5（按需切换）
-- 前端：Next.js + React + Tailwind CSS（TS 全栈）
-- 类型定义：所有工具、Agent 状态、RAG 管道均定义 interface/type
+- **后端 Agent（核心）**：**Python** — FastAPI + openai SDK + Pydantic
+- **后端简单接口**：**Next.js API Routes**（TypeScript）— CRUD、文件上传
+- **前端**：**React + TypeScript + Ant Design**（现有 loop_web 项目）
+- **模型**：**云端 API**（deepseek-v4-pro，多模型按 Step 可切换）
+- **向量数据库**：LanceDB
+- **图存储**：Neo4j / networkx
+- **本地模型**：Ollama（仅开发调试备用）
 
 ## 环境变量规范（.env）
 
 所有课件统一从 `.env` 读取配置，不硬编码。换电脑/换模型只改 `.env`：
 
 ```
-API_KEY=xxx              # 云端 API Key（强推理场景用）
-BASE_URL=xxx/v1          # 云端 API 地址（需含 /v1 路径）
-MODEL=deepseek-v4-pro    # 云端 API 模型名
-LOCAL_MODEL=qwen2.5:3b   # 本地 Ollama 模型名
+API_KEY=xxx                       # 云端 API Key
+BASE_URL=xxx/v1                   # 云端 API 地址（需含 /v1 路径）
+MODEL_EXTRACTION=deepseek-v4-pro  # 知识提取（Step 1）
+MODEL_DISAMBIGUATION=deepseek-v4-pro # 别名消歧（Step 2）
+MODEL_REVIEW=deepseek-v4-pro      # 审核辅助（Step 3）
+MODEL_QA_GENERATION=deepseek-v4-pro # 题目生成（Step 5）
+MODEL_QA_SCORING=deepseek-v4-pro  # 判分（Step 5）
+MODEL_DEFAULT=deepseek-v4-pro     # 默认模型
+LOCAL_MODEL=qwen2.5:3b            # 本地备用（仅调试）
 ```
 
 使用规则：
-- **简单任务**（工具选择、基础对话）→ 本地 Ollama + `LOCAL_MODEL`
-- **强推理**（ReAct 循环、条件式编排、多 Agent 协作）→ 云端 API + `API_KEY` + `BASE_URL` + `MODEL`
-- 代码中 `process.env.MODEL` 读取云端模型，`process.env.LOCAL_MODEL` 读取本地模型
+- **所有实战统一用云端 API**，本地 Ollama 仅用于开发调试快速测试
+- 每个流水线步骤可配置不同模型，方便后续性能对比
+- 代码中 `process.env.MODEL_XXX` 读取对应模型名
 
 ## 技术栈方向（Java — 第二语言，第 9 周起）
 
