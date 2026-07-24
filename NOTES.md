@@ -45,8 +45,9 @@
           Day 5 ✅ 复盘 + Demo 2 工具调用 Agent 综合实战 (agent-demo.ts)
         第 4 周 🔄
           Day 1 ✅ ReAct 模式深入（Thought→Action→Observation 循环、自回归约束机制）
+          Day 2 ✅ Agent 状态管理（消息角色、State 设计、历史截断、TS Class 实现）
         已安装模型：hermes3:8b (4.7GB)、qwen2.5:3b (1.9GB)
-下一步：  第 4 周 Day 2 — Agent 状态管理（State 设计、历史截断、TS Class 实现）
+下一步：  第 4 周 Day 3 — 错误处理与重试（重试策略、降级、安全护栏）
 ```
 
 ## 已确认的先验知识

@@ -81,7 +81,7 @@
 | 天 | 主题 | 知识点 | 动手 |
 |---|---|---|---|
 | Day 1 ✅ | ReAct 模式深入 | Thought→Action→Observation、自回归约束 | ReAct 循环实验 |
-| **Day 2** | **Agent 状态管理** | **State 设计、消息角色、历史截断、TS Class** | **状态管理器实现** |
+| **Day 2** ✅ | **Agent 状态管理** | **State 设计、消息角色、历史截断、TS Class** | **状态管理器实现** |
 | Day 3 | 错误处理与重试 | 重试策略、降级、安全护栏 | 错误处理机制 |
 | Day 4 | Agent 规划能力 | Task Decomposition、Plan-Execute | 先计划再执行 |
 | Day 5 | 复盘 + Demo 3 | 自主任务 Agent | 规划+执行+错误恢复 |

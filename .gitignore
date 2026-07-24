@@ -4,3 +4,5 @@ dist/
 .env
 env.local
 .project-context/
+# 交互式对话自动保存的会话文件
+demo/**/chat-session-*.json

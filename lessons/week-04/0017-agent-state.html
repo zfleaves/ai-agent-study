@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第 17 课：Agent 状态管理 — 消息历史、角色、截断策略</title>
+<link rel="stylesheet" href="../../assets/style.css">
+</head>
+<body>
+
+<h1>📦 第 17 课：Agent 状态管理</h1>
+
+<p><span class="tag tag--blue">技能</span> <span class="tag tag--green">第 4 周 Day 2</span> <span class="tag tag--amber">约 45 分钟</span></p>
+
+<blockquote>
+  <strong>本课目标：</strong>掌握 Agent 状态管理的核心设计——消息角色、历史增长问题、截断策略，并用 TypeScript Class 实现一个可持久化的状态管理器。从 Day 1 的"手动管理 messages 数组"升级到"有设计的状态管理"。
+</blockquote>
+
+<p>
+  📚 <strong>相关参考：</strong>
+  <a href="../../reference/glossary.html">术语表</a> ·
+  <a href="0016-react-pattern.html">← 第 16 课（ReAct 模式）</a> ·
+  <a href="../week-03/0013-tool-call-loop.html">第 13 课（工具调用循环）</a>
+</p>
+
+<!-- ============================================================ -->
+<h2>📖 课前阅读</h2>
+
+<p>在开始本课前，先浏览以下资源建立背景认知（各 5 分钟）：</p>
+
+<ol>
+  <li>
+    <strong><a href="https://platform.openai.com/docs/guides/chat-completions" target="_blank" rel="noopener">OpenAI Chat Completions API — 消息角色</a></strong>
+    — 官方文档对 system / user / assistant / tool 四种角色的定义。重点看 Message 结构和 tool 角色的用法。
+  </li>
+  <li>
+    <strong><a href="https://cookbook.openai.com/examples/how_to_manage_conversation_history" target="_blank" rel="noopener">OpenAI Cookbook — Managing Conversation History</a></strong>
+    — 实战指南，讲解如何处理长对话中的消息历史管理。关注 token 计数和截断策略部分。
+  </li>
+</ol>
+
+<p style="font-size:0.85rem; color:var(--text-secondary);">💡 这些资源来自 <a href="../../RESOURCES.md">RESOURCES.md</a>，是经过筛选的高信任来源。</p>
+
+<!-- ============================================================ -->
+<h2>一、Day 1 的遗留问题：messages 数组无限增长</h2>
+
+<p>回顾 Day 1 的 ReAct 循环代码：</p>
+
+<pre><code>const messages = [
+  { role: 'system', content: SYSTEM_PROMPT },
+  { role: 'user', content: prompt },
+];
+
+while (step &lt; MAX_STEPS) {
+  const res = await client.chat.completions.create({ messages, tools });
+  const msg = res.choices[0]?.message;
+
+  messages.push(msg);           // ← 助手消息
+  for (const tc of msg.tool_calls) {
+    const result = executeTool(tc);
+    messages.push({ role: 'tool', content: result, tool_call_id: tc.id });  // ← 工具结果
+  }
+}</code></pre>
+
+<div class="card card--warn">
+  <div class="card__title">⚠️ 三个隐患</div>
+  <ol style="margin:0.5rem 0 0 1.5rem;">
+    <li><strong>消息无限增长</strong>：每轮对话 push 2-3 条消息，100 轮后就是 300 条。LLM 有上下文窗口限制（如 8K/32K/128K tokens），超出后 API 直接报错。</li>
+    <li><strong>成本线性增长</strong>：每次请求都发送完整 messages 数组，token 消耗随对话轮次线性增长，越聊越贵。</li>
+    <li><strong>无持久化</strong>：进程退出后消息丢失，用户刷新页面就丢失全部对话。</li>
+  </ol>
+</div>
+
+<!-- ============================================================ -->
+<h2>二、消息角色：Agent 对话的"语法"</h2>
+
+<h3>2.1 四种角色及其职责</h3>
+
+<p>LLM API 的消息不是简单的"用户说了什么、AI 回了什么"，而是有四种严格定义的角色。理解它们是用好 Agent 的前提。</p>
+
+<table style="width:100%; border-collapse:collapse; margin:1rem 0; font-size:0.88rem;">
+  <tr style="background:var(--code-bg);">
+    <th style="padding:0.4rem 0.8rem; border:1px solid var(--border);">角色</th>
+    <th style="padding:0.4rem 0.8rem; border:1px solid var(--border);">英文</th>
+    <th style="padding:0.4rem 0.8rem; border:1px solid var(--border);">发送者</th>
+    <th style="padding:0.4rem 0.8rem; border:1px solid var(--border);">职责</th>
+    <th style="padding:0.4rem 0.8rem; border:1px solid var(--border);">何时出现</th>
+  </tr>
+  <tr>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);"><strong>system</strong></td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">系统</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">开发者</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">设定 Agent 的行为规则、角色定位、输出格式</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">对话开始时（通常只有 1 条）</td>
+  </tr>
+  <tr>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);"><strong>user</strong></td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">用户</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">用户</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">用户的问题、指令、输入</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">每轮对话开始时</td>
+  </tr>
+  <tr>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);"><strong>assistant</strong></td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">助手</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">LLM</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">模型的回复，可能包含 content（文本）和 tool_calls（工具调用）</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">每轮 LLM 响应后</td>
+  </tr>
+  <tr>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);"><strong>tool</strong></td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">工具</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">你的代码</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">工具执行的结果，必须通过 tool_call_id 关联到对应的 assistant tool_calls</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">每次工具执行后</td>
+  </tr>
+</table>
+
+<h3>2.2 角色间的依赖关系</h3>
+
+<pre><code>┌─────────────────────────────────────────────────────────────┐
+│                    消息角色关系图                              │
+│                                                             │
+│  system (规则) ───────────────────────────────────────┐     │
+│    │                                                  │     │
+│    ▼                                                  │     │
+│  user (问题)                                          │     │
+│    │                                                  │     │
+│    ▼                                                  │     │
+│  assistant (回答 + tool_calls) ◄── 始终参考 system ───┘     │
+│    │                                                       │
+│    ├── content: "我来查一下..."                              │
+│    └── tool_calls: [{id: "call_1", ...}]                    │
+│         │                                                   │
+│         ▼                                                   │
+│  tool (结果) ─── tool_call_id = "call_1" ─── 必须配对！      │
+│    │                                                       │
+│    ▼                                                       │
+│  assistant (最终回答)                                        │
+│                                                             │
+│  ⚠️ 关键约束：                                               │
+│  • tool 消息必须紧跟 assistant 的 tool_calls，不能独立出现     │
+│  • 截断时不能拆散 assistant(tool_calls) + tool 这对           │
+│  • system 消息通常应该始终保留，不被截断                       │
+└─────────────────────────────────────────────────────────────┘</code></pre>
+
+<div class="card card--warn">
+  <div class="card__title">⚠️ 常见错误：tool 消息孤岛</div>
+  <p style="margin-bottom:0.5rem">如果截断时删除了 assistant（含 tool_calls）但保留了 tool 消息，API 会报错：</p>
+  <pre><code>// ❌ 错误：tool 消息孤立，没有对应的 assistant tool_calls
+messages = [
+  { role: 'tool', content: '晴天，25°C', tool_call_id: 'call_1' },
+  // 找不到 role=assistant 且 tool_calls[].id === 'call_1' 的消息
+]</code></pre>
+  <p style="margin-top:0.5rem; margin-bottom:0;">这就是为什么截断策略必须"成对处理" —— assistant(tool_calls) 和 tool 消息要么一起保留，要么一起删除。</p>
+</div>
+
+<!-- ============================================================ -->
+<h2>三、State 设计：消息不只是 Array</h2>
+
+<h3>3.1 从"裸数组"到"结构化状态"</h3>
+
+<table style="width:100%; border-collapse:collapse; margin:1rem 0; font-size:0.88rem;">
+  <tr style="background:var(--code-bg);">
+    <th style="padding:0.4rem 0.8rem; border:1px solid var(--border);">维度</th>
+    <th style="padding:0.4rem 0.8rem; border:1px solid var(--border);">裸数组 (Day 1)</th>
+    <th style="padding:0.4rem 0.8rem; border:1px solid var(--border);">AgentState Class (Day 2)</th>
+  </tr>
+  <tr>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">消息存储</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);"><code>any[]</code> — 无类型安全</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);"><code>AgentMessage[]</code> — 严格类型</td>
+  </tr>
+  <tr>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">系统消息</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">混在数组里，容易丢失</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">独立字段，始终保留</td>
+  </tr>
+  <tr>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">步数追踪</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);"><code>let step = 0</code> — 手动维护</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);"><code>incrementStep()</code> — 自动管理</td>
+  </tr>
+  <tr>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">Token 估算</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">无</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);"><code>estimateTokens()</code></td>
+  </tr>
+  <tr>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">截断策略</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">无</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">3 种策略，可配置</td>
+  </tr>
+  <tr>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">持久化</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">无</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);"><code>toJSON() / fromJSON() / saveToFile()</code></td>
+  </tr>
+  <tr>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">查询</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);"><code>messages.filter(...)</code> — 每次手写</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);"><code>getRecent(n) / getByRole(role)</code></td>
+  </tr>
+</table>
+
+<h3>3.2 AgentState 的核心方法</h3>
+
+<pre><code>class AgentState {
+  // ── 消息管理 ──
+  setSystem(content: string)           // 设置系统消息（独立存储）
+  addUserMessage(content: string)      // 添加用户消息
+  addAssistantMessage(content, tc?)    // 添加助手消息（含 tool_calls）
+  addToolResult(toolCallId, content)   // 添加工具返回消息
+  incrementStep()                      // 步数 +1
+
+  // ── 查询方法 ──
+  getMessages()                        // 获取完整消息列表（发给 LLM）
+  getRecent(n: number)                 // 获取最近 N 条
+  getByRole(role: MessageRole)         // 按角色筛选
+  estimateTokens(text: string)         // 估算 token 数
+  estimateTotalTokens()                // 估算总 token 数
+
+  // ── 截断策略 ──
+  setTruncation(config)                // 配置截断策略
+  truncate()                           // 执行截断
+
+  // ── 持久化 ──
+  toJSON() / fromJSON(json)            // 序列化 / 反序列化
+  saveToFile(path) / loadFromFile(path) // 文件读写
+}</code></pre>
+
+<!-- ============================================================ -->
+<h2>四、历史截断：三种策略对比</h2>
+
+<h3>4.1 为什么需要截断？</h3>
+
+<p>LLM 的上下文窗口（Context Window）是有限的。即使是最新的模型（128K tokens），长对话也会逼近上限。更重要的是：<strong>每次请求都发送完整历史，token 消耗 = 对话轮次 × 每轮 token 数</strong>。100 轮对话可能消耗数十万 tokens。</p>
+
+<div class="card card--info">
+  <div class="card__title">💡 前端直觉类比</div>
+  <p style="margin-bottom:0;">消息历史就像 React 组件的 state——如果每次 render 都累积旧 state 而不清理，内存会无限增长。截断策略就像 <code>useMemo</code> 和 <code>useCallback</code>：只保留"当前渲染需要"的数据，旧数据要么丢弃，要么压缩缓存。</p>
+</div>
+
+<h3>4.2 三种策略对比</h3>
+
+<table style="width:100%; border-collapse:collapse; margin:1rem 0; font-size:0.85rem;">
+  <tr style="background:var(--code-bg);">
+    <th style="padding:0.4rem 0.8rem; border:1px solid var(--border);">策略</th>
+    <th style="padding:0.4rem 0.8rem; border:1px solid var(--border);">原理</th>
+    <th style="padding:0.4rem 0.8rem; border:1px solid var(--border);">✅ 适用场景</th>
+    <th style="padding:0.4rem 0.8rem; border:1px solid var(--border);">❌ 不适用场景</th>
+    <th style="padding:0.4rem 0.8rem; border:1px solid var(--border);">计算成本</th>
+  </tr>
+  <tr>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);"><strong>Sliding Window</strong><br>滑动窗口</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">只保留最近 N 条消息，旧消息直接丢弃</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">短期任务、单轮对话、不需要上下文的任务</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">多步推理需参考早期信息、长文档分析</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">极低（数组 slice）</td>
+  </tr>
+  <tr>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);"><strong>Keep System + Last</strong><br>保系统+最近</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">始终保留 system 消息，从头部删除旧消息直到 token 数低于阈值。成对处理 assistant/tool</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);"><strong>最常用</strong>——保留对话规则 + 最近上下文，适合大多数 Agent 任务</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">需要长期记忆的对话（如 3 小时前的用户偏好）</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">低（token 估算 + 循环删除）</td>
+  </tr>
+  <tr>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);"><strong>Summarize</strong><br>摘要压缩</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">将旧消息压缩为一条摘要，保留最近 N 条完整消息</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">长期对话、需要"记忆"早期关键信息、客服/陪伴类 Agent</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">摘要可能丢失细节、需要精确引用早期对话的场景</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">高（需调用 LLM 生成摘要）</td>
+  </tr>
+</table>
+
+<h3>4.3 截断的核心约束：tool_calls 成对原则</h3>
+
+<pre><code>// ❌ 错误截断：拆散了 assistant(tool_calls) 和 tool 消息
+messages = [
+  { role: 'assistant', tool_calls: [{id: 'call_1', ...}] },  // ← 被保留
+  { role: 'tool', tool_call_id: 'call_1', content: '...' },  // ← 被删除！
+]
+// API 报错：tool 消息对应的 tool_call_id 找不到
+
+// ✅ 正确截断：成对处理
+messages = [
+  // assistant(tool_calls) + tool 要么一起保留，要么一起删除
+]</code></pre>
+
+<div class="card card--success">
+  <div class="card__title">✅ 截断安全检查清单</div>
+  <ol style="margin:0.5rem 0 0 1.5rem;">
+    <li>system 消息是否始终保留？</li>
+    <li>是否存在孤立的 tool 消息（无对应 assistant tool_calls）？</li>
+    <li>是否存在孤立的 assistant tool_calls（无对应 tool 结果）？</li>
+    <li>截断后总 token 是否低于目标阈值？</li>
+    <li>截断后是否有足够的上下文让模型理解当前对话？</li>
+  </ol>
+</div>
+
+<!-- ============================================================ -->
+<h2>五、实战演示</h2>
+
+<p>运行以下命令查看完整演示：</p>
+
+<pre><code>cd demo/week-04
+npx tsx agent-state.ts</code></pre>
+
+<p>演示包含 5 个实验：</p>
+
+<ol>
+  <li><strong>消息历史自然增长</strong>：模拟 3 轮对话，观察消息数和角色分布</li>
+  <li><strong>Token 估算</strong>：测试中英文混合文本的 token 估算准确性</li>
+  <li><strong>截断策略对比</strong>：对同一状态应用三种策略，对比效果</li>
+  <li><strong>序列化与恢复</strong>：保存到文件 → 加载 → 验证一致性</li>
+  <li><strong>真实场景</strong>：8 轮对话自动截断，观察 token 控制</li>
+</ol>
+
+<p>核心代码文件：<a href="../../demo/week-04/agent-state.ts"><code>demo/week-04/agent-state.ts</code></a></p>
+
+<!-- ============================================================ -->
+<h2>六、Token 估算：为什么不用精确计数？</h2>
+
+<h3>6.1 精确计数的代价</h3>
+
+<p>精确计算 token 数需要调用 tokenizer（如 <code>tiktoken</code> 库），但有成本：</p>
+
+<table style="width:100%; border-collapse:collapse; margin:1rem 0; font-size:0.88rem;">
+  <tr style="background:var(--code-bg);">
+    <th style="padding:0.4rem 0.8rem; border:1px solid var(--border);">方式</th>
+    <th style="padding:0.4rem 0.8rem; border:1px solid var(--border);">准确性</th>
+    <th style="padding:0.4rem 0.8rem; border:1px solid var(--border);">依赖</th>
+    <th style="padding:0.4rem 0.8rem; border:1px solid var(--border);">性能</th>
+    <th style="padding:0.4rem 0.8rem; border:1px solid var(--border);">推荐场景</th>
+  </tr>
+  <tr>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">字符估算</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">±20%</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">无</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">极快</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">截断判断（不需要精确）</td>
+  </tr>
+  <tr>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">tiktoken</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">精确</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">tiktoken 包 + 模型 tokenizer</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">快</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">成本核算、计费</td>
+  </tr>
+  <tr>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">API 返回</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">精确</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">API 响应</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">事后</td>
+    <td style="padding:0.4rem 0.8rem; border:1px solid var(--border);">实际消耗统计</td>
+  </tr>
+</table>
+
+<p>对于截断判断，±20% 的误差完全可接受。我们只需要在逼近上限前触发截断，不需要精确到个位数。</p>
+
+<h3>6.2 估算规则</h3>
+
+<pre><code>estimateTokens(text: string): number {
+  // 中文：~1.5 字符/token（中文 tokenizer 效率高）
+  // 英文/代码：~4 字符/token
+  let chineseChars = 0, otherChars = 0;
+  for (const ch of text) {
+    if (/[一-鿿]/.test(ch)) chineseChars++;
+    else otherChars++;
+  }
+  return Math.ceil(chineseChars / 1.5 + otherChars / 4);
+}</code></pre>
+
+<!-- ============================================================ -->
+<h2>七、序列化：让会话"活过"进程重启</h2>
+
+<h3>7.1 为什么需要序列化？</h3>
+
+<p>Web 应用中，用户刷新页面 → 进程重启 → 所有内存中的对话历史丢失。如果用户正在和 Agent 进行一个 30 轮的复杂任务，这会非常糟糕。</p>
+
+<p>解决方案：将 AgentState 序列化为 JSON，持久化到文件或数据库。</p>
+
+<pre><code>// 保存
+state.saveToFile('./sessions/latest.json');
+
+// 恢复
+const state = AgentState.loadFromFile('./sessions/latest.json');
+
+// 数据库存储（伪代码）
+await db.sessions.upsert({
+  id: state.sessionId,
+  data: state.toJSON(),
+  updatedAt: new Date(),
+});</code></pre>
+
+<h3>7.2 序列化要考虑的边界情况</h3>
+
+<ul>
+  <li><strong>向后兼容</strong>：如果 AgentState 加了新字段，旧 JSON 能正常加载吗？→ 用版本号标记</li>
+  <li><strong>安全性</strong>：JSON 中可能包含敏感信息（用户输入、工具调用参数）→ 加密或脱敏</li>
+  <li><strong>大小</strong>：长对话的 JSON 可能很大（数百 KB）→ 结合截断策略，定期清理</li>
+</ul>
+
+<!-- ============================================================ -->
+<h2>✏️ 自测题</h2>
+
+<form id="quiz" onsubmit="return false;">
+  <fieldset>
+    <legend>第 1 题：消息角色</legend>
+    <p>以下哪种消息序列是<strong>合法</strong>的（API 不会报错）？</p>
+    <label><input type="radio" name="q1" value="A"> A. system → user → tool → assistant</label><br>
+    <label><input type="radio" name="q1" value="B"> B. system → user → assistant(tool_calls) → tool → assistant</label><br>
+    <label><input type="radio" name="q1" value="C"> C. user → assistant(tool_calls) → user → tool</label><br>
+    <label><input type="radio" name="q1" value="D"> D. system → assistant → user → tool</label>
+    <p class="answer" data-for="q1" data-correct="B"></p>
+  </fieldset>
+
+  <fieldset>
+    <legend>第 2 题：截断策略选择</legend>
+    <p>一个客服 Agent 需要记住用户 30 分钟前提到的"我的订单号是 2024-X"，应该用哪种截断策略？</p>
+    <label><input type="radio" name="q2" value="A"> A. Sliding Window — 只保留最近 10 条消息，简单高效</label><br>
+    <label><input type="radio" name="q2" value="B"> B. Keep System + Last — 保留 system + 最近消息，按 token 限制</label><br>
+    <label><input type="radio" name="q2" value="C"> C. Summarize — 将早期消息压缩为摘要，保留关键信息</label><br>
+    <label><input type="radio" name="q2" value="D"> D. 不截断 — 用户信息很重要，不能丢失</label>
+    <p class="answer" data-for="q2" data-correct="C"></p>
+  </fieldset>
+
+  <fieldset>
+    <legend>第 3 题：tool_calls 成对原则</legend>
+    <p>截断时，为什么 assistant(tool_calls) 和 tool 消息必须成对保留或删除？</p>
+    <label><input type="radio" name="q3" value="A"> A. 为了节省 token — 成对删除效率更高</label><br>
+    <label><input type="radio" name="q3" value="B"> B. API 要求每个 tool 消息的 tool_call_id 必须对应一个已存在的 assistant tool_calls — 孤立消息会报错</label><br>
+    <label><input type="radio" name="q3" value="C"> C. 为了美观 — 消息列表看起来更整齐</label><br>
+    <label><input type="radio" name="q3" value="D"> D. 为了性能 — 不成对的消息会导致 LLM 推理变慢</label>
+    <p class="answer" data-for="q3" data-correct="B"></p>
+  </fieldset>
+
+  <fieldset>
+    <legend>第 4 题：system 消息的特殊性</legend>
+    <p>为什么 system 消息通常被独立存储，而不是混在历史消息数组中？</p>
+    <label><input type="radio" name="q4" value="A"> A. system 消息更长，单独存储节省空间</label><br>
+    <label><input type="radio" name="q4" value="B"> B. system 消息定义了 Agent 的行为规则，无论怎么截断历史都应该保留它 — 独立存储确保它永远不会被误删</label><br>
+    <label><input type="radio" name="q4" value="C"> C. system 消息是二进制格式，不能和文本消息混放</label><br>
+    <label><input type="radio" name="q4" value="D"> D. API 要求 system 消息必须单独发送</label>
+    <p class="answer" data-for="q4" data-correct="B"></p>
+  </fieldset>
+
+  <fieldset>
+    <legend>第 5 题：Token 估算</legend>
+    <p>以下关于 token 估算的说法，哪个是正确的？</p>
+    <label><input type="radio" name="q5" value="A"> A. 字符估算完全不准确，必须使用 tiktoken 精确计数</label><br>
+    <label><input type="radio" name="q5" value="B"> B. 中文字符比英文字符更"省" token — 同样长度的文本，中文的 token 数通常更少</label><br>
+    <label><input type="radio" name="q5" value="C"> C. 所有语言的 token 估算规则都一样：4 字符 ≈ 1 token</label><br>
+    <label><input type="radio" name="q5" value="D"> D. Token 估算完全不需要 — 直接让 API 报错时再截断就行</label>
+    <p class="answer" data-for="q5" data-correct="B"></p>
+  </fieldset>
+
+  <button type="button" onclick="checkAnswers()">提交答案</button>
+  <span id="score" style="margin-left:1rem; font-weight:600;"></span>
+</form>
+
+<!-- ============================================================ -->
+<h2>📝 课后动手</h2>
+
+<ol>
+  <li><strong>增加截断策略</strong>：在 <code>agent-state.ts</code> 中实现一个新的截断策略 <code>keep-last-n-rounds</code>，按"轮次"（user → assistant → tool → assistant 算 1 轮）而不是消息数来截断。</li>
+  <li><strong>接入 tiktoken</strong>：安装 <code>tiktoken</code> 包，替换字符估算为精确计数，对比两种方式的误差。</li>
+  <li><strong>实现会话恢复</strong>：修改 demo 让它在启动时检查是否有已保存的会话文件，如果有则恢复并继续对话。</li>
+</ol>
+
+<!-- ============================================================ -->
+<h2>🔗 下一步</h2>
+
+<p>
+  <a href="0018-error-handling.html">→ 第 18 课：错误处理与重试</a> — 当工具调用失败时，Agent 如何优雅地恢复？
+</p>
+
+<p style="margin-top:2rem; font-size:0.9rem; color:var(--text-secondary);">
+  🤔 <strong>追问提醒：</strong>如果对 Agent 状态管理、消息角色、截断策略有任何不清楚的地方，随时向 AI 老师追问。状态管理是 Agent 架构的基石——理解透彻了，后面的错误处理和规划能力才能顺利推进。
+</p>
+
+<!-- ============================================================ -->
+<!-- 自测题脚本 -->
+<script>
+function checkAnswers() {
+  const answers = document.querySelectorAll('.answer');
+  let correct = 0;
+  let total = 0;
+
+  answers.forEach(el => {
+    const name = el.dataset.for;
+    const correctValue = el.dataset.correct;
+    const selected = document.querySelector(`input[name="${name}"]:checked`);
+    total++;
+
+    if (selected && selected.value === correctValue) {
+      correct++;
+      el.innerHTML = '✅ 正确！';
+      el.style.color = 'var(--success-border)';
+    } else {
+      el.innerHTML = `❌ 正确答案是 ${correctValue}。详见下方解析。`;
+      el.style.color = '#ef4444';
+    }
+  });
+
+  document.getElementById('score').textContent = `${correct}/${total} 正确`;
+
+  // 显示详细解析
+  document.getElementById('explanations').style.display = 'block';
+}
+
+function showHint(qNum) {
+  const hints = {
+    1: '提示：回想消息角色关系图——tool 消息必须由 assistant 的 tool_calls "引入"。',
+    2: '提示：关键词是"30 分钟前"——用户需要跨时间的记忆。',
+    3: '提示：API 的输入校验规则是什么？',
+    4: '提示：截断的目的是删除旧消息，但 system 消息定义了 Agent 的"人格"。',
+    5: '提示：不同语言的 tokenizer 效率不同。中文一个字通常是一个完整的语义单元。',
+  };
+  alert(hints[qNum] || '没有更多提示');
+}
+</script>
+
+<!-- ============================================================ -->
+<!-- 答案详解 -->
+<div id="explanations" style="display:none;">
+<h2>📖 答案详解</h2>
+
+<h3>第 1 题：消息角色</h3>
+<p><strong>正确答案：B</strong></p>
+<p>合法序列必须是：system（可选）→ user → assistant（可能含 tool_calls）→ tool（如有 tool_calls）→ assistant → user → ... 循环。</p>
+<ul>
+  <li><strong>A 为什么错：</strong>tool 消息不能出现在 assistant 之前。tool 消息必须有 tool_call_id，这个 ID 来自 assistant 的 tool_calls。如果把 tool 放在 assistant 前面，API 找不到对应的 tool_call_id，直接报错。</li>
+  <li><strong>B 为什么对：</strong>完美符合规范。system 设定规则 → user 提问 → assistant 决定调用工具（含 tool_calls）→ tool 返回结果 → assistant 基于结果给出最终回答。这是最标准的 Agent 一轮对话流程。</li>
+  <li><strong>C 为什么错：</strong>assistant(tool_calls) 之后必须是 tool 消息，不能直接跳到 user。因为 assistant 说"我要调用工具 X"，你必须给工具执行结果（tool 消息），然后模型才能继续。跳过这步等于"承诺了但没兑现"。</li>
+  <li><strong>D 为什么错：</strong>assistant 不能出现在 user 之前。对话必须由用户发起（或 system 之后第一个是 user）。这就像你不能在别人提问之前就回答。</li>
+</ul>
+
+<h3>第 2 题：截断策略选择</h3>
+<p><strong>正确答案：C</strong></p>
+<p>客服场景的关键需求是"长期记忆"——用户可能在对话中随时提到早期信息（如订单号），Agent 需要能"记住"。</p>
+<ul>
+  <li><strong>A 为什么不对：</strong>Sliding Window 只保留最近 10 条消息，30 分钟前的订单号信息早就被丢弃了。当用户说"我之前提到的那个订单"，Agent 会一脸茫然。</li>
+  <li><strong>B 为什么不对：</strong>Keep System + Last 同样只保留最近消息，早期信息会被 token 限制触发截断而删除。它适合"当前任务上下文"而非"长期记忆"。</li>
+  <li><strong>C 为什么对：</strong>Summarize 将早期对话压缩为摘要。虽然摘要会丢失细节，但"订单号 2024-X"这类关键信息能在摘要中保留。当用户再次提及时，Agent 能从摘要中找到线索。这也是 RAG 的简化版——用摘要代替向量检索。</li>
+  <li><strong>D 为什么不对：</strong>不截断在短对话中可行，但客服对话可能持续数小时、数百轮。最终会超出上下文窗口，API 直接报错。而且不截断意味着每次请求都发送完整历史，token 成本线性增长。</li>
+</ul>
+
+<h3>第 3 题：tool_calls 成对原则</h3>
+<p><strong>正确答案：B</strong></p>
+<p>这是 API 的硬性约束。每个 tool 消息的 <code>tool_call_id</code> 字段必须能匹配到前面某条 assistant 消息的 <code>tool_calls[].id</code>。</p>
+<ul>
+  <li><strong>底层原因：</strong>LLM 在处理消息时，需要知道每条 tool 消息是"哪个工具调用的结果"。如果 tool_call_id 找不到对应的 assistant tool_calls，模型不知道这个结果从哪来的，无法正确推理。这就像你收到了一个快递但不知道是哪个订单的——你没法确认收货。</li>
+  <li><strong>为什么不是 A：</strong>虽然成对删除确实效率更高，但这不是主要原因。即使不成对删除效率低，只要 API 不报错，也可以接受。问题是 API 直接报错，不是因为效率。</li>
+  <li><strong>为什么不是 C：</strong>美观与 API 规范无关，API 不关心消息好不好看。</li>
+  <li><strong>为什么不是 D：</strong>不成对的消息不会导致推理变慢——它会导致 API 直接返回 400 错误，根本不会开始推理。</li>
+</ul>
+
+<h3>第 4 题：system 消息的特殊性</h3>
+<p><strong>正确答案：B</strong></p>
+<p>system 消息是 Agent 的"宪法"——它定义了 Agent 是谁、能做什么、不能做什么、如何输出。无论对话历史如何截断，这些规则都不能丢失。</p>
+<ul>
+  <li><strong>底层原因：</strong>如果 system 消息被截断删除了，Agent 会失去行为约束。比如 system 说"你只能回答技术问题，拒绝政治话题"，如果这条被删了，Agent 可能开始回答不该回答的问题。这不仅是功能问题，也是安全问题。</li>
+  <li><strong>为什么不是 A：</strong>system 消息通常并不比用户消息更长（一般 200-500 字），空间不是主要考虑。</li>
+  <li><strong>为什么不是 C：</strong>system 消息就是普通文本，没有任何二进制格式。</li>
+  <li><strong>为什么不是 D：</strong>API 不要求 system 消息单独发送——它就在 messages 数组的第一条。独立存储是我们的设计选择，不是 API 的要求。</li>
+</ul>
+
+<h3>第 5 题：Token 估算</h3>
+<p><strong>正确答案：B</strong></p>
+<p>中文的 tokenizer 效率确实更高。原因在于 tokenizer 的训练数据分布和分词粒度。</p>
+<ul>
+  <li><strong>底层原理：</strong>BPE（Byte Pair Encoding）tokenizer 在训练时，高频字符组合会合并为一个 token。中文每个字通常是一个独立的语义单元，且常用字频率高，所以往往 1-2 个中文字符 = 1 个 token。英文单词由多个字母组成，平均 4 个字符 = 1 个 token。这就是为什么同样长度的文本，中文的 token 数通常更少。</li>
+  <li><strong>为什么不是 A：</strong>字符估算虽然不精确（±20%），但对于截断判断完全够用。我们只需要在逼近上限前触发截断，不需要精确到个位数。就像你不需要精确知道油箱还剩多少升——知道大概还剩 1/4 就够你决定去加油了。</li>
+  <li><strong>为什么不是 C：</strong>不同语言的 tokenizer 效率差异很大。中文 ~1.5 字符/token，英文 ~4 字符/token，日文介于两者之间。统一用 4 字符/token 会严重低估中文文本的 token 数。</li>
+  <li><strong>为什么不是 D：</strong>等 API 报错再截断的问题是：① 用户体验差（突然报错 vs 平滑截断）；② 可能丢失最关键的消息（报错时已经来不及智能选择了）；③ 浪费了这次请求的 token 成本。</li>
+</ul>
+</div>
+
+<!-- ============================================================ -->
+<!-- 页脚导航 -->
+<hr style="margin-top:3rem; border-color:var(--border);">
+<nav style="display:flex; justify-content:space-between; align-items:center; font-size:0.9rem;">
+  <a href="0016-react-pattern.html">← 第 16 课：ReAct 模式</a>
+  <span>第 4 周 Day 2</span>
+  <a href="0018-error-handling.html">第 18 课：错误处理与重试 →</a>
+</nav>
+
+</body>
+</html>

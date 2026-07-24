@@ -2,7 +2,7 @@
 
 > 日期：2026-07-21 ~ 2026-07-25
 > 目标：深入理解 Agent 的决策循环，实现 ReAct 模式，让 Agent 能自主规划和执行多步任务
-> 完成度：1/5 🔄
+> 完成度：2/5 🔄
 
 ---
 
@@ -15,7 +15,7 @@
 | Day | 主题 | 文件 | 状态 |
 |-----|------|------|------|
 | Day 1 | ReAct 模式深入 | [0016-react-pattern.html](./0016-react-pattern.html) | ✅ |
-| Day 2 | Agent 状态管理 | 0017-agent-state.html | ⬜ |
+| Day 2 | Agent 状态管理 | [0017-agent-state.html](./0017-agent-state.html) | ✅ |
 | Day 3 | 错误处理与重试 | 0018-error-handling.html | ⬜ |
 | Day 4 | Agent 规划能力 | 0019-agent-planning.html | ⬜ |
 | Day 5 | 复盘 + Demo 3 | 0020-week4-review.html | ⬜ |
